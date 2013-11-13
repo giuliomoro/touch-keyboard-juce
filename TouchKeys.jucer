@@ -164,7 +164,6 @@
         <FILE id="Vr8O7B" name="IIRFilter.h" compile="0" resource="0" file="Source/Utility/IIRFilter.h"/>
         <FILE id="cjfhQS" name="LineSegment.h" compile="0" resource="0" file="Source/Utility/LineSegment.h"/>
         <FILE id="cN1QXR" name="Node.h" compile="0" resource="0" file="Source/Utility/Node.h"/>
-        <FILE id="i3oBpY" name="Recorder.h" compile="0" resource="0" file="Source/Utility/Recorder.h"/>
         <FILE id="efXGfp" name="Scheduler.cpp" compile="1" resource="0" file="Source/Utility/Scheduler.cpp"/>
         <FILE id="w0DA4m" name="Scheduler.h" compile="0" resource="0" file="Source/Utility/Scheduler.h"/>
         <FILE id="kI95eE" name="TimerNode.cpp" compile="1" resource="0" file="Source/Utility/TimerNode.cpp"/>
@@ -250,7 +249,7 @@
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" osxSDK="default" osxCompatibility="default" osxArchitecture="64BitIntel"
                        isDebug="1" optimisation="1" targetName="TouchKeys"/>
-        <CONFIGURATION name="Release" osxSDK="default" osxCompatibility="default" osxArchitecture="64BitIntel"
+        <CONFIGURATION name="Release" osxSDK="default" osxCompatibility="10.6 SDK" osxArchitecture="64BitUniversal"
                        isDebug="0" optimisation="2" targetName="TouchKeys"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
