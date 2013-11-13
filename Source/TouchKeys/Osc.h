@@ -96,18 +96,42 @@ protected:
 class OscReceiver : public OscMessageSource
 {
 public:
-	OscReceiver(lo_server_thread thread, const char *prefix) {
-		oscServerThread_ = thread;
-		globalPrefix_.assign(prefix);
+	OscReceiver(const int port, const char *prefix) {
+        globalPrefix_.assign(prefix);
 		useThru_ = false;
-		lo_server_thread_add_method(thread, NULL, NULL, OscReceiver::staticHandler, (void *)this);
-	}	
+        
+        // Only start the server if the port is positive
+        if(port > 0) {
+            char portStr[16];
+            snprintf(portStr, 16, "%d", port);
+            
+            oscServerThread_ = lo_server_thread_new(portStr, staticErrorHandler);
+            if(oscServerThread_ != 0) {
+                lo_server_thread_add_method(oscServerThread_, NULL, NULL, OscReceiver::staticHandler, (void *)this);
+                lo_server_thread_start(oscServerThread_);
+            }
+        }
+        else
+            oscServerThread_ = 0;
+	}
 	
 	void setThruAddress(lo_address thruAddr, const char *prefix) {
 		thruAddress_ = thruAddr;
 		thruPrefix_.assign(prefix);
 		useThru_ = true;
 	}
+    
+    // Check whether the server is operating
+    bool running() { return (oscServerThread_ != 0); }
+    
+    // Get or set the current port. Setting the port requires restarting the server.
+    // setPort() returns true on success; false if an error occurred (which will leave the server not running).
+    const int port() {
+        if(oscServerThread_ == 0)
+            return 0;
+        return lo_server_get_port(oscServerThread_);
+    }
+    bool setPort(const int port);
 	
 	// staticHandler() is called by liblo with new OSC messages.  Its only function is to pass control
 	// to the object-specific handler method, which has access to all internal variables.
@@ -115,11 +139,19 @@ public:
 	int handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message msg, void *data);
 	static int staticHandler(const char *path, const char *types, lo_arg **argv, int argc, lo_message msg, void *userData) {
 		return ((OscReceiver *)userData)->handler(path, types, argv, argc, msg, userData);
-	}	
+	}
+    
+    // staticErrorHandler() is called by liblo when an error occurs. For now, ignore errors.
+    
+    static void staticErrorHandler(int num, const char *msg, const char *path) {}
 	
 	~OscReceiver() {
-		lo_server_thread_del_method(oscServerThread_, NULL, NULL);
-	}	
+        if(oscServerThread_ != 0) {
+            lo_server_thread_del_method(oscServerThread_, NULL, NULL);
+            lo_server_thread_stop(oscServerThread_);
+            lo_server_thread_free(oscServerThread_);
+        }
+	}
 	
 private:
 	lo_server_thread oscServerThread_;		// Thread that handles received OSC messages

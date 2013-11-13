@@ -379,6 +379,37 @@ int OscReceiver::handler(const char *path, const char *types, lo_arg **argv, int
     return 1;
 }
 
+// Set the current port for the OSC receiver object. This implies stopping and
+// restarting the server. Returns true on success.
+bool OscReceiver::setPort(const int port)
+{
+    // Stop existing server if running
+    if(oscServerThread_ != 0) {
+        lo_server_thread_del_method(oscServerThread_, NULL, NULL);
+        lo_server_thread_stop(oscServerThread_);
+        lo_server_thread_free(oscServerThread_);
+        oscServerThread_ = 0;
+    }
+    
+    // Port value 0 indicates to turn off; this always succeeds.
+    if(port == 0) {
+        return true;
+    }
+    
+    // Now create a new one on the new port
+    char portStr[16];
+    snprintf(portStr, 16, "%d", port);
+    
+    oscServerThread_ = lo_server_thread_new(portStr, staticErrorHandler);
+    if(oscServerThread_ != 0) {
+        lo_server_thread_add_method(oscServerThread_, NULL, NULL, OscReceiver::staticHandler, (void *)this);
+        lo_server_thread_start(oscServerThread_);
+        return true;
+    }
+    
+    return false;
+}
+
 #pragma mark OscTransmitter
 
 // Add a new transmit address.  Returns the index of the new address.

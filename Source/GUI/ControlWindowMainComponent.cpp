@@ -407,6 +407,7 @@ void ControlWindowMainComponent::buttonClicked (Button* buttonThatWasClicked)
     else if (buttonThatWasClicked == oscInputEnableButton)
     {
         //[UserButtonCode_oscInputEnableButton] -- add your button handler code here..
+        controller_->oscReceiveSetEnabled(oscInputEnableButton->getToggleState());
         //[/UserButtonCode_oscInputEnableButton]
     }
     else if (buttonThatWasClicked == playLogButton)
@@ -454,6 +455,10 @@ void ControlWindowMainComponent::textEditorReturnKeyPressed(TextEditor &editor)
         return;
     if(&editor == oscHostTextEditor || &editor == oscPortTextEditor)
         updateOscHostPort();
+    else if(&editor == oscInputPortTextEditor) {
+        int port = atoi(oscInputPortTextEditor->getText().toUTF8());
+        controller_->oscReceiveSetPort(port);
+    }
 }
 
 void ControlWindowMainComponent::textEditorEscapeKeyPressed(TextEditor &editor)
@@ -568,6 +573,7 @@ void ControlWindowMainComponent::synchronize() {
     // Update OSC status
     oscEnableButton->setToggleState(controller_->oscTransmitEnabled(), dontSendNotification);
     oscEnableRawButton->setToggleState(controller_->oscTransmitRawDataEnabled(), dontSendNotification);
+    oscInputEnableButton->setToggleState(controller_->oscReceiveEnabled(), dontSendNotification);
 
     // Update the OSC fields only if the text editors aren't active
     if(!oscHostTextEditor->hasKeyboardFocus(true) && !oscPortTextEditor->hasKeyboardFocus(true)) {
@@ -584,6 +590,10 @@ void ControlWindowMainComponent::synchronize() {
             oscHostTextEditor->setText(lo_address_get_hostname(firstAddress), false);
             oscPortTextEditor->setText(lo_address_get_port(firstAddress), false);
         }
+    }
+    if(!oscInputPortTextEditor->hasKeyboardFocus(true)) {
+        int port = controller_->oscReceivePort();
+        oscInputPortTextEditor->setText(String(port), false);
     }
 
     // Set the octave button
