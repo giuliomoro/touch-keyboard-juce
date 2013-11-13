@@ -37,10 +37,13 @@ const char* kNoteNamesAlternate[12] = {"C", "Db", "D ", "Eb", "E", "F", "Gb", "G
 MainApplicationController::MainApplicationController()
 : midiInputController_(keyboardController_),
   touchkeyController_(keyboardController_),
+  oscReceiveEnabled_(false),
+  oscReceiver_(0, ""),
   touchkeyErrorOccurred_(false),
   touchkeyErrorMessage_(""),
   touchkeyAutodetecting_(false),
   touchkeyStandaloneModeEnabled_(false),
+  oscReceivePort_(kDefaultOscReceivePort),
   experimentalMappingsEnabled_(false),
 #ifndef TOUCHKEYS_NO_GUI
   keyboardDisplayWindow_(0),
@@ -58,9 +61,6 @@ MainApplicationController::MainApplicationController()
     keyboardController_.setMidiOutputController(&midiOutputController_);
     keyboardController_.setGUI(&keyboardDisplay_);
 	midiInputController_.setMidiOutputController(&midiOutputController_);
-    
-    // Set the initial mode of the MIDI input controller
-    //segment = midiSegmentAdd();
     
 	// Set the initial verbosity level of the TouchKeys devices
 	touchkeyController_.setVerboseLevel(2);

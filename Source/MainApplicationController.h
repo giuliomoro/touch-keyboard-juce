@@ -47,6 +47,7 @@
 
 const char kDefaultOscTransmitHost[] = "127.0.0.1";
 const char kDefaultOscTransmitPort[] = "8000";
+const int kDefaultOscReceivePort = 8001;
 
 class InterfaceSelectorComponent;
 
@@ -226,6 +227,40 @@ public:
         return oscTransmitter_.clearAddresses();
     }
     
+    // OSC Input (receiver) methods
+    // Enable or disable on the OSC receive, and report is status
+    bool oscReceiveEnabled() {
+        return oscReceiveEnabled_;
+    }
+    // Enable method returns true on success (false only if it was
+    // unable to set the port)
+    bool oscReceiveSetEnabled(bool enable) {
+        if(enable && !oscReceiveEnabled_) {
+            oscReceiveEnabled_ = true;
+            return oscReceiver_.setPort(oscReceivePort_);
+        }
+        else if(!enable && oscReceiveEnabled_) {
+            oscReceiveEnabled_ = false;
+            return oscReceiver_.setPort(0);
+        }
+        return true;
+    }
+    
+    // Whether the OSC server is running (false means couldn't open port)
+    bool oscReceiveRunning() {
+        return oscReceiver_.running();
+    }
+    // Get the current OSC receive port
+    int oscReceivePort() {
+        return oscReceivePort_;
+    }
+    // Set the current OSC receive port (returns true on success)
+    bool oscReceiveSetPort(int port) {
+        oscReceivePort_ = port;
+        return oscReceiver_.setPort(port);
+    }
+    
+    
     // *** Display methods ***
     
     KeyboardDisplay& keyboardDisplay() { return keyboardDisplay_; }
@@ -282,12 +317,17 @@ private:
     MidiOutputController midiOutputController_;
     TouchkeyDevice touchkeyController_;
     OscTransmitter oscTransmitter_;
+    OscReceiver oscReceiver_;
     
     bool touchkeyErrorOccurred_;
     std::string touchkeyErrorMessage_;
     bool touchkeyAutodetecting_;
     bool touchkeyStandaloneModeEnabled_;
-
+    
+    // OSC information
+    bool oscReceiveEnabled_;
+    int oscReceivePort_;
+    
     // Mapping objects
     bool experimentalMappingsEnabled_;
     
