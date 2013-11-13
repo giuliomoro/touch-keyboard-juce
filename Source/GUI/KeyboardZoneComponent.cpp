@@ -30,6 +30,7 @@
 KeyboardZoneComponent::KeyboardZoneComponent ()
     : controller_(0), keyboardSegment_(0)
 {
+    addAndMakeVisible (mappingListComponent = new MappingListComponent());
     addAndMakeVisible (midiOutputGroupComponent = new GroupComponent ("MIDI input group",
                                                                       "MIDI Output"));
 
@@ -126,20 +127,6 @@ KeyboardZoneComponent::KeyboardZoneComponent ()
     rangeHighComboBox->setTextWhenNoChoicesAvailable ("(no choices)");
     rangeHighComboBox->addListener (this);
 
-    addAndMakeVisible (useAftertouchButton = new ToggleButton ("use aftertouch button"));
-    useAftertouchButton->setButtonText ("Use keyboard aftertouch");
-    useAftertouchButton->addListener (this);
-    useAftertouchButton->setToggleState (true, dontSendNotification);
-
-    addAndMakeVisible (usePitchWheelButton = new ToggleButton ("use aftertouch button"));
-    usePitchWheelButton->setButtonText ("Use keyboard pitchwheel");
-    usePitchWheelButton->addListener (this);
-    usePitchWheelButton->setToggleState (true, dontSendNotification);
-
-    addAndMakeVisible (useControllersButton = new ToggleButton ("use aftertouch button"));
-    useControllersButton->setButtonText ("Use keyboard controllers");
-    useControllersButton->addListener (this);
-
     addAndMakeVisible (label6 = new Label ("new label",
                                            "Transpose:"));
     label6->setFont (Font (15.00f, Font::plain));
@@ -157,7 +144,6 @@ KeyboardZoneComponent::KeyboardZoneComponent ()
     midiOutputTransposeEditor->setPopupMenuEnabled (true);
     midiOutputTransposeEditor->setText (String::empty);
 
-    addAndMakeVisible (mappingListComponent = new MappingListComponent());
     addAndMakeVisible (label8 = new Label ("new label",
                                            "Mappings:"));
     label8->setFont (Font (15.00f, Font::plain));
@@ -169,6 +155,27 @@ KeyboardZoneComponent::KeyboardZoneComponent ()
     addAndMakeVisible (addMappingButton = new TextButton ("add mapping button"));
     addMappingButton->setButtonText ("Add Mapping...");
     addMappingButton->addListener (this);
+
+    addAndMakeVisible (label9 = new Label ("new label",
+                                           "Pitchwheel range:"));
+    label9->setFont (Font (15.00f, Font::plain));
+    label9->setJustificationType (Justification::centredLeft);
+    label9->setEditable (false, false, false);
+    label9->setColour (TextEditor::textColourId, Colours::black);
+    label9->setColour (TextEditor::backgroundColourId, Colour (0x00000000));
+
+    addAndMakeVisible (pitchWheelRangeEditor = new TextEditor ("pitch wheel range editor"));
+    pitchWheelRangeEditor->setMultiLine (false);
+    pitchWheelRangeEditor->setReturnKeyStartsNewLine (false);
+    pitchWheelRangeEditor->setReadOnly (false);
+    pitchWheelRangeEditor->setScrollbarsShown (true);
+    pitchWheelRangeEditor->setCaretVisible (true);
+    pitchWheelRangeEditor->setPopupMenuEnabled (true);
+    pitchWheelRangeEditor->setText (String::empty);
+
+    addAndMakeVisible (keyboardControllersButton = new TextButton ("keyboard controllers button"));
+    keyboardControllersButton->setButtonText ("Keyboard Controllers...");
+    keyboardControllersButton->addListener (this);
 
 
     //[UserPreSize]
@@ -194,7 +201,9 @@ KeyboardZoneComponent::KeyboardZoneComponent ()
     midiOutputChannelLowEditor->addListener(this);
     midiOutputChannelHighEditor->addListener(this);
     midiOutputTransposeEditor->addListener(this);
+    pitchWheelRangeEditor->addListener(this);
     addMappingButton->setTriggeredOnMouseDown(true);
+    keyboardControllersButton->setTriggeredOnMouseDown(true);
     //[/Constructor]
 }
 
@@ -203,6 +212,7 @@ KeyboardZoneComponent::~KeyboardZoneComponent()
     //[Destructor_pre]. You can add your own custom destruction code here..
     //[/Destructor_pre]
 
+    mappingListComponent = nullptr;
     midiOutputGroupComponent = nullptr;
     midiOutputDeviceComboBox = nullptr;
     label4 = nullptr;
@@ -217,14 +227,13 @@ KeyboardZoneComponent::~KeyboardZoneComponent()
     label7 = nullptr;
     rangeLowComboBox = nullptr;
     rangeHighComboBox = nullptr;
-    useAftertouchButton = nullptr;
-    usePitchWheelButton = nullptr;
-    useControllersButton = nullptr;
     label6 = nullptr;
     midiOutputTransposeEditor = nullptr;
-    mappingListComponent = nullptr;
     label8 = nullptr;
     addMappingButton = nullptr;
+    label9 = nullptr;
+    pitchWheelRangeEditor = nullptr;
+    keyboardControllersButton = nullptr;
 
 
     //[Destructor]. You can add your own custom destruction code here..
@@ -245,6 +254,7 @@ void KeyboardZoneComponent::paint (Graphics& g)
 
 void KeyboardZoneComponent::resized()
 {
+    mappingListComponent->setBounds (0, 168, 552, 260);
     midiOutputGroupComponent->setBounds (200, 8, 344, 128);
     midiOutputDeviceComboBox->setBounds (264, 32, 264, 24);
     label4->setBounds (208, 32, 55, 24);
@@ -259,14 +269,13 @@ void KeyboardZoneComponent::resized()
     label7->setBounds (88, 32, 32, 24);
     rangeLowComboBox->setBounds (24, 32, 64, 24);
     rangeHighComboBox->setBounds (112, 32, 64, 24);
-    useAftertouchButton->setBounds (24, 56, 152, 24);
-    usePitchWheelButton->setBounds (24, 80, 152, 24);
-    useControllersButton->setBounds (24, 104, 152, 24);
     label6->setBounds (392, 96, 80, 24);
     midiOutputTransposeEditor->setBounds (472, 96, 56, 24);
-    mappingListComponent->setBounds (0, 168, 552, 260);
     label8->setBounds (8, 144, 88, 24);
     addMappingButton->setBounds (440, 144, 104, 20);
+    label9->setBounds (24, 68, 104, 24);
+    pitchWheelRangeEditor->setBounds (128, 68, 48, 24);
+    keyboardControllersButton->setBounds (24, 100, 152, 20);
     //[UserResized] Add your own custom resize handling here..
     //[/UserResized]
 }
@@ -337,33 +346,17 @@ void KeyboardZoneComponent::buttonClicked (Button* buttonThatWasClicked)
         keyboardSegment_->setVoiceStealingEnabled(stealing);
         //[/UserButtonCode_midiOutputVoiceStealingButton]
     }
-    else if (buttonThatWasClicked == useAftertouchButton)
-    {
-        //[UserButtonCode_useAftertouchButton] -- add your button handler code here..
-        bool aftertouch = useAftertouchButton->getToggleState();
-        keyboardSegment_->setUsesKeyboardChannelPressure(aftertouch);
-        //[/UserButtonCode_useAftertouchButton]
-    }
-    else if (buttonThatWasClicked == usePitchWheelButton)
-    {
-        //[UserButtonCode_usePitchWheelButton] -- add your button handler code here..
-        bool pitchwheel = usePitchWheelButton->getToggleState();
-        keyboardSegment_->setUsesKeyboardPitchWheel(pitchwheel);
-        //[/UserButtonCode_usePitchWheelButton]
-    }
-    else if (buttonThatWasClicked == useControllersButton)
-    {
-        //[UserButtonCode_useControllersButton] -- add your button handler code here..
-        bool controllers = useControllersButton->getToggleState();
-        keyboardSegment_->setUsesKeyboardMIDIControllers(controllers);
-        //[/UserButtonCode_useControllersButton]
-    }
     else if (buttonThatWasClicked == addMappingButton)
     {
         //[UserButtonCode_addMappingButton] -- add your button handler code here..
-        // TODO: add new mapping
         createMappingListPopup();
         //[/UserButtonCode_addMappingButton]
+    }
+    else if (buttonThatWasClicked == keyboardControllersButton)
+    {
+        //[UserButtonCode_keyboardControllersButton] -- add your button handler code here..
+        createKeyboardControllerPopup();
+        //[/UserButtonCode_keyboardControllersButton]
     }
 
     //[UserbuttonClicked_Post]
@@ -407,6 +400,10 @@ void KeyboardZoneComponent::textEditorReturnKeyPressed(TextEditor &editor)
         if(transpose > 48)
             transpose = 48;
         keyboardSegment_->setOutputTransposition(transpose);
+    }
+    else if(&editor == pitchWheelRangeEditor) {
+        float range = atof(pitchWheelRangeEditor->getText().toUTF8());
+        keyboardSegment_->setMidiPitchWheelRange(range);
     }
 }
 
@@ -476,6 +473,12 @@ void KeyboardZoneComponent::synchronize(bool forceUpdates)
     }
 
     // Update text editors
+    if(!pitchWheelRangeEditor->hasKeyboardFocus(true) || forceUpdates) {
+        float value = keyboardSegment_->midiPitchWheelRange();
+        char st[16];
+        snprintf(st, 16, "%.1f", value);
+        pitchWheelRangeEditor->setText(st);
+    }
     if(!midiOutputChannelLowEditor->hasKeyboardFocus(true) || forceUpdates) {
         int rangeLow = keyboardSegment_->outputChannelLowest() + 1; // 0-15 --> 1-16
         midiOutputChannelLowEditor->setText(String(rangeLow));
@@ -498,9 +501,9 @@ void KeyboardZoneComponent::synchronize(bool forceUpdates)
     }
 
     // Update buttons
-    useAftertouchButton->setToggleState(keyboardSegment_->usesKeyboardChannnelPressure(), dontSendNotification);
-    usePitchWheelButton->setToggleState(keyboardSegment_->usesKeyboardPitchWheel(), dontSendNotification);
-    useControllersButton->setToggleState(keyboardSegment_->usesKeyboardMIDIControllers(), dontSendNotification);
+    //useAftertouchButton->setToggleState(keyboardSegment_->usesKeyboardChannnelPressure(), dontSendNotification);
+    //usePitchWheelButton->setToggleState(keyboardSegment_->usesKeyboardPitchWheel(), dontSendNotification);
+    //useControllersButton->setToggleState(keyboardSegment_->usesKeyboardMIDIControllers(), dontSendNotification);
 
     // Update the mapping list
     mappingListComponent->synchronize();
@@ -587,6 +590,25 @@ void KeyboardZoneComponent::createMappingListPopup()
                        ModalCallbackFunction::forComponent(staticMappingChosenCallback, this));
 }
 
+// Create a popup menu allowing selection of which controllers to retransmit
+void KeyboardZoneComponent::createKeyboardControllerPopup()
+{
+    if(controller_ == 0 || keyboardSegment_ == 0)
+        return;
+    
+    PopupMenu menu;
+    
+    menu.addItem(MidiKeyboardSegment::kControlPitchWheel, "Retransmit from Keyboard:", false);
+    menu.addSeparator();
+    menu.addItem(MidiKeyboardSegment::kControlPitchWheel, "Pitch Wheel", true, keyboardSegment_->usesKeyboardPitchWheel());
+    menu.addItem(MidiKeyboardSegment::kControlChannelAftertouch, "Aftertouch", true, keyboardSegment_->usesKeyboardChannnelPressure());
+    menu.addItem(1, "CC 1 (Mod Wheel)", true, keyboardSegment_->usesKeyboardModWheel());
+    menu.addItem(kKeyboardControllerRetransmitOthers, "Other Controllers", true, keyboardSegment_->usesKeyboardMIDIControllers());
+    
+    menu.showMenuAsync(PopupMenu::Options().withTargetComponent(keyboardControllersButton),
+                       ModalCallbackFunction::forComponent(staticKeyboardControllerChosenCallback, this));
+}
+
 // Called from the popup menu, indicating the selected item
 void KeyboardZoneComponent::mappingChosenCallback(int result)
 {
@@ -600,6 +622,27 @@ void KeyboardZoneComponent::mappingChosenCallback(int result)
         if(newFactory != 0) {
             keyboardSegment_->addMappingFactory(newFactory, true);
         }
+    }
+}
+
+// Called from the popup menu, indicated selected controller
+void KeyboardZoneComponent::keyboardControllerChosenCallback(int result)
+{
+    if(controller_ == 0 || keyboardSegment_ == 0)
+        return;
+    
+    // Enable or disable retransmitting specific messages
+    if(result == MidiKeyboardSegment::kControlPitchWheel) {
+        keyboardSegment_->setUsesKeyboardPitchWheel(!keyboardSegment_->usesKeyboardPitchWheel());
+    }
+    else if(result == MidiKeyboardSegment::kControlChannelAftertouch) {
+        keyboardSegment_->setUsesKeyboardChannelPressure(!keyboardSegment_->usesKeyboardChannnelPressure());
+    }
+    else if(result == 1) { // ModWheel == CC 1
+        keyboardSegment_->setUsesKeyboardModWheel(!keyboardSegment_->usesKeyboardModWheel());
+    }
+    else if(result == kKeyboardControllerRetransmitOthers) {
+        keyboardSegment_->setUsesKeyboardMIDIControllers(!keyboardSegment_->usesKeyboardMIDIControllers());
     }
 }
 //[/MiscUserCode]
@@ -620,6 +663,9 @@ BEGIN_JUCER_METADATA
                  snapPixels="8" snapActive="1" snapShown="1" overlayOpacity="0.330"
                  fixedSize="1" initialWidth="552" initialHeight="400">
   <BACKGROUND backgroundColour="ffd2d2d2"/>
+  <JUCERCOMP name="mapping list" id="4d5d007374cdad00" memberName="mappingListComponent"
+             virtualName="MappingListComponent" explicitFocusOrder="0" pos="0 168 552 260"
+             sourceFile="" constructorParams=""/>
   <GROUPCOMPONENT name="MIDI input group" id="49eee95279c0cc95" memberName="midiOutputGroupComponent"
                   virtualName="" explicitFocusOrder="0" pos="200 8 344 128" title="MIDI Output"/>
   <COMBOBOX name="MIDI input combo box" id="244410f02f6c1c72" memberName="midiOutputDeviceComboBox"
@@ -672,15 +718,6 @@ BEGIN_JUCER_METADATA
   <COMBOBOX name="range high combo combo box" id="7cba07ed947e85b2" memberName="rangeHighComboBox"
             virtualName="" explicitFocusOrder="0" pos="112 32 64 24" editable="1"
             layout="33" items="" textWhenNonSelected="" textWhenNoItems="(no choices)"/>
-  <TOGGLEBUTTON name="use aftertouch button" id="bd917dd46e68ffa3" memberName="useAftertouchButton"
-                virtualName="" explicitFocusOrder="0" pos="24 56 152 24" buttonText="Use keyboard aftertouch"
-                connectedEdges="0" needsCallback="1" radioGroupId="0" state="1"/>
-  <TOGGLEBUTTON name="use aftertouch button" id="479868bf74ee0a1a" memberName="usePitchWheelButton"
-                virtualName="" explicitFocusOrder="0" pos="24 80 152 24" buttonText="Use keyboard pitchwheel"
-                connectedEdges="0" needsCallback="1" radioGroupId="0" state="1"/>
-  <TOGGLEBUTTON name="use aftertouch button" id="e3b778166fac4e5f" memberName="useControllersButton"
-                virtualName="" explicitFocusOrder="0" pos="24 104 152 24" buttonText="Use keyboard controllers"
-                connectedEdges="0" needsCallback="1" radioGroupId="0" state="0"/>
   <LABEL name="new label" id="fd730bc972dffbdb" memberName="label6" virtualName=""
          explicitFocusOrder="0" pos="392 96 80 24" edTextCol="ff000000"
          edBkgCol="0" labelText="Transpose:" editableSingleClick="0" editableDoubleClick="0"
@@ -690,9 +727,6 @@ BEGIN_JUCER_METADATA
               virtualName="" explicitFocusOrder="0" pos="472 96 56 24" initialText=""
               multiline="0" retKeyStartsLine="0" readonly="0" scrollbars="1"
               caret="1" popupmenu="1"/>
-  <JUCERCOMP name="mapping list" id="4d5d007374cdad00" memberName="mappingListComponent"
-             virtualName="MappingListComponent" explicitFocusOrder="0" pos="0 168 552 260"
-             sourceFile="" constructorParams=""/>
   <LABEL name="new label" id="759d38e4603010a8" memberName="label8" virtualName=""
          explicitFocusOrder="0" pos="8 144 88 24" edTextCol="ff000000"
          edBkgCol="0" labelText="Mappings:" editableSingleClick="0" editableDoubleClick="0"
@@ -700,6 +734,18 @@ BEGIN_JUCER_METADATA
          bold="0" italic="0" justification="33"/>
   <TEXTBUTTON name="add mapping button" id="a5fd2f0afd2d74b2" memberName="addMappingButton"
               virtualName="" explicitFocusOrder="0" pos="440 144 104 20" buttonText="Add Mapping..."
+              connectedEdges="0" needsCallback="1" radioGroupId="0"/>
+  <LABEL name="new label" id="dbad09f5c5953d5f" memberName="label9" virtualName=""
+         explicitFocusOrder="0" pos="24 68 104 24" edTextCol="ff000000"
+         edBkgCol="0" labelText="Pitchwheel range:" editableSingleClick="0"
+         editableDoubleClick="0" focusDiscardsChanges="0" fontname="Default font"
+         fontsize="15" bold="0" italic="0" justification="33"/>
+  <TEXTEDITOR name="pitch wheel range editor" id="593d42c6501420c1" memberName="pitchWheelRangeEditor"
+              virtualName="" explicitFocusOrder="0" pos="128 68 48 24" initialText=""
+              multiline="0" retKeyStartsLine="0" readonly="0" scrollbars="1"
+              caret="1" popupmenu="1"/>
+  <TEXTBUTTON name="keyboard controllers button" id="a1ebab19a3375b93" memberName="keyboardControllersButton"
+              virtualName="" explicitFocusOrder="0" pos="24 100 152 20" buttonText="Keyboard Controllers..."
               connectedEdges="0" needsCallback="1" radioGroupId="0"/>
 </JUCER_COMPONENT>
 

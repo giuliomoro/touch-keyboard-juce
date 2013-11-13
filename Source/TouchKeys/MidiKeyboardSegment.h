@@ -122,13 +122,23 @@ public:
         if(!use)
             controllerValues_[kControlPitchWheel] = 8192;
     }
+
+    bool usesKeyboardModWheel() { return usesKeyboardModWheel_; }
+    void setUsesKeyboardModWheel(bool use) {
+        usesKeyboardModWheel_ = use;
+        // Reset to default if not using
+        if(!use) {
+            controllerValues_[1] = 0;
+        }
+    }
+    
     
     bool usesKeyboardMIDIControllers() { return usesKeyboardMidiControllers_; }
     void setUsesKeyboardMIDIControllers(bool use) {
         usesKeyboardMidiControllers_ = use;
         // Reset to default if not using
         if(!use) {
-            for(int i = 0; i < 128; i++)
+            for(int i = 2; i < 128; i++)
                 controllerValues_[i] = 0;
         }
     }
@@ -263,6 +273,7 @@ private:
     bool touchkeyStandaloneMode_;                   // Whether we emulate MIDI data from TouchKeys
     bool usesKeyboardChannelPressure_;              // Whether this segment passes aftertouch from the keyboard
     bool usesKeyboardPitchWheel_;                   // Whether this segment passes pitchwheel from the keyboard
+    bool usesKeyboardModWheel_;                     // Whether this segment passes CC 1 (mod wheel) from keyboard
     bool usesKeyboardMidiControllers_;              // Whether this segment passes other controllers
     float pitchWheelRange_;                         // Range of MIDI pitch wheel (in semitones)
     

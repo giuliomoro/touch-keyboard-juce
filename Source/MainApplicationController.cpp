@@ -246,7 +246,7 @@ MidiKeyboardSegment* MainApplicationController::midiSegmentAdd() {
     newSegment->setVoiceStealingEnabled(false);
     newSegment->enableAllChannels();
     newSegment->setOutputTransposition(0);
-    newSegment->setUsesKeyboardChannelPressure(true);
+    newSegment->setUsesKeyboardPitchWheel(true);
     
     // Enable standalone mode on the new segment if generally enabled
     if(touchkeyStandaloneModeEnabled_)

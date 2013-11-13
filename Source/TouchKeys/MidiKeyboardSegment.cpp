@@ -42,7 +42,8 @@ MidiKeyboardSegment::MidiKeyboardSegment(PianoKeyboard& keyboard)
   mode_(ModeOff), channelMask_(0),
   noteMin_(0), noteMax_(127), outputChannelLowest_(0), outputTransposition_(0),
   damperPedalEnabled_(true), touchkeyStandaloneMode_(false),
-  usesKeyboardChannelPressure_(false), usesKeyboardPitchWheel_(true), usesKeyboardMidiControllers_(true),
+  usesKeyboardChannelPressure_(false), usesKeyboardPitchWheel_(false),
+  usesKeyboardModWheel_(false), usesKeyboardMidiControllers_(false),
   pitchWheelRange_(2.0), useVoiceStealing_(false)
 {
 	// Register for OSC messages from the internal keyboard source
@@ -133,7 +134,12 @@ void MidiKeyboardSegment::setNoteRange(int minNote, int maxNote) {
 
 // Set the MIDI pitch wheel range
 void MidiKeyboardSegment::setMidiPitchWheelRange(float semitones, bool send) {
-    pitchWheelRange_ = semitones;
+    if(semitones < 0)
+        pitchWheelRange_ = 0;
+    else if(semitones > 48.0)
+        pitchWheelRange_ = 48.0;
+    else
+        pitchWheelRange_ = semitones;
     
     if(send)
         sendMidiPitchWheelRange();
@@ -302,7 +308,8 @@ void MidiKeyboardSegment::midiHandlerMethod(MidiInput* source, const MidiMessage
         }
         
         if(message.getControllerNumber() >= 0 && message.getControllerNumber() < 128) {
-            if(usesKeyboardMidiControllers_) {
+            if((message.getControllerNumber() == 1 && usesKeyboardModWheel_) ||
+               (message.getControllerNumber() != 1 && usesKeyboardMidiControllers_)) {
                 controllerValues_[message.getControllerNumber()] = message.getControllerValue();
                 handleControlChangeRetransit(message.getControllerNumber(), message);
             }
