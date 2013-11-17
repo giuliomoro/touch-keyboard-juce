@@ -174,7 +174,7 @@ KeyboardZoneComponent::KeyboardZoneComponent ()
     pitchWheelRangeEditor->setText (String::empty);
 
     addAndMakeVisible (keyboardControllersButton = new TextButton ("keyboard controllers button"));
-    keyboardControllersButton->setButtonText ("Keyboard Controllers...");
+    keyboardControllersButton->setButtonText (" Controllers...");
     keyboardControllersButton->addListener (this);
 
 
@@ -595,16 +595,18 @@ void KeyboardZoneComponent::createKeyboardControllerPopup()
 {
     if(controller_ == 0 || keyboardSegment_ == 0)
         return;
-    
+
     PopupMenu menu;
-    
+
+    menu.addItem(kKeyboardControllerSendPitchWheelRange, "Send Pitchwheel Range RPN", true, false);
+    menu.addSeparator();    
     menu.addItem(MidiKeyboardSegment::kControlPitchWheel, "Retransmit from Keyboard:", false);
     menu.addSeparator();
     menu.addItem(MidiKeyboardSegment::kControlPitchWheel, "Pitch Wheel", true, keyboardSegment_->usesKeyboardPitchWheel());
     menu.addItem(MidiKeyboardSegment::kControlChannelAftertouch, "Aftertouch", true, keyboardSegment_->usesKeyboardChannnelPressure());
     menu.addItem(1, "CC 1 (Mod Wheel)", true, keyboardSegment_->usesKeyboardModWheel());
     menu.addItem(kKeyboardControllerRetransmitOthers, "Other Controllers", true, keyboardSegment_->usesKeyboardMIDIControllers());
-    
+
     menu.showMenuAsync(PopupMenu::Options().withTargetComponent(keyboardControllersButton),
                        ModalCallbackFunction::forComponent(staticKeyboardControllerChosenCallback, this));
 }
@@ -630,7 +632,7 @@ void KeyboardZoneComponent::keyboardControllerChosenCallback(int result)
 {
     if(controller_ == 0 || keyboardSegment_ == 0)
         return;
-    
+
     // Enable or disable retransmitting specific messages
     if(result == MidiKeyboardSegment::kControlPitchWheel) {
         keyboardSegment_->setUsesKeyboardPitchWheel(!keyboardSegment_->usesKeyboardPitchWheel());
@@ -643,6 +645,10 @@ void KeyboardZoneComponent::keyboardControllerChosenCallback(int result)
     }
     else if(result == kKeyboardControllerRetransmitOthers) {
         keyboardSegment_->setUsesKeyboardMIDIControllers(!keyboardSegment_->usesKeyboardMIDIControllers());
+    }
+    else if(result == kKeyboardControllerSendPitchWheelRange) {
+        // Send a MIDI RPN message now to update the pitch wheel range
+        keyboardSegment_->sendMidiPitchWheelRange();
     }
 }
 //[/MiscUserCode]
@@ -745,7 +751,7 @@ BEGIN_JUCER_METADATA
               multiline="0" retKeyStartsLine="0" readonly="0" scrollbars="1"
               caret="1" popupmenu="1"/>
   <TEXTBUTTON name="keyboard controllers button" id="a1ebab19a3375b93" memberName="keyboardControllersButton"
-              virtualName="" explicitFocusOrder="0" pos="24 100 152 20" buttonText="Keyboard Controllers..."
+              virtualName="" explicitFocusOrder="0" pos="24 100 152 20" buttonText=" Controllers..."
               connectedEdges="0" needsCallback="1" radioGroupId="0"/>
 </JUCER_COMPONENT>
 
