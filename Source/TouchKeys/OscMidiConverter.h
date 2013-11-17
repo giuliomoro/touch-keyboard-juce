@@ -75,10 +75,6 @@ public:
     void setMidiMessageType(int defaultValue = -1, int minValue = -1,
                             int maxValue = -1, int centerValue = -1, bool use14BitControl = false);
     
-    // Specifically when MIDI Pitch Wheel is used as the destination, this sets the range
-    // in semitones which requires a separate MIDI RPN message to be sent to each channel.
-    void setMidiPitchWheelRange(float semitones) { pitchWheelRange_ = semitones; }
-    
     // Set whether this converter passes through incoming CC messages from the MIDI input,
     // and if so, which one. Doesn't need to be the same CC coming in as going out.
     void listenToIncomingControl(int controller, int centerValue = -1, bool use14BitControl = false);
@@ -120,7 +116,6 @@ public:
 private:
     // ***** Private Methods *****
     int idWithChannel(int channel, int inputId) { return (inputId << 4) + channel; }
-    void sendPitchWheelRange(int port, int channel);
     void sendCurrentValue(int port, int channel, int note, bool force);
     
 	// ***** Member Variables *****
@@ -136,7 +131,6 @@ private:
     int controlDefaultValue_;                       // Default value for the control on new notes
 
     int lastUniqueId_;                              // Global unique ID for input messages
-    float pitchWheelRange_;                         // Range of MIDI pitch wheel (if used)
     
     int incomingController_;                         // Which controller we listen to from the MIDI input
     bool incomingControllerIs14Bit_;                // Whether the input controller is 14 bit

@@ -26,13 +26,12 @@
 #include "TouchkeyVibratoMappingShortEditor.h"
 
 // Class constants
-const float TouchkeyVibratoMappingFactory::kDefaultPitchWheelRangeSemitones = 12.0;
 const int TouchkeyVibratoMappingFactory::kDefaultVibratoControl = MidiKeyboardSegment::kControlPitchWheel;
 
 // Default constructor, containing a reference to the PianoKeyboard class.
 
 TouchkeyVibratoMappingFactory::TouchkeyVibratoMappingFactory(PianoKeyboard &keyboard, MidiKeyboardSegment& segment) :
-TouchkeyBaseMappingFactory<TouchkeyVibratoMapping>(keyboard, segment), pitchWheelRangeSemitones_(kDefaultPitchWheelRangeSemitones),
+TouchkeyBaseMappingFactory<TouchkeyVibratoMapping>(keyboard, segment),
 vibratoControl_(kDefaultVibratoControl),
 vibratoRange_(TouchkeyVibratoMapping::kDefaultVibratoRangeSemitones),
 vibratoPrescaler_(TouchkeyVibratoMapping::kDefaultVibratoPrescaler),
@@ -53,16 +52,6 @@ TouchkeyVibratoMappingFactory::~TouchkeyVibratoMappingFactory() {
 }
 
 // ***** Accessors / Modifiers *****
-
-void TouchkeyVibratoMappingFactory::setMIDIPitchWheelRange(float maxBendSemitones) {
-    if(maxBendSemitones <= 0)
-        return;
-    pitchWheelRangeSemitones_ = maxBendSemitones;
-    
-    if(vibratoControl_ != MidiKeyboardSegment::kControlPitchWheel)
-        return;
-    configurePitchWheelVibrato();
-}
 
 void TouchkeyVibratoMappingFactory::setName(const string& name) {
     TouchkeyBaseMappingFactory<TouchkeyVibratoMapping>::setName(name);
@@ -184,10 +173,10 @@ void TouchkeyVibratoMappingFactory::initializeMappingParameters(int noteNumber, 
 
 // Configure the OSC-MIDI converter to handle pitchwheel vibrato
 void TouchkeyVibratoMappingFactory::configurePitchWheelVibrato() {
-    setMidiParameters(MidiKeyboardSegment::kControlPitchWheel, -pitchWheelRangeSemitones_, pitchWheelRangeSemitones_, 0.0);
+    // Range of 0 indicates special case of using global pitch wheel range
+    setMidiParameters(MidiKeyboardSegment::kControlPitchWheel, 0.0, 0.0, 0.0);
     
     if(midiConverter_ != 0) {
-        midiConverter_->setMidiPitchWheelRange(pitchWheelRangeSemitones_);
         midiConverter_->listenToIncomingControl(MidiKeyboardSegment::kControlPitchWheel);
     }
 }

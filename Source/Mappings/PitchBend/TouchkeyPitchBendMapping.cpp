@@ -34,7 +34,7 @@
 const int TouchkeyPitchBendMapping::kDefaultMIDIChannel = 0;
 const int TouchkeyPitchBendMapping::kDefaultFilterBufferLength = 30;
 
-const float TouchkeyPitchBendMapping::kDefaultBendRangeSemitones = 7.0;
+const float TouchkeyPitchBendMapping::kDefaultBendRangeSemitones = 2.0;
 const float TouchkeyPitchBendMapping::kDefaultBendThresholdSemitones = 0.4;
 const float TouchkeyPitchBendMapping::kDefaultBendThresholdKeyLength = 0.1;
 const float TouchkeyPitchBendMapping::kDefaultSnapZoneSemitones = 0.5;

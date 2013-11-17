@@ -29,7 +29,7 @@
 OscMidiConverter::OscMidiConverter(PianoKeyboard& keyboard, MidiKeyboardSegment& segment, int controllerId) :
   keyboard_(keyboard), keyboardSegment_(segment), midiOutputController_(0),
   controller_(controllerId), lastUniqueId_(0),
-  pitchWheelRange_(2.0), incomingController_(MidiKeyboardSegment::kControlDisabled)
+  incomingController_(MidiKeyboardSegment::kControlDisabled)
 {
 	setOscController(&keyboard_);
     
@@ -155,7 +155,7 @@ void OscMidiConverter::sendDefaultValue(int channel) {
         defaultValue += keyboardSegment_.controllerValue(incomingController_) - incomingControllerCenterValue_;
     
     if(controller_ == MidiKeyboardSegment::kControlPitchWheel) {
-        sendPitchWheelRange(keyboardSegment_.outputPort(), channel);
+        //sendPitchWheelRange(keyboardSegment_.outputPort(), channel);
         midiOutputController_->sendPitchWheel(keyboardSegment_.outputPort(), channel, defaultValue);
     }
     else if(controller_ == MidiKeyboardSegment::kControlChannelAftertouch) {
@@ -176,12 +176,19 @@ int OscMidiConverter::currentControllerValue(int channel) {
     float controlValue = (float)controlCenterValue_ + (float)controlMinValue_
     + currentValue_[channel]*(float)(controlMaxValue_ - controlMinValue_);
     
-    if(incomingController_ != MidiKeyboardSegment::kControlDisabled)
+    if(incomingController_ != MidiKeyboardSegment::kControlDisabled) {
         controlValue += keyboardSegment_.controllerValue(incomingController_) - incomingControllerCenterValue_;
-    
 #ifdef DEBUG_OSC_MIDI_CONVERTER
-    std::cout << "current value " << currentValue_[channel] << " corresponds to " << controlValue << std::endl;
+        std::cout << "current value " << currentValue_[channel] << " corresponds to " << controlValue;
+        std::cout << " including incoming value " << (keyboardSegment_.controllerValue(incomingController_) - incomingControllerCenterValue_) << std::endl;
 #endif
+    }
+    else {
+#ifdef DEBUG_OSC_MIDI_CONVERTER
+        std::cout << "current value " << currentValue_[channel] << " corresponds to " << controlValue << std::endl;
+#endif
+    }
+    
     int roundedControlValue = (int)roundf(controlValue);
     if(roundedControlValue > controlMaxValue_)
         roundedControlValue = controlMaxValue_;
@@ -211,7 +218,7 @@ void OscMidiConverter::addControl(const string& oscPath, int oscParamNumber, flo
     // Calculate the normalized center value which will be subtracted
     // from the scaled input. Do this once now to save computation.
     if(oscMinValue == oscMaxValue)
-        input.oscScaledCenterValue = 0;
+        input.oscScaledCenterValue = 0.5;
     else {
         input.oscScaledCenterValue = (oscCenterValue - oscMinValue) / (oscMaxValue - oscMinValue);
         if(input.oscScaledCenterValue < 0)
@@ -294,7 +301,10 @@ void OscMidiConverter::setControlCenterValue(const string& oscPath, float newVal
     minValue = inputs_[oscPath].oscMinValue;
     maxValue = inputs_[oscPath].oscMaxValue;
     
-    scaledCenterValue = (newValue - minValue) / (maxValue - minValue);
+    if(minValue == maxValue)
+        scaledCenterValue = 0.0;
+    else
+        scaledCenterValue = (newValue - minValue) / (maxValue - minValue);
     if(scaledCenterValue < 0)
         scaledCenterValue = 0;
     if(scaledCenterValue > 1.0)
@@ -384,8 +394,17 @@ bool OscMidiConverter::oscHandlerMethod(const char *path, const char *types, int
     else
         return false;
     
-    // Scale input to a 0-1 range, the to the output range
-    float scaledValue = (oscParamValue - input.oscMinValue) / (input.oscMaxValue - input.oscMinValue);
+    // Scale input to a 0-1 range, then to the output range. There's a special case for MIDI pitch wheel,
+    // where if the range is set to 0, it means to use the segment-wide pitch wheel range. This is done so
+    // we don't have to cache multiple copies of the pitch wheel range in every OSC-MIDI converter.
+    float scaledValue;
+    if(controller_ == MidiKeyboardSegment::kControlPitchWheel &&
+       input.oscMaxValue == 0 && input.oscMinValue == 0) {
+        float pitchWheelRange = keyboardSegment_.midiPitchWheelRange();
+        scaledValue = (oscParamValue + pitchWheelRange) / (2.0 * pitchWheelRange);
+    }
+    else
+        scaledValue = (oscParamValue - input.oscMinValue) / (input.oscMaxValue - input.oscMinValue);
 
 #ifdef DEBUG_OSC_MIDI_CONVERTER
     std::cout << "port " << keyboardSegment_.outputPort() << " received input " << oscParamValue << " which scales to " << scaledValue << std::endl;
@@ -435,28 +454,6 @@ bool OscMidiConverter::oscHandlerMethod(const char *path, const char *types, int
     //std::cout << "OscMidiConverter: total " << after - before << "ms, of which " << after - midpoint << " in 2nd half\n";
     
 	return true;
-}
-
-// Send a MIDI RPN message to set the pitch wheel range
-void OscMidiConverter::sendPitchWheelRange(int port, int channel) {
-    if(midiOutputController_ == 0)
-        return;
-    
-    // KLUDGE: fix by using MidiKeyboardSegment version
-    
-    // Find number of semitones and cents
-    int majorRange = (int)floorf(pitchWheelRange_);
-    int minorRange = (int)(100.0 * (pitchWheelRange_ - floorf(pitchWheelRange_)));
-    
-    // Set RPN controller = 0
-    midiOutputController_->sendControlChange(port, channel, 101, 0);
-    midiOutputController_->sendControlChange(port, channel, 100, 0);
-    // Set data value MSB/LSB for bend range in semitones
-    midiOutputController_->sendControlChange(port, channel, 6, majorRange);
-    midiOutputController_->sendControlChange(port, channel, 38, minorRange);
-    // Set RPN controller back to 16383
-    midiOutputController_->sendControlChange(port, channel, 101, 127);
-    midiOutputController_->sendControlChange(port, channel, 100, 127);
 }
 
 // Send the current sum value of all OSC inputs as a MIDI message

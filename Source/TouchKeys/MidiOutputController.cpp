@@ -23,7 +23,7 @@
 
 #include "MidiOutputController.h"
 
-#define MIDI_OUTPUT_CONTROLLER_DEBUG_RAW
+#undef MIDI_OUTPUT_CONTROLLER_DEBUG_RAW
 
 // Constructor
 MidiOutputController::MidiOutputController()

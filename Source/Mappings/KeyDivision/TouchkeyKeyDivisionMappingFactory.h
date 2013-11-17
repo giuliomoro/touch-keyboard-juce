@@ -30,7 +30,6 @@
 
 class TouchkeyKeyDivisionMappingFactory : public TouchkeyBaseMappingFactory<TouchkeyKeyDivisionMapping> {
 private:
-    static const float kDefaultPitchWheelRangeSemitones;
     static const float kDefaultTuningsCents[];
     
 public:
@@ -47,7 +46,6 @@ public:
     
     virtual const std::string factoryTypeName() { return "Split\nKeys"; }
 
-    void setMIDIPitchWheelRange(float maxBendSemitones); // Set the range for the MIDI pitch wheel
     void setName(const string& name);
     
     // ***** Specific Methods *****
@@ -92,7 +90,6 @@ private:
     void initializeMappingParameters(int noteNumber, TouchkeyKeyDivisionMapping *mapping);
     void setBendParameters();
     
-    float pitchWheelRangeSemitones_;                    // Range of the MIDI pitch wheel (different than vibrato range)
     int numSegmentsPerKey_;                             // How many segments per key
     timestamp_diff_type timeout_;                       // How long before timeout activates default segment
     int detectionParameter_;                            // Which parameter separates it into segments

@@ -36,7 +36,6 @@
 
 class TouchkeyVibratoMappingFactory : public TouchkeyBaseMappingFactory<TouchkeyVibratoMapping> {
 private:
-    static const float kDefaultPitchWheelRangeSemitones;
     static const int kDefaultVibratoControl;
 
 public:
@@ -53,9 +52,7 @@ public:
     // ***** Accessors / Modifiers *****
     
     virtual const std::string factoryTypeName() { return "Vibrato"; }
-    
-    void setMIDIPitchWheelRange(float maxBendSemitones); // Set the range for the MIDI pitch wheel
-    
+
     void setName(const string& name);
     
     // ***** Vibrato-Specific Methods *****
@@ -87,7 +84,6 @@ private:
     void configurePitchWheelVibrato();
     void configureControlChangeVibrato();
     
-    float pitchWheelRangeSemitones_;                    // Range of the MIDI pitch wheel (different than vibrato range)
     int vibratoControl_;                                // Controller to use with vibrato
     float vibratoRange_;                                // Range that the vibrato should use, in semitones or CC values
     float vibratoPrescaler_;                            // Prescaler value to use before nonlinear vibrato mapping
