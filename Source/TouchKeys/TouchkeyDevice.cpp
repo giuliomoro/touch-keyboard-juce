@@ -25,7 +25,6 @@
 #include <stdlib.h>
 #include "TouchkeyDevice.h"
 
-
 const char* kKeyNames[13] = {"C ", "C#", "D ", "D#", "E ", "F ", "F#", "G ", "G#", "A ", "A#", "B ", "c "};
 
 // Constructor
@@ -35,7 +34,7 @@ TouchkeyDevice::TouchkeyDevice(PianoKeyboard& keyboard)
 ioThread_(boost::bind(&TouchkeyDevice::runLoop, this, _1), "TouchKeyDevice::ioThread"),
 rawDataThread_(boost::bind(&TouchkeyDevice::rawDataRunLoop, this, _1), "TouchKeyDevice::rawDataThread"),
 autoGathering_(false), shouldStop_(false), sendRawOscMessages_(false),
-verbose_(4), numOctaves_(0), lowestMidiNote_(12), lowestKeyPresentMidiNote_(12),
+verbose_(0), numOctaves_(0), lowestMidiNote_(12), lowestKeyPresentMidiNote_(12),
 updatedLowestMidiNote_(12), deviceSoftwareVersion_(-1), deviceHardwareVersion_(-1),
 expectedLengthWhite_(kTransmissionLengthWhiteNewHardware),
 expectedLengthBlack_(kTransmissionLengthBlackNewHardware), deviceHasRGBLEDs_(false),
@@ -155,7 +154,8 @@ bool TouchkeyDevice::checkIfDevicePresent(int millisecondsToWait) {
 		return false;
 	tcflush(device_, TCIFLUSH);							// Flush device input
 	if(write(device_, (char*)kCommandStatus, 5) < 0) {	// Write status command
-		cout << "ERROR: unable to write status command.  errno = " << errno << endl;
+        if(verbose_ >= 1)
+            cout << "ERROR: unable to write status command.  errno = " << errno << endl;
 		return false;
 	}	
 	tcdrain(device_);									// Force output reach device
@@ -169,7 +169,8 @@ bool TouchkeyDevice::checkIfDevicePresent(int millisecondsToWait) {
 
 		if(count < 0) {				// Check if an error occurred on read
 			if(errno != EAGAIN) {
-				cout << "Unable to read from device (error " << errno << ").  Aborting.\n";
+                if(verbose_ >= 1)
+                    cout << "Unable to read from device (error " << errno << ").  Aborting.\n";
 				return false;
 			}
 		}
@@ -204,7 +205,8 @@ bool TouchkeyDevice::checkIfDevicePresent(int millisecondsToWait) {
 								continue;
 							if(count < 0) {
 								if(errno != EAGAIN && verbose_ >= 1) {	// EAGAIN just means no data was available
-									cout << "Unable to read from device (error " << errno << ").  Aborting.\n";
+                                    if(verbose_ >= 1)
+                                        cout << "Unable to read from device (error " << errno << ").  Aborting.\n";
 									return false;
 								}
 								
@@ -263,6 +265,7 @@ bool TouchkeyDevice::checkIfDevicePresent(int millisecondsToWait) {
 								cout << " Software Version " << status.softwareVersionMajor << "." << status.softwareVersionMinor;
 								cout << endl << "  " << status.octaves << " octaves connected" << endl;
 							}
+                            
 							for(int i = 0; i < status.octaves; i++) {
 								bool foundKey = false;
 								
@@ -281,7 +284,7 @@ bool TouchkeyDevice::checkIfDevicePresent(int millisecondsToWait) {
 
 								}
 
-								cout << endl;
+								if(verbose_ >= 1) cout << endl;
 							}
                             
                             // Hardware version determines whether all keys have XY or not
@@ -358,7 +361,8 @@ bool TouchkeyDevice::startAutoGathering() {
     
     // Tell the device to start scanning for new data
 	if(write(device_, (char*)kCommandStartScanning, 5) < 0) {
-		cout << "ERROR: unable to write startAutoGather command.  errno = " << errno << endl;
+        if(verbose_ >= 1)
+            cout << "ERROR: unable to write startAutoGather command.  errno = " << errno << endl;
 	}
 	tcdrain(device_);
 	
@@ -386,7 +390,8 @@ void TouchkeyDevice::stopAutoGathering() {
     
     // Tell device to stop scanning
 	if(write(device_, (char*)kCommandStopScanning, 5) < 0) {
-		cout << "ERROR: unable to write stopAutoGather command.  errno = " << errno << endl;
+        if(verbose_ >= 1)
+            cout << "ERROR: unable to write stopAutoGather command.  errno = " << errno << endl;
 	}		
 	tcdrain(device_);
 	
@@ -432,14 +437,10 @@ void TouchkeyDevice::stopAutoGathering() {
 // Begin raw data collection from a given single key
 
 bool TouchkeyDevice::startRawDataCollection(int octave, int key, int mode, int scaler) {
-    cout << "startRawDataCollection()\n";
-    
 	if(!isOpen())
 		return false;
 	
 	stopAutoGathering();	// Stop the thread if it's running	
-	
-    cout << "preparing\n";
     
 	//unsigned char command[] = {ESCAPE_CHARACTER, kControlCharacterFrameBegin,
 	//	kFrameTypeMonitorRawFromKey, (unsigned char)octave, (unsigned char)key,
@@ -455,7 +456,8 @@ bool TouchkeyDevice::startRawDataCollection(int octave, int key, int mode, int s
         ESCAPE_CHARACTER, kControlCharacterFrameEnd};
 	
 	if(write(device_, (char*)commandSetMode, 12) < 0) {
-		cout << "ERROR: unable to write setMode command.  errno = " << errno << endl;
+        if(verbose_ >= 1)
+            cout << "ERROR: unable to write setMode command.  errno = " << errno << endl;
 	}
 	tcdrain(device_);
     
@@ -468,7 +470,8 @@ bool TouchkeyDevice::startRawDataCollection(int octave, int key, int mode, int s
         ESCAPE_CHARACTER, kControlCharacterFrameEnd};
 	
 	if(write(device_, (char*)commandSetScaler, 12) < 0) {
-		cout << "ERROR: unable to write setMode command.  errno = " << errno << endl;
+        if(verbose_ >= 1)
+            cout << "ERROR: unable to write setMode command.  errno = " << errno << endl;
 	}
 	tcdrain(device_);
     
@@ -480,7 +483,8 @@ bool TouchkeyDevice::startRawDataCollection(int octave, int key, int mode, int s
         ESCAPE_CHARACTER, kControlCharacterFrameEnd};
     
 	if(write(device_, (char*)commandPrepareRead, 10) < 0) {
-		cout << "ERROR: unable to write prepareRead command.  errno = " << errno << endl;
+        if(verbose_ >= 1)
+            cout << "ERROR: unable to write prepareRead command.  errno = " << errno << endl;
 	}
 	tcdrain(device_);
     
@@ -497,7 +501,6 @@ bool TouchkeyDevice::startRawDataCollection(int octave, int key, int mode, int s
 	
 	autoGathering_ = true;
     
-    cout << "running\n";
 	/*if(write(device_, (char*)command, 9) < 0) {
 		cout << "ERROR: unable to write startRawDataCollection command.  errno = " << errno << endl;
 	}
@@ -522,7 +525,8 @@ bool TouchkeyDevice::setScanInterval(int intervalMilliseconds) {
 	
 	// Send command
 	if(write(device_, (char*)command, 6) < 0) {
-		cout << "ERROR: unable to write startRawDataCollection command.  errno = " << errno << endl;
+        if(verbose_ >= 1)
+            cout << "ERROR: unable to write startRawDataCollection command.  errno = " << errno << endl;
 	}
 	tcdrain(device_);
 	
@@ -563,7 +567,8 @@ bool TouchkeyDevice::setKeySensitivity(int octave, int key, int value) {
 	
 	// Send command
 	if(write(device_, (char*)command, 8) < 0) {
-		cout << "ERROR: unable to write setKeySensitivity command.  errno = " << errno << endl;
+        if(verbose_ >= 1)
+            cout << "ERROR: unable to write setKeySensitivity command.  errno = " << errno << endl;
 	}
 	tcdrain(device_);
 	
@@ -602,7 +607,8 @@ bool TouchkeyDevice::setKeyCentroidScaler(int octave, int key, int value) {
 	
 	// Send command
 	if(write(device_, (char*)command, 8) < 0) {
-		cout << "ERROR: unable to write setKeyCentroidScaler command.  errno = " << errno << endl;
+        if(verbose_ >= 1)
+            cout << "ERROR: unable to write setKeyCentroidScaler command.  errno = " << errno << endl;
 	}
 	tcdrain(device_);
 	
@@ -642,7 +648,8 @@ bool TouchkeyDevice::setKeyMinimumCentroidSize(int octave, int key, int value) {
 	
 	// Send command
 	if(write(device_, (char*)command, 9) < 0) {
-		cout << "ERROR: unable to write setKeyMinimumCentroidSize command.  errno = " << errno << endl;
+        if(verbose_ >= 1)
+            cout << "ERROR: unable to write setKeyMinimumCentroidSize command.  errno = " << errno << endl;
 	}
 	tcdrain(device_);
 	
@@ -679,7 +686,8 @@ bool TouchkeyDevice::setKeyNoiseThreshold(int octave, int key, int value) {
 	
 	// Send command
 	if(write(device_, (char*)command, 8) < 0) {
-		cout << "ERROR: unable to write setKeyNoiseThreshold command.  errno = " << errno << endl;
+        if(verbose_ >= 1)
+            cout << "ERROR: unable to write setKeyNoiseThreshold command.  errno = " << errno << endl;
 	}
 	tcdrain(device_);
 	
@@ -697,7 +705,8 @@ void TouchkeyDevice::jumpToBootloader() {
 	
 	// Send command
 	if(write(device_, (char*)command, 5) < 0) {
-		cout << "ERROR: unable to write jumpToBootloader command.  errno = " << errno << endl;
+        if(verbose_ >= 1)
+            cout << "ERROR: unable to write jumpToBootloader command.  errno = " << errno << endl;
 	}
 	tcdrain(device_);
 }
@@ -835,7 +844,8 @@ bool TouchkeyDevice::internalRGBLEDSetColor(const int device, const int led, con
     
 	// Send command
 	if(write(device_, (char*)command, location) < 0) {
-		cout << "ERROR: unable to write setRGBLEDColor command.  errno = " << errno << endl;
+        if(verbose_ >= 1)
+            cout << "ERROR: unable to write setRGBLEDColor command.  errno = " << errno << endl;
 	}
 	tcdrain(device_);
 	
@@ -863,7 +873,8 @@ bool TouchkeyDevice::internalRGBLEDAllOff() {
 	
 	// Send command
 	if(write(device_, (char*)command, 5) < 0) {
-		cout << "ERROR: unable to write setRGBLEDAllOff command.  errno = " << errno << endl;
+        if(verbose_ >= 1)
+            cout << "ERROR: unable to write setRGBLEDAllOff command.  errno = " << errno << endl;
 	}
 	tcdrain(device_);
 	
@@ -1215,7 +1226,8 @@ void TouchkeyDevice::runLoop(DeviceThread *thread) {
 		}
 		if(count < 0) {
 			if(errno != EAGAIN) {	// EAGAIN just means no data was available
-				cout << "Unable to read from device (error " << errno << ").  Aborting.\n";
+                if(verbose_ >= 1)
+                    cout << "Unable to read from device (error " << errno << ").  Aborting.\n";
 				shouldStop_ = true;
 			}
 			
@@ -1321,10 +1333,10 @@ void TouchkeyDevice::rawDataRunLoop(DeviceThread *thread) {
             lastTime = currentTime;
             // Request data
             if(write(device_, (char*)gatherDataCommand, 9) < 0) {
-                cout << "ERROR: unable to write setMode command.  errno = " << errno << endl;
+                if(verbose_ >= 1)
+                    cout << "ERROR: unable to write setMode command.  errno = " << errno << endl;
             }
             tcdrain(device_);
-            cout << "wrote to device\n";
         }
         
  		long count = read(device_, (char *)buffer, 1024);
@@ -1335,7 +1347,8 @@ void TouchkeyDevice::rawDataRunLoop(DeviceThread *thread) {
 		}
 		if(count < 0) {
 			if(errno != EAGAIN) {	// EAGAIN just means no data was available
-				cout << "Unable to read from device (error " << errno << ").  Aborting.\n";
+                if(verbose_ >= 1)
+                    cout << "Unable to read from device (error " << errno << ").  Aborting.\n";
 				shouldStop_ = true;
 			}
 			
@@ -1581,7 +1594,8 @@ int TouchkeyDevice::processKeyCentroid(int frame,int octave, int key, timestamp_
 	// since it will never be part of a valid centroid.
 	
 	if(buffer[0] == 0x88) {
-		cout << "Warning: octave " << octave << " key " << key << " data is not ready.  Check scan rate.\n";
+        if(verbose_ >= 1)
+            cout << "Warning: octave " << octave << " key " << key << " data is not ready.  Check scan rate.\n";
         if(deviceSoftwareVersion_ >= 1)
             return white ? expectedLengthWhite_ : expectedLengthBlack_;
         else
@@ -1697,7 +1711,8 @@ int TouchkeyDevice::processKeyCentroid(int frame,int octave, int key, timestamp_
 	// Sanity check: do we have the PianoKey structure available to receive this data?
 	// If not, no need to proceed further.
 	if(keyboard_.key(midiNote) == 0) {
-		cout << "Warning: No PianoKey available for touchkey MIDI note " << midiNote << endl;
+        if(verbose_ >= 1)
+            cout << "Warning: No PianoKey available for touchkey MIDI note " << midiNote << endl;
 		return bytesParsed;
 	}
     
@@ -1823,10 +1838,12 @@ void TouchkeyDevice::processAnalogFrame(unsigned char * const buffer, const int 
         
         // Check the timestamp against the last frame from this board to see if any frames have been dropped
         if(frame > analogLastFrame_[board] + 1) {
-            cout << "WARNING: dropped frame(s) on board " << board << " at " << frame << " (last was " << analogLastFrame_[board] << ")" << endl;
+            if(verbose_ >= 1)
+                cout << "WARNING: dropped frame(s) on board " << board << " at " << frame << " (last was " << analogLastFrame_[board] << ")" << endl;
         }
         else if(frame < analogLastFrame_[board] + 1) {
-            cout << "WARNING: repeat frame(s) on board " << board << " at " << frame << " (last was " << analogLastFrame_[board] << ")" << endl;            
+            if(verbose_ >= 1)
+                cout << "WARNING: repeat frame(s) on board " << board << " at " << frame << " (last was " << analogLastFrame_[board] << ")" << endl;
         }
         analogLastFrame_[board] = frame;
         
@@ -1871,8 +1888,10 @@ void TouchkeyDevice::processAnalogFrame(unsigned char * const buffer, const int 
                 // Update the GUI but don't actually save the value since it's uncalibrated
                 keyboard_.gui()->setAnalogValueForKey(midiNote, (float)value / kTouchkeyAnalogValueMax);
                 
-                if(keyCalibrators_[octave*12 + key]->calibrationStatus() == kPianoKeyCalibrated)
-                    cout << "key " << midiNote << " calibrated but missing (raw value " << value << ")\n";
+                if(keyCalibrators_[octave*12 + key]->calibrationStatus() == kPianoKeyCalibrated) {
+                    if(verbose_ >= 1)
+                        cout << "key " << midiNote << " calibrated but missing (raw value " << value << ")\n";
+                }
             }
         }
         
@@ -1894,7 +1913,8 @@ void TouchkeyDevice::processErrorMessageFrame(unsigned char * const buffer, cons
     
     // Error on error message frame!
     if(bufferLength < 5) {
-        cout << "Warning: received error message frame of " << bufferLength << " bytes, less than minimum 5\n";
+        if(verbose_ >= 1)
+            cout << "Warning: received error message frame of " << bufferLength << " bytes, less than minimum 5\n";
         return;
     }
     
@@ -1905,7 +1925,8 @@ void TouchkeyDevice::processErrorMessageFrame(unsigned char * const buffer, cons
     msg[len - 1] = '\0';
     
     // Print the error
-    cout << "Error frame received: " << msg << endl;
+    if(verbose_ >= 1)
+        cout << "Error frame received: " << msg << endl;
     
     // Dump the buffer containing error coding information
     if(verbose_ >= 2) {
@@ -1921,7 +1942,8 @@ void TouchkeyDevice::processI2CResponseFrame(unsigned char * const buffer, const
     // Format: [octave] [key] [length] <data>
     
     if(bufferLength < 3) {
-        cout << "Warning: received I2C response frame of " << bufferLength << " bytes, less than minimum 3\n";
+        if(verbose_ >= 1)
+            cout << "Warning: received I2C response frame of " << bufferLength << " bytes, less than minimum 3\n";
         return;
     }
     
@@ -1930,8 +1952,10 @@ void TouchkeyDevice::processI2CResponseFrame(unsigned char * const buffer, const
     int responseLength = buffer[2];
     
     if(bufferLength < responseLength + 3) {
-        cout << "Warning: received malformed I2C response (octave " << octave << ", key " << key << ", length " << responseLength;
-        cout << ") but only " << bufferLength - 3 << " bytes of data\n";
+        if(verbose_ >= 1) {
+            cout << "Warning: received malformed I2C response (octave " << octave << ", key " << key << ", length " << responseLength;
+            cout << ") but only " << bufferLength - 3 << " bytes of data\n";
+        }
         
         responseLength = bufferLength - 3;
     }
@@ -2025,7 +2049,8 @@ bool TouchkeyDevice::checkForAck(int timeoutMilliseconds) {
 		
 		if(count < 0) {				// Check if an error occurred on read
 			if(errno != EAGAIN) {
-				cout << "Unable to read from device while waiting for ACK (error " << errno << ").  Aborting.\n";
+                if(verbose_ >= 1)
+                    cout << "Unable to read from device while waiting for ACK (error " << errno << ").  Aborting.\n";
 				return false;
 			}
 		}
@@ -2051,7 +2076,8 @@ bool TouchkeyDevice::checkForAck(int timeoutMilliseconds) {
 		currentTime = Time::getMillisecondCounterHiRes();
 	}
 	
-	cout << "Error: timeout waiting for ACK\n";
+    if(verbose_ >= 1)
+        cout << "Error: timeout waiting for ACK\n";
 	return false;
 }
 

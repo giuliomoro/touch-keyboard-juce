@@ -36,10 +36,6 @@
 // whenever touches or notes begin or end
 
 class TouchkeyPitchBendMappingFactory : public TouchkeyBaseMappingFactory<TouchkeyPitchBendMapping> {
-private:
-    //typedef std::pair<TouchkeyVibratoMapping*, TouchkeyPitchBendMapping*> mapping_pair;
-    //const float kDefaultPitchWheelRangeSemitones = 12.0;
-    static const float kDefaultPitchWheelRangeSemitones;
     
 public:
     // ***** Constructor *****
@@ -55,7 +51,6 @@ public:
     
     virtual const std::string factoryTypeName() { return "Pitch\nBend"; }
     
-    void setMIDIPitchWheelRange(float maxBendSemitones); // Set the range for the MIDI pitch wheel
     void setName(const string& name);
     
     // ***** Bend-Specific Methods *****
@@ -83,8 +78,6 @@ private:
     // ***** Private Methods *****
     void initializeMappingParameters(int noteNumber, TouchkeyPitchBendMapping *mapping);
     void setBendParameters();
-    
-    float pitchWheelRangeSemitones_;                    // Range of the MIDI pitch wheel (different than vibrato range)
     
     float bendRangeSemitones_;                          // Range of the pitch bend component
     float bendThresholdSemitones_;                      // Threshold for engaging pitch bend

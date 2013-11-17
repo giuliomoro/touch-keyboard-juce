@@ -24,8 +24,6 @@
 
 #include "TouchkeyKeyDivisionMappingFactory.h"
 
-const float TouchkeyKeyDivisionMappingFactory::kDefaultPitchWheelRangeSemitones = 2.0;
-
 // Yarman-24 Turkish microtonal tuning:
 /*      1/1	RAST		C
  84.360	Nim Zengule	C#/Db
@@ -116,7 +114,6 @@ const float TouchkeyKeyDivisionMappingFactory::kDefaultTuningsCents[24] = {
 
 TouchkeyKeyDivisionMappingFactory::TouchkeyKeyDivisionMappingFactory(PianoKeyboard &keyboard, MidiKeyboardSegment& segment)
 : TouchkeyBaseMappingFactory<TouchkeyKeyDivisionMapping>(keyboard, segment),
-  pitchWheelRangeSemitones_(kDefaultPitchWheelRangeSemitones),
   numSegmentsPerKey_(TouchkeyKeyDivisionMapping::kDefaultNumberOfSegments),
   timeout_(TouchkeyKeyDivisionMapping::kDefaultDetectionTimeout),
   detectionParameter_(TouchkeyKeyDivisionMapping::kDefaultDetectionParameter),
@@ -126,14 +123,6 @@ TouchkeyKeyDivisionMappingFactory::TouchkeyKeyDivisionMappingFactory(PianoKeyboa
   referenceNote_(0), globalOffsetCents_(0)
 {
     //setName("/touchkeys/segmentpitch");
-    setBendParameters();
-}
-
-void TouchkeyKeyDivisionMappingFactory::setMIDIPitchWheelRange(float maxBendSemitones) {
-    if(maxBendSemitones <= 0)
-        return;
-    pitchWheelRangeSemitones_ = maxBendSemitones;
-    
     setBendParameters();
 }
 
@@ -167,10 +156,10 @@ void TouchkeyKeyDivisionMappingFactory::initializeMappingParameters(int noteNumb
 }
 
 void TouchkeyKeyDivisionMappingFactory::setBendParameters() {
-    setMidiParameters(MidiKeyboardSegment::kControlPitchWheel, -pitchWheelRangeSemitones_, pitchWheelRangeSemitones_, 0.0);
+    // Range of 0 indicates special case of using global pitch wheel range
+    setMidiParameters(MidiKeyboardSegment::kControlPitchWheel, 0.0, 0.0, 0.0);
     
     if(midiConverter_ != 0) {
-        midiConverter_->setMidiPitchWheelRange(pitchWheelRangeSemitones_);
         midiConverter_->listenToIncomingControl(MidiKeyboardSegment::kControlPitchWheel);
     }
 }
