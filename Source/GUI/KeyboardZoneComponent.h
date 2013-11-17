@@ -91,7 +91,7 @@ public:
             component->mappingChosenCallback(result);
     }
     void mappingChosenCallback(int result);
-    
+
     static void staticKeyboardControllerChosenCallback(int result, KeyboardZoneComponent* component) {
         if (result != 0 && component != 0)
             component->keyboardControllerChosenCallback(result);
@@ -114,10 +114,11 @@ private:
         kMidiOutputDeviceComboBoxOffset = 3,
         kMidiOutputModeComboBoxOffset = 1
     };
-    
+
     enum {
         // Special commands for keyboard controller popup button
-        kKeyboardControllerRetransmitOthers = 2000
+        kKeyboardControllerRetransmitOthers = 2000,
+        kKeyboardControllerSendPitchWheelRange
     };
 
     // Update list of MIDI output devices
@@ -128,7 +129,7 @@ private:
 
     // Create popup menu for keyboard controller retransmission
     void createKeyboardControllerPopup();
-    
+
     MainApplicationController *controller_; // Pointer to the main application controller
     MidiKeyboardSegment *keyboardSegment_;  // Pointer to the segment this component controls
     std::vector<int> midiOutputDeviceIDs_;
