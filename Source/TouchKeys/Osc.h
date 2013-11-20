@@ -75,7 +75,8 @@ public:
 	OscMessageSource() {}
 	
 protected:
-	bool addListener(const string& path, OscHandler *object);		// Add a listener object for a specific path
+	bool addListener(const string& path, OscHandler *object,
+                     bool matchSubpath = false);                    // Add a listener object for a specific path
 	bool removeListener(const string& path, OscHandler *object);	// Remove a listener object	from a specific path
 	bool removeListener(OscHandler *object);						// Remove a listener object from all paths
 	

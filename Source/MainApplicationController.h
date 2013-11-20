@@ -34,6 +34,7 @@
 #include "TouchKeys/MidiKeyboardSegment.h"
 #include "TouchKeys/MidiOutputController.h"
 #include "TouchKeys/TouchkeyDevice.h"
+#include "TouchKeys/TouchkeyOscEmulator.h"
 #include "TouchKeys/Osc.h"
 #include "Mappings/Vibrato/TouchkeyVibratoMappingFactory.h"
 #include "Mappings/PitchBend/TouchkeyPitchBendMappingFactory.h"
@@ -315,9 +316,10 @@ private:
     PianoKeyboard keyboardController_;
     MidiInputController midiInputController_;
     MidiOutputController midiOutputController_;
-    TouchkeyDevice touchkeyController_;
     OscTransmitter oscTransmitter_;
     OscReceiver oscReceiver_;
+    TouchkeyDevice touchkeyController_;
+    TouchkeyOscEmulator touchkeyEmulator_;
     
     bool touchkeyErrorOccurred_;
     std::string touchkeyErrorMessage_;

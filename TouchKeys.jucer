@@ -177,6 +177,10 @@
         <FILE id="xAWxis" name="Types.h" compile="0" resource="0" file="Source/Utility/Types.h"/>
       </GROUP>
       <GROUP id="{0AE3BB33-5A6F-DD26-0E35-C26E9B11DB1A}" name="TouchKeys">
+        <FILE id="MIJMFz" name="TouchkeyOscEmulator.cpp" compile="1" resource="0"
+              file="Source/TouchKeys/TouchkeyOscEmulator.cpp"/>
+        <FILE id="tbcheK" name="TouchkeyOscEmulator.h" compile="0" resource="0"
+              file="Source/TouchKeys/TouchkeyOscEmulator.h"/>
         <FILE id="qHH5SS" name="MidiKeyboardSegment.cpp" compile="1" resource="0"
               file="Source/TouchKeys/MidiKeyboardSegment.cpp"/>
         <FILE id="WjyaIm" name="MidiKeyboardSegment.h" compile="0" resource="0"
