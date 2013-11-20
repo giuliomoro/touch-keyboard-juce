@@ -90,7 +90,7 @@ bool OscHandler::removeAllOscListeners()
 // added to the internal map from strings to objects.  All messages are preceded by
 // a global prefix (typically "/mrp").  Returns true on success.
 
-bool OscMessageSource::addListener(const string& path, OscHandler *object)
+bool OscMessageSource::addListener(const string& path, OscHandler *object, bool matchSubpath)
 {
 	if(object == NULL)
 		return false;
@@ -308,8 +308,8 @@ void OscMessageSource::updateListeners()
 
 // OscReceiver::handler()
 // The main handler method for incoming OSC messages.  From here, we farm out the processing depending
-// on the path.  In general all our paths should start with /mrp.  Return 0 if the message has been
-// adequately handled, 1 otherwise (so the server can look for other functions to pass it to).
+// on the path. Return 0 if the message has been adequately handled, 1 otherwise (so the server can look
+// for other functions to pass it to).
 
 int OscReceiver::handler(const char *path, const char *types, lo_arg **argv, int argc, lo_message msg, void *data)
 {
@@ -339,36 +339,51 @@ int OscReceiver::handler(const char *path, const char *types, lo_arg **argv, int
     
 	// Lock the mutex so the list of listeners doesn't change midway through
     oscListenerMutex_.enter();
-    //oscListenerMutex_.enterRead();
 	
 	// Now remove the global prefix and compare the rest of the message to the registered handlers.
 	multimap<string, OscHandler*>::iterator it;
 	pair<multimap<string, OscHandler*>::iterator,multimap<string, OscHandler*>::iterator> ret;
 	string truncatedPath = pathString.substr(globalPrefix_.length(), 
 											 pathString.length() - globalPrefix_.length());
+    string subpath = truncatedPath;
 	ret = noteListeners_.equal_range(truncatedPath);
-	
-	it = ret.first;
-	while(it != ret.second)
-	{
-		OscHandler *object = (*it++).second;
-		
+
+    while(ret.first == ret.second) {
+        // No handlers match this range. But maybe there are higher-level handlers
+        // that match all subpaths.
+        
+        // Strip off the last component of the path
+        int pathSeparator = subpath.find_last_of('/');
+
+        if(pathSeparator == string::npos)   // Not found --> no match
+            break;
+        else {
+            // Reduce string by one path level and add *; compare again
+            subpath = subpath.substr(0, pathSeparator);
+            subpath.push_back('*');
+            ret = noteListeners_.equal_range(subpath);
+        }
+    }
+
+    it = ret.first;
+    while(it != ret.second) {
+        OscHandler *object = (*it++).second;
+        
 #ifdef DEBUG_OSC
-		cout << "Matched OSC path '" << path << "' to handler " << object << endl;
+        cout << "Matched OSC path '" << path << "' to handler " << object << endl;
 #endif
-		object->oscHandlerMethod(truncatedPath.c_str(), types, argc, argv, data);
-		matched = true;
-	}
+        object->oscHandlerMethod(truncatedPath.c_str(), types, argc, argv, data);
+        matched = true;
+    }
 	
-    //oscListenerMutex_.exitRead();
     oscListenerMutex_.exit();
     
 	if(matched)		// This message has been handled
 		return 0;
 	
+#ifdef DEBUG_OSC    
 	printf("Unhandled OSC path: <%s>\n", path);
 	
-#ifdef DEBUG_OSC
     for (int i=0; i<argc; i++) {
 		printf("arg %d '%c' ", i, types[i]);
 		lo_arg_pp((lo_type)types[i], argv[i]);

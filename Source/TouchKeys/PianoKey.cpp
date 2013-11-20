@@ -448,7 +448,7 @@ void PianoKey::midiAftertouch(MidiKeyboardSegment *who, int value, timestamp_typ
 void PianoKey::touchInsertFrame(KeyTouchFrame& newFrame, timestamp_type timestamp) {
     if(!touchSensorsArePresent_)
         return;
-    
+
 	// First check if the key was previously inactive.  If so, send a message
 	// that the touch has begun
 	if(!touchIsActive_) {

@@ -36,8 +36,9 @@ const char* kNoteNamesAlternate[12] = {"C", "Db", "D ", "Eb", "E", "F", "Gb", "G
 
 MainApplicationController::MainApplicationController()
 : midiInputController_(keyboardController_),
+  oscReceiver_(0, "/touchkeys"),
   touchkeyController_(keyboardController_),
-  oscReceiver_(0, ""),
+  touchkeyEmulator_(keyboardController_, oscReceiver_),
   touchkeyErrorOccurred_(false),
   touchkeyErrorMessage_(""),
   touchkeyAutodetecting_(false),
