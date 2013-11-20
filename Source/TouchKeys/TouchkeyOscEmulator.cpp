@@ -140,6 +140,7 @@ void TouchkeyOscEmulator::touchReceived(int key, int touch, float x, float y) {
         for(int i = 0; i < 3; i++) {
             if(touchFrames_[noteNumber].ids[i] == touchId) {
                 // Found continuing touch
+                std::cout << "matched touch " << touch << " to ID " << touchId << std::endl;
                 updateTouchInFrame(noteNumber, i, x, y);
                 updatedExistingTouch = true;
             }
@@ -155,8 +156,14 @@ void TouchkeyOscEmulator::touchReceived(int key, int touch, float x, float y) {
         }
     }
     
-    if(keyboard_.key(noteNumber) != 0)
-        keyboard_.key(noteNumber)->touchInsertFrame(touchFrames_[noteNumber], keyboard_.schedulerCurrentTimestamp());
+    if(keyboard_.key(noteNumber) != 0) {
+        // Pass the frame to the keyboard by copy since PianoKey does its own ID number tracking.
+        // The important thing is that the Y values are always ordered. If ID tracking later changes
+        // in PianoKey it's of no consequence here as long as we retain the ability to track OSC
+        // touch IDs.
+        KeyTouchFrame copyFrame(touchFrames_[noteNumber]);
+        keyboard_.key(noteNumber)->touchInsertFrame(copyFrame, keyboard_.schedulerCurrentTimestamp());
+    }
 }
 
 // Touch removed
@@ -188,8 +195,10 @@ void TouchkeyOscEmulator::touchOffReceived(int key, int touch) {
                 if(keyboard_.key(noteNumber) != 0)
                     keyboard_.key(noteNumber)->touchOff(keyboard_.schedulerCurrentTimestamp());
             }
-            else if(keyboard_.key(noteNumber) != 0)
-                keyboard_.key(noteNumber)->touchInsertFrame(touchFrames_[noteNumber], keyboard_.schedulerCurrentTimestamp());
+            else if(keyboard_.key(noteNumber) != 0) {
+                KeyTouchFrame copyFrame(touchFrames_[noteNumber]);
+                keyboard_.key(noteNumber)->touchInsertFrame(copyFrame, keyboard_.schedulerCurrentTimestamp());
+            }
             break;
         }
     }
