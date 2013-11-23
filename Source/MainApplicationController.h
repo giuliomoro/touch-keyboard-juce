@@ -162,9 +162,7 @@ public:
     // stored 
     MidiKeyboardSegment* midiSegmentAdd();
     // Remove a segment
-    void midiSegmentRemove(MidiKeyboardSegment *segment) {
-        midiInputController_.removeSegment(segment);
-    }
+    void midiSegmentRemove(MidiKeyboardSegment *segment);
 
     // Select MIDI input/output devices
     void enableMIDIInputPort(int portNumber) {

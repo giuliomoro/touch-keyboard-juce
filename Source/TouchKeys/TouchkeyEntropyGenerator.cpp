@@ -21,6 +21,7 @@
 */
 
 #include "TouchkeyEntropyGenerator.h"
+#include <cstdlib>
 
 TouchkeyEntropyGenerator::TouchkeyEntropyGenerator(PianoKeyboard& keyboard)
 : Thread("TouchkeyEntropyGenerator"), keyboard_(keyboard),
@@ -28,7 +29,7 @@ TouchkeyEntropyGenerator::TouchkeyEntropyGenerator(PianoKeyboard& keyboard)
   keyboardRangeLow_(36), keyboardRangeHigh_(60),
   dataInterval_(milliseconds_to_timestamp(5.0))
 {
-    sranddev();
+    srand(time(NULL));
 }
 
 // Start the thread handling the scheduling.
