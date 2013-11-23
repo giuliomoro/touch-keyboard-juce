@@ -85,6 +85,7 @@ OBJECTS := \
   $(OBJDIR)/TimerNode_477a3545.o \
   $(OBJDIR)/TimestampSynchronizer_df7831b6.o \
   $(OBJDIR)/Trigger_66a771d6.o \
+  $(OBJDIR)/TouchkeyEntropyGenerator_89f40fa7.o \
   $(OBJDIR)/TouchkeyOscEmulator_9ad15559.o \
   $(OBJDIR)/MidiKeyboardSegment_e1be9d70.o \
   $(OBJDIR)/KeyIdleDetector_2efa023e.o \
@@ -310,6 +311,11 @@ $(OBJDIR)/TimestampSynchronizer_df7831b6.o: ../../Source/Utility/TimestampSynchr
 $(OBJDIR)/Trigger_66a771d6.o: ../../Source/Utility/Trigger.cpp
 	-@mkdir -p $(OBJDIR)
 	@echo "Compiling Trigger.cpp"
+	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
+
+$(OBJDIR)/TouchkeyEntropyGenerator_89f40fa7.o: ../../Source/TouchKeys/TouchkeyEntropyGenerator.cpp
+	-@mkdir -p $(OBJDIR)
+	@echo "Compiling TouchkeyEntropyGenerator.cpp"
 	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 
 $(OBJDIR)/TouchkeyOscEmulator_9ad15559.o: ../../Source/TouchKeys/TouchkeyOscEmulator.cpp

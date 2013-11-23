@@ -27,6 +27,8 @@
 #ifndef __TouchKeys__MainApplicationController__
 #define __TouchKeys__MainApplicationController__
 
+#undef TOUCHKEY_ENTROPY_GENERATOR_ENABLE
+
 #include <iostream>
 #include <vector>
 #include "../JuceLibraryCode/JuceHeader.h"
@@ -45,6 +47,10 @@
 #include "Mappings/KeyDivision/TouchkeyKeyDivisionMappingFactory.h"
 #include "Mappings/MappingFactorySplitter.h"
 #include "TouchKeys/LogPlayback.h"
+
+#ifdef TOUCHKEY_ENTROPY_GENERATOR_ENABLE
+#include "TouchKeys/TouchkeyEntropyGenerator.h"
+#endif
 
 const char kDefaultOscTransmitHost[] = "127.0.0.1";
 const char kDefaultOscTransmitPort[] = "8000";
@@ -81,9 +87,7 @@ public:
     bool openTouchkeyDevice(const char * path) {
         return touchkeyController_.openDevice(path);
     }
-    void closeTouchkeyDevice() {
-        touchkeyController_.closeDevice();
-    }
+    void closeTouchkeyDevice();
     
     // Check for device present
     bool touchkeyDeviceCheckForPresence(int waitMilliseconds = 250, int tries = 10);
@@ -102,9 +106,8 @@ public:
         return touchkeyController_.isOpen();
     }
     // Return true if device is collecting data
-    bool touchkeyDeviceIsRunning() {
-        return touchkeyController_.isAutoGathering();
-    }
+    bool touchkeyDeviceIsRunning();
+    
     // Returns true if an error has occurred
     bool touchkeyDeviceErrorOccurred() {
         return touchkeyErrorOccurred_;
@@ -320,6 +323,10 @@ private:
     OscReceiver oscReceiver_;
     TouchkeyDevice touchkeyController_;
     TouchkeyOscEmulator touchkeyEmulator_;
+#ifdef TOUCHKEY_ENTROPY_GENERATOR_ENABLE
+    TouchkeyEntropyGenerator touchkeyEntropyGenerator_;
+    bool entropyGeneratorSelected_;
+#endif
     
     bool touchkeyErrorOccurred_;
     std::string touchkeyErrorMessage_;

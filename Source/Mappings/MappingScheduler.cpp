@@ -36,6 +36,16 @@ using std::cout;
 
 const timestamp_diff_type MappingScheduler::kAllowableAdvanceExecutionTime = milliseconds_to_timestamp(1.0);
 
+// Constructor
+MappingScheduler::MappingScheduler(PianoKeyboard& keyboard, String threadName)
+: Thread(threadName), keyboard_(keyboard),
+  waitableEvent_(true), isRunning_(false), counter_(0)
+#ifdef DEBUG_MAPPING_SCHEDULER_STATISTICS
+  ,lastDebugStatisticsTimestamp_(0)
+#endif
+{
+}
+
 // Destructor
 MappingScheduler::~MappingScheduler() {
     // Stop the thread
@@ -210,13 +220,17 @@ void MappingScheduler::run() {
 #endif
                 performAction(nextAction);
             }
+            
+#ifdef DEBUG_MAPPING_SCHEDULER_STATISTICS
+            printDebugStatistics();
+#endif
         }
         
         // Next, grab the first upcoming action in the later category
         bool foundAction = true;
         timestamp_diff_type timeToNextAction = 0;
         
-        while(foundAction) {
+        while(foundAction && !threadShouldExit()) {
             // Lock the future actions mutex to examine the contents
             // of the future actions collection
             actionsLaterMutex_.enter();
@@ -254,6 +268,9 @@ void MappingScheduler::run() {
                 std::cout << "Found no further actions\n";
 #endif
             }
+#ifdef DEBUG_MAPPING_SCHEDULER_STATISTICS
+            printDebugStatistics();
+#endif
         }
         
         if(timeToNextAction > 0) {
@@ -264,14 +281,18 @@ void MappingScheduler::run() {
             
 #ifdef DEBUG_MAPPING_SCHEDULER
             std::cout << "Waiting for next action in " << timestamp_to_milliseconds(timeToNextAction) << "ms\n";
+#elif defined(DEBUG_MAPPING_SCHEDULER_STATISTICS)
+            if(timestamp_to_milliseconds(timeToNextAction) > 100)
+                std::cout << "Waiting for next action in " << timestamp_to_milliseconds(timeToNextAction) << "ms\n";
 #endif
+            
             // Wait for the next action to arrive (unless signaled)
             waitableEvent_.wait(timestamp_to_milliseconds(timeToNextAction));
         }
         else {
             // No future actions found; wait for a signal
             
-#ifdef DEBUG_MAPPING_SCHEDULER
+#if defined(DEBUG_MAPPING_SCHEDULER) || defined(DEBUG_MAPPING_SCHEDULER_STATISTICS)
             std::cout << "Waiting for next action\n";
 #endif
             waitableEvent_.wait();
@@ -369,3 +390,18 @@ void MappingScheduler::performAction(MappingAction const& mappingAction) {
 #endif
     }
 }
+
+#ifdef DEBUG_MAPPING_SCHEDULER_STATISTICS
+void MappingScheduler::printDebugStatistics() {
+    timestamp_type currentTimestamp = keyboard_.schedulerCurrentTimestamp();
+    if(currentTimestamp - lastDebugStatisticsTimestamp_ < milliseconds_to_timestamp(500))
+        return;
+    lastDebugStatisticsTimestamp_ = currentTimestamp;
+    std::cout << "MappingScheduler: " << actionsNow_.size() << " now, " << actionsLater_.size() << " later";
+    if(!actionsLater_.empty()) {
+        std::cout << ", time lag = " << timestamp_to_milliseconds(currentTimestamp - actionsLater_.begin()->first) << std::endl;
+    }
+    else
+        std::cout << std::endl;
+}
+#endif
