@@ -270,8 +270,13 @@ void TouchkeyOscEmulator::addTouchToFrame(int note, int touchId, float x, float 
     touchFrames_[note].count++;
     
     // Lowest touch controls the horizontal position
-    if(insertLoc == 0)
-        touchFrames_[note].locH = x;
+    if(insertLoc == 0) {
+        // Emulate the partial X sensing of the white TouchKeys
+        if(touchFrames_[note].locs[0] > kWhiteFrontBackCutoff && touchFrames_[note].white)
+            touchFrames_[note].locH  = -1.0;
+        else
+            touchFrames_[note].locH = x;
+    }
 }
 
 // Update the touch at the given index to the new value. Depending on the values, it
@@ -292,8 +297,12 @@ void TouchkeyOscEmulator::updateTouchInFrame(int note, int index, float x, float
     // will keep everything in order. Otherwise just update the information
     if(ordered) {
         touchFrames_[note].locs[index] = y;
-        if(index == 0)
-            touchFrames_[note].locH = x;
+        if(index == 0) {
+            if(y > kWhiteFrontBackCutoff && touchFrames_[note].white)
+                touchFrames_[note].locH = -1;
+            else
+                touchFrames_[note].locH = x;
+        }
     }
     else {
         int currentId = touchFrames_[note].ids[index];
