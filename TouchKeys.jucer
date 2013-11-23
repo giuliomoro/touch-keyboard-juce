@@ -177,6 +177,10 @@
         <FILE id="xAWxis" name="Types.h" compile="0" resource="0" file="Source/Utility/Types.h"/>
       </GROUP>
       <GROUP id="{0AE3BB33-5A6F-DD26-0E35-C26E9B11DB1A}" name="TouchKeys">
+        <FILE id="reT03t" name="TouchkeyEntropyGenerator.cpp" compile="1" resource="0"
+              file="Source/TouchKeys/TouchkeyEntropyGenerator.cpp"/>
+        <FILE id="s9B35P" name="TouchkeyEntropyGenerator.h" compile="0" resource="0"
+              file="Source/TouchKeys/TouchkeyEntropyGenerator.h"/>
         <FILE id="MIJMFz" name="TouchkeyOscEmulator.cpp" compile="1" resource="0"
               file="Source/TouchKeys/TouchkeyOscEmulator.cpp"/>
         <FILE id="tbcheK" name="TouchkeyOscEmulator.h" compile="0" resource="0"

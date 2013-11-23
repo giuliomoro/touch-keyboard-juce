@@ -30,6 +30,8 @@
 #ifndef __TouchKeys__MappingScheduler__
 #define __TouchKeys__MappingScheduler__
 
+#undef DEBUG_MAPPING_SCHEDULER_STATISTICS
+
 #include <iostream>
 #include <map>
 #include <list>
@@ -83,6 +85,13 @@ struct LockFreeQueue
         return tmp;
     }
     
+#ifdef DEBUG_MAPPING_SCHEDULER_STATISTICS
+    unsigned long size()
+    {
+        return list.size();
+    }
+#endif
+    
 private:
     typedef std::list<T> TList;
     TList list;
@@ -128,9 +137,7 @@ public:
 	//
 	// Note: This class is not copy-constructable.
 	
-	MappingScheduler(PianoKeyboard& keyboard, String threadName = "MappingScheduler") : Thread(threadName), keyboard_(keyboard),
-      waitableEvent_(true), isRunning_(false), counter_(0) {}
-	
+	MappingScheduler(PianoKeyboard& keyboard, String threadName = "MappingScheduler");
 	// ***** Destructor *****
 	
 	~MappingScheduler();
@@ -187,6 +194,13 @@ private:
     // lock-synchronized collection of events that happen at later timestamps
     LockFreeQueue<MappingAction> actionsNow_;
     std::multimap<timestamp_type, MappingAction> actionsLater_;
+    
+#ifdef DEBUG_MAPPING_SCHEDULER_STATISTICS
+    timestamp_type lastDebugStatisticsTimestamp_;
+    
+    // Debugging method to indicate what is in the queue
+    void printDebugStatistics();
+#endif
 };
 
 

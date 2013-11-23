@@ -32,6 +32,8 @@
 #include <string>
 #include <sstream>
 
+#define DEBUG_MIDI_KEYBOARD_SEGMENT
+
 const int MidiKeyboardSegment::kMidiControllerDamperPedal = 64;
 const int MidiKeyboardSegment::kPedalActiveValue = 64;
 
@@ -679,7 +681,9 @@ void MidiKeyboardSegment::modePolyphonicNoteOn(unsigned char note, unsigned char
         if(retransmitChannelForNote_.count(note) > 0)
             newChannel = retransmitChannelForNote_[note];
         else {
+#ifdef DEBUG_MIDI_KEYBOARD_SEGMENT
             cout << "BUG: note " << note << " held in pedal but has no channel\n";
+#endif
             retransmitNotesHeldInPedal_.erase(note);
             return;
         }
@@ -699,7 +703,9 @@ void MidiKeyboardSegment::modePolyphonicNoteOn(unsigned char note, unsigned char
                 if(retransmitChannelForNote_.count(oldNote) > 0)
                     oldChannel = retransmitChannelForNote_[oldNote];
                 if(oldNote >= 0) {
+#ifdef DEBUG_MIDI_KEYBOARD_SEGMENT
                     cout << "Stealing note " << oldNote << " from pedal for note " << (int)note << endl;
+#endif
                     modePolyphonicNoteOff(oldNote, true);
                     if(oldChannel >= 0) {
                         //midiOutputController_->sendControlChange(outputPortNumber_, oldChannel, kMidiControllerDamperPedal, 0);
@@ -721,10 +727,14 @@ void MidiKeyboardSegment::modePolyphonicNoteOn(unsigned char note, unsigned char
                         oldChannel = retransmitChannelForNote_[oldNote];
                     if(oldNote < 0) {
                         // Shouldn't happen...
+#ifdef DEBUG_MIDI_KEYBOARD_SEGMENT
                         cout << "No notes present, but no MIDI output channel available for note " << (int)note << endl;
+#endif
                         return;
                     }
+#ifdef DEBUG_MIDI_KEYBOARD_SEGMENT
                     cout << "Stealing note " << oldNote << " for note " << (int)note << endl;
+#endif
                     modePolyphonicNoteOff(oldNote, true);
                     if(oldChannel >= 0) {
                         //midiOutputController_->sendControlChange(outputPortNumber_, oldChannel, kMidiControllerDamperPedal, 0);
@@ -736,7 +746,9 @@ void MidiKeyboardSegment::modePolyphonicNoteOn(unsigned char note, unsigned char
                 }
                 else {
                     // No channels available.  Print a warning and finish
+#ifdef DEBUG_MIDI_KEYBOARD_SEGMENT
                     cout << "No MIDI output channel available for note " << (int)note << endl;
+#endif
                     return;
                 }
             }
@@ -861,7 +873,9 @@ int MidiKeyboardSegment::oldestNoteInPedal() {
     int oldestNoteNumber = -1;
     timestamp_type oldestTimestamp = missing_value<timestamp_type>::missing();
     
+#ifdef DEBUG_MIDI_KEYBOARD_SEGMENT
     cout << "notes in pedal: ";
+#endif
     
     for(it = retransmitNotesHeldInPedal_.begin(); it != retransmitNotesHeldInPedal_.end(); ++it) {
         int note = *it;
@@ -870,7 +884,9 @@ int MidiKeyboardSegment::oldestNoteInPedal() {
             timestamp = noteOnsetTimestamps_[note];
         else
             timestamp = 0; // Why is there a note held in pedal with no onset? Steal it!
+#ifdef DEBUG_MIDI_KEYBOARD_SEGMENT
         cout << note << " (" << timestamp << ") ";
+#endif
         
         if(missing_value<timestamp_type>::isMissing(oldestTimestamp)) {
             oldestNoteNumber = note;
@@ -881,7 +897,9 @@ int MidiKeyboardSegment::oldestNoteInPedal() {
             oldestTimestamp = timestamp;
         }
     }
+#ifdef DEBUG_MIDI_KEYBOARD_SEGMENT
     cout << endl;
+#endif
     
     return oldestNoteNumber;
 }
@@ -978,7 +996,9 @@ void MidiKeyboardSegment::damperPedalWentOff() {
     set<int>::iterator it;
     for(it = retransmitNotesHeldInPedal_.begin(); it != retransmitNotesHeldInPedal_.end(); ++it) {
         int note = *it;
+#ifdef DEBUG_MIDI_KEYBOARD_SEGMENT
         cout << "releasing note " << note << " on channel " << retransmitChannelForNote_[note] << endl;
+#endif
         retransmitChannelsAvailable_.insert(retransmitChannelForNote_[note]);
         retransmitChannelForNote_.erase(note);
         noteOnsetTimestamps_[note] = 0;

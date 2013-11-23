@@ -379,7 +379,7 @@ timestamp_type TouchkeyControlMapping::performMapping() {
     }
     
     // Register for the next update by returning its timestamp
-    nextScheduledTimestamp_ = currentTimestamp + updateInterval_;
+    nextScheduledTimestamp_ = 0; //currentTimestamp + updateInterval_;
     return nextScheduledTimestamp_;
 }
 

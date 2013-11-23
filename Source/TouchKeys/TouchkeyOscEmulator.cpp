@@ -120,7 +120,7 @@ bool TouchkeyOscEmulator::oscHandlerMethod(const char *path, const char *types,
 
 // New touch data point received
 void TouchkeyOscEmulator::touchReceived(int key, int touch, float x, float y) {
-    std::cout << "Key " << key << " touch " << touch << ": (" << x << ", " << y << ")\n";
+    // std::cout << "Key " << key << " touch " << touch << ": (" << x << ", " << y << ")\n";
 
     int noteNumber = lowestMidiNote_ + key;
     
@@ -140,7 +140,7 @@ void TouchkeyOscEmulator::touchReceived(int key, int touch, float x, float y) {
         for(int i = 0; i < 3; i++) {
             if(touchFrames_[noteNumber].ids[i] == touchId) {
                 // Found continuing touch
-                std::cout << "matched touch " << touch << " to ID " << touchId << std::endl;
+                // std::cout << "matched touch " << touch << " to ID " << touchId << std::endl;
                 updateTouchInFrame(noteNumber, i, x, y);
                 updatedExistingTouch = true;
             }
@@ -151,6 +151,7 @@ void TouchkeyOscEmulator::touchReceived(int key, int touch, float x, float y) {
         // Didn't find an ID for this touch: add it to the frame
         // provided there aren't 3 existing touches (shouldn't happen)
         if(touchFrames_[noteNumber].count < 3) {
+            // std::cout << "assigning touch " << touch << " to ID " << touchFrames_[noteNumber].nextId << std::endl;
             touchIdAssignments_[noteNumber][touch - 1] = touchFrames_[noteNumber].nextId++;
             addTouchToFrame(noteNumber, touchIdAssignments_[noteNumber][touch - 1], x, y);
         }
@@ -266,6 +267,7 @@ void TouchkeyOscEmulator::addTouchToFrame(int note, int touchId, float x, float 
     touchFrames_[note].ids[insertLoc] = touchId;
     touchFrames_[note].locs[insertLoc] = y;
     touchFrames_[note].sizes[insertLoc] = 1.0; // Size is not supported over OSC emulation
+    touchFrames_[note].count++;
     
     // Lowest touch controls the horizontal position
     if(insertLoc == 0)

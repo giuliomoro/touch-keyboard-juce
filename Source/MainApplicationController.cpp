@@ -39,6 +39,10 @@ MainApplicationController::MainApplicationController()
   oscReceiver_(0, "/touchkeys"),
   touchkeyController_(keyboardController_),
   touchkeyEmulator_(keyboardController_, oscReceiver_),
+#ifdef TOUCHKEY_ENTROPY_GENERATOR_ENABLE
+  touchkeyEntropyGenerator_(keyboardController_),
+  entropyGeneratorSelected_(false),
+#endif
   touchkeyErrorOccurred_(false),
   touchkeyErrorMessage_(""),
   touchkeyAutodetecting_(false),
@@ -81,6 +85,15 @@ MainApplicationController::~MainApplicationController() {
 }
 
 bool MainApplicationController::touchkeyDeviceStartupSequence(const char * path) {
+#ifdef TOUCHKEY_ENTROPY_GENERATOR_ENABLE
+    if(!strcmp(path, "/dev/Entropy Generator")) {
+        entropyGeneratorSelected_ = true;
+        touchkeyEntropyGenerator_.start();
+    }
+    else {
+        entropyGeneratorSelected_ = false;
+#endif
+        
     // Step 1: attempt to open device
     if(!openTouchkeyDevice(path)) {
         touchkeyErrorMessage_ = "Failed to open";
@@ -110,6 +123,10 @@ bool MainApplicationController::touchkeyDeviceStartupSequence(const char * path)
         touchkeyErrorOccurred_ = true;
     }
 
+#ifdef TOUCHKEY_ENTROPY_GENERATOR_ENABLE
+    }
+#endif
+    
     // Success!
     touchkeyErrorMessage_ = "";
     touchkeyErrorOccurred_ = false;
@@ -144,7 +161,23 @@ std::vector<std::string> MainApplicationController::availableTouchkeyDevices() {
         }
     }
     
+#ifdef TOUCHKEY_ENTROPY_GENERATOR_ENABLE
+    devices.push_back("Entropy Generator");
+#endif
+    
     return devices;
+}
+
+// Close the currently open TouchKeys device
+void MainApplicationController::closeTouchkeyDevice() {
+#ifdef TOUCHKEY_ENTROPY_GENERATOR_ENABLE
+    if(entropyGeneratorSelected_)
+        touchkeyEntropyGenerator_.stop();
+    else
+        touchkeyController_.closeDevice();
+#else
+    touchkeyController_.closeDevice();
+#endif
 }
 
 // Check whether a TouchKey device is present. Returns true if device found.
@@ -160,6 +193,18 @@ bool MainApplicationController::touchkeyDeviceCheckForPresence(int waitMilliseco
     }
     
     return true;
+}
+
+// Return true if device is collecting data
+bool MainApplicationController::touchkeyDeviceIsRunning() {
+#ifdef TOUCHKEY_ENTROPY_GENERATOR_ENABLE
+    if(entropyGeneratorSelected_)
+        return touchkeyEntropyGenerator_.isRunning();
+    else
+        return touchkeyController_.isAutoGathering();
+#else
+    return touchkeyController_.isAutoGathering();
+#endif
 }
 
 // Start an autodetection routine to match touch data to MIDI
