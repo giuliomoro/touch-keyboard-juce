@@ -298,6 +298,19 @@ MidiKeyboardSegment* MainApplicationController::midiSegmentAdd() {
     return newSegment;
 }
 
+// Remove a MIDI keyboard segment.
+void MainApplicationController::midiSegmentRemove(MidiKeyboardSegment *segment) {
+    if(segment == 0)
+        return;
+    // Check if this segment uses a virtual output port. Right now, we have a unique
+    // output per segment. If it does, then disable the virtual output port.
+    int identifier = segment->outputPort();
+    if(midiOutputController_.enabledPort(identifier) == MidiOutputController::kMidiVirtualOutputPortNumber)
+        midiOutputController_.disablePort(identifier);
+    midiInputController_.removeSegment(segment);
+}
+
+
 // Enable TouchKeys standalone mode
 void MainApplicationController::midiTouchkeysStandaloneModeEnable() {
     touchkeyStandaloneModeEnabled_ = true;

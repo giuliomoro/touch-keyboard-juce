@@ -77,24 +77,30 @@ bool MidiOutputController::enablePort(int identifier, int deviceNumber) {
     record.portNumber = deviceNumber;
     record.output = device;
     
-    activePorts_[identifier] = record;//{deviceNumber, device};
+    activePorts_[identifier] = record;
     
 	return true;
 }
 
 bool MidiOutputController::enableVirtualPort(int identifier, const char *name) {
-    /*
-    // Try to create a new port
-    MidiOutput* device = MidiOutput::createNewDevice(kMidiVirtualOutputName);
-    if(device == 0)
-        return false;
+    // Check if there is a port for this identifier, and disable it if so
+    if(activePorts_.count(identifier) > 0)
+        disablePort(identifier);
     
-    midiOut_ = device;
-    portNumber_ = kMidiVirtualOutputPortNumber;
+    // Try to create a new port
+    MidiOutput* device = MidiOutput::createNewDevice(name);
+    if(device == 0) {
+        cout << "Failed to enable MIDI virtual output port " << name << ")\n";
+        return false;
+    }
+    
+    MidiOutputControllerRecord record;
+    record.portNumber = kMidiVirtualOutputPortNumber;
+    record.output = device;
+    
+    activePorts_[identifier] = record;
     
 	return true;
-    */
-    return 0; // TODO: implement me
 }
 
 void MidiOutputController::disablePort(int identifier) {
