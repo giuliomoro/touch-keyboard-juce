@@ -127,6 +127,7 @@ public:
     // Set the lowest MIDI note for the TouchKeys
     void touchkeyDeviceSetLowestMidiNote(int note) {
         keyboardDisplay_.clearAllTouches();
+        touchkeyEmulator_.setLowestMidiNote(note);
         touchkeyController_.setLowestMidiNote(note);
     }
     // Attempt to autodetect the correct TouchKey octave from MIDI data
