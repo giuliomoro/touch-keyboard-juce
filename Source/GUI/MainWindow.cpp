@@ -258,10 +258,12 @@ void MainWindow::getCommandInfo(CommandID commandID, ApplicationCommandInfo& res
         case kCommandShowControlWindow:
             result.setInfo("TouchKeys Controls", "Show control and mapping window", windowCategory, 0);
             result.setTicked(false);
+            result.addDefaultKeypress ('1', ModifierKeys::commandModifier);
             break;
         case kCommandShowKeyboardWindow:
             result.setInfo("Keyboard Display", "Show keyboard display", windowCategory, 0);
             result.setTicked(false);
+            result.addDefaultKeypress ('2', ModifierKeys::commandModifier);
             break;
             
         default:
