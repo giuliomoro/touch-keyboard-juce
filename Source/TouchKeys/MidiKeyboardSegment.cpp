@@ -210,21 +210,21 @@ void MidiKeyboardSegment::setMode(int mode) {
 
 void MidiKeyboardSegment::setModeOff() {
 	allNotesOff();
-	removeAllOscListeners();
+	removeOscListener("/midi/noteon");
     setAllControllerActionsTo(kControlActionBlock);
 	mode_ = ModeOff;
 }
 
 void MidiKeyboardSegment::setModePassThrough() {
 	allNotesOff();
-	removeAllOscListeners();
+	removeOscListener("/midi/noteon");
     setAllControllerActionsTo(kControlActionPassthrough);
 	mode_ = ModePassThrough;
 }
 
 void MidiKeyboardSegment::setModeMonophonic() {
 	allNotesOff();
-	removeAllOscListeners();
+	removeOscListener("/midi/noteon");
     setAllControllerActionsTo(kControlActionPassthrough);
 	mode_ = ModeMonophonic;
 }
@@ -232,7 +232,6 @@ void MidiKeyboardSegment::setModeMonophonic() {
 void MidiKeyboardSegment::setModePolyphonic() {
 	// First turn off any notes in the current mode
 	allNotesOff();
-	removeAllOscListeners();
     setAllControllerActionsTo(kControlActionBroadcast);
 	
 	// Register a callback for touchkey data.  When we get a note-on message,
