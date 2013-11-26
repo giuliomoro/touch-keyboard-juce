@@ -50,6 +50,7 @@ private:
         // Control menu
         kCommandRescanDevices = 0x2020,
         kCommandEnableExperimentalMappings,
+        kCommandTestTouchkeySensors,
         
         // Window menu
         kCommandShowControlWindow = 0x2030,

@@ -77,6 +77,7 @@ OBJECTS := \
   $(OBJDIR)/MappingFactorySplitter_9525552e.o \
   $(OBJDIR)/MIDIKeyPositionMapping_750093d2.o \
   $(OBJDIR)/MRPMapping_742529ce.o \
+  $(OBJDIR)/KeyboardTesterDisplay_81722890.o \
   $(OBJDIR)/KeyboardDisplay_d9f334cf.o \
   $(OBJDIR)/KeyPositionGraphDisplay_5606e2d0.o \
   $(OBJDIR)/RawSensorDisplay_f15a0e36.o \
@@ -271,6 +272,11 @@ $(OBJDIR)/MIDIKeyPositionMapping_750093d2.o: ../../Source/Mappings/MIDIKeyPositi
 $(OBJDIR)/MRPMapping_742529ce.o: ../../Source/Mappings/MRPMapping.cpp
 	-@mkdir -p $(OBJDIR)
 	@echo "Compiling MRPMapping.cpp"
+	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
+
+$(OBJDIR)/KeyboardTesterDisplay_81722890.o: ../../Source/Display/KeyboardTesterDisplay.cpp
+	-@mkdir -p $(OBJDIR)
+	@echo "Compiling KeyboardTesterDisplay.cpp"
 	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 
 $(OBJDIR)/KeyboardDisplay_d9f334cf.o: ../../Source/Display/KeyboardDisplay.cpp

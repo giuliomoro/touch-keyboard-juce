@@ -141,6 +141,10 @@
         <FILE id="p4SenN" name="MRPMapping.h" compile="0" resource="0" file="Source/Mappings/MRPMapping.h"/>
       </GROUP>
       <GROUP id="{5C8318DB-4543-0070-6AE5-19B2ADB579EF}" name="Display">
+        <FILE id="FcI1P5" name="KeyboardTesterDisplay.cpp" compile="1" resource="0"
+              file="Source/Display/KeyboardTesterDisplay.cpp"/>
+        <FILE id="YAqpoq" name="KeyboardTesterDisplay.h" compile="0" resource="0"
+              file="Source/Display/KeyboardTesterDisplay.h"/>
         <FILE id="M0pqeW" name="KeyboardDisplay.cpp" compile="1" resource="0"
               file="Source/Display/KeyboardDisplay.cpp"/>
         <FILE id="CBLGZH" name="KeyboardDisplay.h" compile="0" resource="0"

@@ -27,7 +27,7 @@
 #ifndef TOUCHKEYS_NO_GUI
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "../MainApplicationController.h"
+#include "../Display/KeyboardDisplay.h"
 #include "../Display/OpenGLJuceCanvas.h"
 
 //==============================================================================
@@ -36,19 +36,19 @@
 class GraphicsDisplayWindow    : public DocumentWindow
 {
 public:
-    GraphicsDisplayWindow(String name, MainApplicationController& controller)
+    GraphicsDisplayWindow(String name, KeyboardDisplay& display)
     : DocumentWindow(name, Colours::lightgrey, DocumentWindow::allButtons),
-      controller_(controller)
+      display_(display)
     {
         // Initialize an OpenGL graphics object as the content with a default size
-        OpenGLJuceCanvas *canvas = new OpenGLJuceCanvas(controller_.keyboardDisplay());
+        OpenGLJuceCanvas *canvas = new OpenGLJuceCanvas(display_);
         canvas->setSize(300,200);
         
         // Set properties
         setContentOwned(canvas, true);
         setUsingNativeTitleBar(true);
         setResizable(true, true);
-        getConstrainer()->setFixedAspectRatio(controller_.keyboardDisplay().keyboardAspectRatio());
+        getConstrainer()->setFixedAspectRatio(display_.keyboardAspectRatio());
         setBoundsConstrained(getBounds());
         
         // Show window
@@ -66,7 +66,7 @@ public:
 
 
 private:
-    MainApplicationController& controller_;
+    KeyboardDisplay& display_;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (GraphicsDisplayWindow)
 };

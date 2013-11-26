@@ -118,6 +118,9 @@ PopupMenu MainWindow::getMenuForIndex(int menuIndex, const String& menuName) {
         menu.addCommandItem(&commandManager_, kCommandRescanDevices);
         menu.addSeparator();
         menu.addCommandItem(&commandManager_, kCommandEnableExperimentalMappings);
+#ifdef ENABLE_TOUCHKEYS_SENSOR_TEST
+        menu.addCommandItem(&commandManager_, kCommandTestTouchkeySensors);
+#endif
     }
     else if(menuIndex == 3) { // Window
         menu.addCommandItem(&commandManager_, kCommandShowControlWindow);
@@ -155,6 +158,9 @@ void MainWindow::getAllCommands(Array <CommandID>& commands) {
         // Control
         kCommandRescanDevices,
         kCommandEnableExperimentalMappings,
+#ifdef ENABLE_TOUCHKEYS_SENSOR_TEST
+        kCommandTestTouchkeySensors,
+#endif
         // Window
         kCommandShowControlWindow,
         kCommandShowKeyboardWindow
@@ -253,6 +259,13 @@ void MainWindow::getCommandInfo(CommandID commandID, ApplicationCommandInfo& res
             result.setInfo("Enable Experimental Mappings", "Enables mappings which are still experimental", controlCategory, 0);
             result.setTicked(controller_.experimentalMappingsEnabled());
             break;
+#ifdef ENABLE_TOUCHKEYS_SENSOR_TEST
+        case kCommandTestTouchkeySensors:
+            result.setInfo("Test TouchKeys Sensors", "Enables a test of individual TouchKeys sensors", controlCategory, 0);
+            result.setActive(controller_.availableTouchkeyDevices().size() > 0);
+            result.setTicked(controller_.touchkeySensorTestIsRunning());
+            break;
+#endif
             
         // *** Window Menu ***
         case kCommandShowControlWindow:
@@ -282,6 +295,14 @@ bool MainWindow::perform(const InvocationInfo& info) {
         case kCommandEnableExperimentalMappings:
             controller_.setExperimentalMappingsEnabled(!controller_.experimentalMappingsEnabled());
             break;
+#ifdef ENABLE_TOUCHKEYS_SENSOR_TEST
+        case kCommandTestTouchkeySensors:
+            if(!controller_.touchkeySensorTestIsRunning())
+                controller_.touchkeySensorTestStart(mainComponent_.currentTouchkeysSelectedPath().toUTF8(), controller_.touchkeyDeviceLowestMidiNote());
+            else
+                controller_.touchkeySensorTestStop();
+            break;
+#endif
         case kCommandShowControlWindow:
             toFront(true);
             break;
