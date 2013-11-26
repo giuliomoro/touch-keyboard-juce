@@ -242,6 +242,7 @@ public:
 	
 	// Start collecting raw data from a given key
 	bool startRawDataCollection(int octave, int key, int mode, int scaler);
+    void rawDataChangeKeyAndMode(int octave, int key, int mode, int scaler);
     
     // ***** RGB LED updates *****
     void rgbledSetColor(const int midiNote, const float red, const float green, const float blue);
@@ -330,12 +331,15 @@ private:
 	// Utility method for parsing multi-key gestures
 	pair<int, int> whiteKeyAbove(int octave, int note);
 	
+    // Write the commands to prepare a given key for raw data collection
+    void rawDataPrepareCollection(int octave, int key, int mode, int scaler);
+    
 	// After writing a command, check whether it was acknolwedged by the controller
 	bool checkForAck(int timeoutMilliseconds);
 	
 	// Utility method for debugging
 	void hexDump(ostream& str, unsigned char * buffer, int length);
-
+    
     // Internal calibration methods
     void calibrationInit(int numberOfCalibrators);
     void calibrationDeinit();
@@ -379,7 +383,9 @@ private:
 	timestamp_type lastTimestamp_;
     
     // For raw data collection, this information keeps track of which key we're reading
+    bool rawDataShouldChangeMode_;
     int rawDataCurrentOctave_, rawDataCurrentKey_;
+    int rawDataCurrentMode_, rawDataCurrentScaler_;
     
     // ***** RGB LED management *****
     bool deviceHasRGBLEDs_;                 // Whether the device has RGB LEDs

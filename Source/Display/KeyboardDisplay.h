@@ -37,7 +37,7 @@
 
 class KeyboardDisplay : public OpenGLDisplayBase {
 	// Internal data structures and constants
-private:
+protected:
     // Display dimensions, normalized to the width of one white key
  
     static const float kWhiteKeyFrontWidth;
@@ -94,28 +94,29 @@ private:
 	
 public:
 	KeyboardDisplay();
+    virtual ~KeyboardDisplay() {}
 	
 	// Setup methods for display size and keyboard range
 	void setKeyboardRange(int lowest, int highest);
 	float keyboardAspectRatio() { return totalDisplayWidth_ / totalDisplayHeight_; }
-	void setDisplaySize(float width, float height);
+	virtual void setDisplaySize(float width, float height);
 	
 	// Drawing methods
-	bool needsRender() { return needsUpdate_; }
-	void render();
+	virtual bool needsRender() { return needsUpdate_; }
+	virtual void render();
 	
 	// Interaction methods
-	void mouseDown(float x, float y);
-	void mouseDragged(float x, float y);
-	void mouseUp(float x, float y);
-	void rightMouseDown(float x, float y);
-	void rightMouseDragged(float x, float y);
-	void rightMouseUp(float x, float y);
+	virtual void mouseDown(float x, float y);
+	virtual void mouseDragged(float x, float y);
+	virtual void mouseUp(float x, float y);
+	virtual void rightMouseDown(float x, float y);
+	virtual void rightMouseDragged(float x, float y);
+	virtual void rightMouseUp(float x, float y);
 	
 	// Take action associated with clicking a key.  These are called within the mouse
 	// methods but may also be called externally.
-	void keyClicked(int key);
-	void keyRightClicked(int key);
+	virtual void keyClicked(int key);
+	virtual void keyRightClicked(int key);
 	
 	// State-change methods
 	void setTouchForKey(int key, const KeyTouchFrame& touch);
@@ -131,7 +132,7 @@ public:
 	void setTouchSensorPresentForKey(int key, bool present);
 	void setTouchSensingEnabled(bool enabled);
 	
-private:
+protected:
 	void drawWhiteKey(float x, float y, int shape, bool first, bool last, bool highlighted);
 	void drawBlackKey(float x, float y, bool highlighted);
 	
@@ -157,7 +158,7 @@ private:
 	// Figure out which key (if any) the current point corresponds to
 	int keyForLocation(Point& internalPoint);
 		
-private:
+protected:
 	
 	int lowestMidiNote_, highestMidiNote_;			// Which keys should be displayed (use MIDI note numbers)	
 	float totalDisplayWidth_, totalDisplayHeight_;	// Size of the internal view (centered around origin)

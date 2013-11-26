@@ -52,11 +52,17 @@
 #include "TouchKeys/TouchkeyEntropyGenerator.h"
 #endif
 
+#ifndef TOUCHKEYS_NO_GUI
+#include "GUI/GraphicsDisplayWindow.h"
+class KeyboardTesterDisplay;
+#endif
+
 const char kDefaultOscTransmitHost[] = "127.0.0.1";
 const char kDefaultOscTransmitPort[] = "8000";
 const int kDefaultOscReceivePort = 8001;
 
 class InterfaceSelectorComponent;
+
 
 class MainApplicationController : public OscHandler {
 public:
@@ -309,6 +315,24 @@ public:
     // Whether a given mapping is experimental
     bool mappingIsExperimental(int index);
     
+#ifdef ENABLE_TOUCHKEYS_SENSOR_TEST
+    // *** TouchKeys sensor testing methods ***
+    // Start testing the TouchKeys sensors
+    bool touchkeySensorTestStart(const char *path, int firstKey);
+    
+    // Stop testing the TouchKeys sensors
+    void touchkeySensorTestStop();
+    
+    // Is the sensor test running?
+    bool touchkeySensorTestIsRunning();
+    
+    // Set the current key that is begin tested
+    void touchkeySensorTestSetKey(int key);
+    
+    // Reset the testing state to all sensors off
+    void touchkeySensorTestResetState();
+#endif
+    
     // *** Static utility methods ***
     static std::string midiNoteName(int noteNumber);
     static int midiNoteNumberForName(std::string const& name);
@@ -343,6 +367,8 @@ private:
     KeyboardDisplay keyboardDisplay_;
 #ifndef TOUCHKEYS_NO_GUI
     DocumentWindow *keyboardDisplayWindow_;
+    KeyboardTesterDisplay *keyboardTesterDisplay_;
+    GraphicsDisplayWindow *keyboardTesterWindow_;
 #endif
     
     // Segment info

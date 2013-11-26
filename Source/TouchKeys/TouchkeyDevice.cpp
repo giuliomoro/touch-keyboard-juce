@@ -442,56 +442,17 @@ bool TouchkeyDevice::startRawDataCollection(int octave, int key, int mode, int s
 	
 	stopAutoGathering();	// Stop the thread if it's running	
     
-	//unsigned char command[] = {ESCAPE_CHARACTER, kControlCharacterFrameBegin,
-	//	kFrameTypeMonitorRawFromKey, (unsigned char)octave, (unsigned char)key,
-    //    (unsigned char)mode, (unsigned char)scaler,
-	//	ESCAPE_CHARACTER, kControlCharacterFrameEnd};
-    
-    usleep(10000);
-    
-    // Command to set the mode of the key
-    unsigned char commandSetMode[] = {ESCAPE_CHARACTER, kControlCharacterFrameBegin,
-        kFrameTypeSendI2CCommand, (unsigned char)octave, (unsigned char)key,
-        3 /* xmit */, 0 /* response */, 0 /* command offset */, 1 /* mode */, (unsigned char)mode,
-        ESCAPE_CHARACTER, kControlCharacterFrameEnd};
-	
-	if(write(device_, (char*)commandSetMode, 12) < 0) {
-        if(verbose_ >= 1)
-            cout << "ERROR: unable to write setMode command.  errno = " << errno << endl;
-	}
-	tcdrain(device_);
-    
-    usleep(10000);
-    
-    // Command to set the scaler of the key
-    unsigned char commandSetScaler[] = {ESCAPE_CHARACTER, kControlCharacterFrameBegin,
-        kFrameTypeSendI2CCommand, (unsigned char)octave, (unsigned char)key,
-        3 /* xmit */, 0 /* response */, 0 /* command offset */, 3 /* raw scaler */, (unsigned char)scaler,
-        ESCAPE_CHARACTER, kControlCharacterFrameEnd};
-	
-	if(write(device_, (char*)commandSetScaler, 12) < 0) {
-        if(verbose_ >= 1)
-            cout << "ERROR: unable to write setMode command.  errno = " << errno << endl;
-	}
-	tcdrain(device_);
-    
-    usleep(10000);
-    
-    unsigned char commandPrepareRead[] = {ESCAPE_CHARACTER, kControlCharacterFrameBegin,
-        kFrameTypeSendI2CCommand, (unsigned char)octave, (unsigned char)key,
-        1 /* xmit */, 0 /* response */, 6 /* data offset */,
-        ESCAPE_CHARACTER, kControlCharacterFrameEnd};
-    
-	if(write(device_, (char*)commandPrepareRead, 10) < 0) {
-        if(verbose_ >= 1)
-            cout << "ERROR: unable to write prepareRead command.  errno = " << errno << endl;
-	}
-	tcdrain(device_);
-    
-    usleep(10000);
+    // Account for the high C which is ID 12 on the top octave
+    if(octave == numOctaves_ && key == 0) {
+        octave--;
+        key = 12;
+    }
     
     rawDataCurrentOctave_ = octave;
     rawDataCurrentKey_ = key;
+    rawDataCurrentMode_ = mode;
+    rawDataCurrentScaler_ = scaler;
+    rawDataShouldChangeMode_ = true;
     
 	shouldStop_ = false;
     rawDataThread_.startThread();
@@ -500,16 +461,22 @@ bool TouchkeyDevice::startRawDataCollection(int octave, int key, int mode, int s
 		cout << "Starting raw data collection from octave " << octave << ", key " << key << endl;
 	
 	autoGathering_ = true;
-    
-	/*if(write(device_, (char*)command, 9) < 0) {
-		cout << "ERROR: unable to write startRawDataCollection command.  errno = " << errno << endl;
-	}
-	tcdrain(device_);*/
-
-	//previousTouchData_.clear();
-	//previousTouchActive_.clear();
 	
 	return true;
+}
+
+void TouchkeyDevice::rawDataChangeKeyAndMode(int octave, int key, int mode, int scaler) {
+    // Account for the high C which is ID 12 on the top octave
+    if(octave == numOctaves_ && key == 0) {
+        octave--;
+        key = 12;
+    }
+    
+    rawDataCurrentOctave_ = octave;
+    rawDataCurrentKey_ = key;
+    rawDataCurrentMode_ = mode;
+    rawDataCurrentScaler_ = scaler;
+    rawDataShouldChangeMode_ = true;
 }
 
 // Set the scan interval in milliseconds.  Returns true on success.
@@ -1329,12 +1296,21 @@ void TouchkeyDevice::rawDataRunLoop(DeviceThread *thread) {
         // Every 100ms, request raw data from the active key
         currentTime = Time::getMillisecondCounterHiRes();
         
-        if(currentTime - lastTime > 0.1) {
+        if(currentTime - lastTime > 50.0) {
             lastTime = currentTime;
+            
+            // Check if we need to choose a new key or mode
+            if(rawDataShouldChangeMode_) {
+                // Prepare the key and update the command
+                rawDataPrepareCollection(rawDataCurrentOctave_, rawDataCurrentKey_, rawDataCurrentMode_, rawDataCurrentScaler_);
+                gatherDataCommand[3] = rawDataCurrentOctave_;
+                gatherDataCommand[4] = rawDataCurrentKey_;
+            }
+            
             // Request data
             if(write(device_, (char*)gatherDataCommand, 9) < 0) {
                 if(verbose_ >= 1)
-                    cout << "ERROR: unable to write setMode command.  errno = " << errno << endl;
+                    cout << "ERROR: unable to write gather data command.  errno = " << errno << endl;
             }
             tcdrain(device_);
         }
@@ -1564,6 +1540,10 @@ void TouchkeyDevice::processRawDataFrame(unsigned char * const buffer, const int
 		hexDump(cout, &buffer[1], bufferLength - 1);
 		cout << endl;		
 	}
+    
+    // Change the first byte to contain the note number this data is expected to have come
+    // from (based on which key we are presently querying)
+    buffer[0] = lowestMidiNote_ + (rawDataCurrentOctave_ * 12 + rawDataCurrentKey_);
 
 	// Send raw data as an OSC blob
 	lo_blob b = lo_blob_new(bufferLength, buffer);
@@ -1574,7 +1554,7 @@ void TouchkeyDevice::processRawDataFrame(unsigned char * const buffer, const int
 // Extract the floating-point centroid data for a key from packed character input.
 // Send OSC features as appropriate
 
-int TouchkeyDevice::processKeyCentroid(int frame,int octave, int key, timestamp_type timestamp, unsigned char * buffer, int maxLength) {
+int TouchkeyDevice::processKeyCentroid(int frame, int octave, int key, timestamp_type timestamp, unsigned char * buffer, int maxLength) {
 	int touchCount = 0;
 	
 	float sliderPosition[3];
@@ -1956,12 +1936,22 @@ void TouchkeyDevice::processI2CResponseFrame(unsigned char * const buffer, const
             cout << "Warning: received malformed I2C response (octave " << octave << ", key " << key << ", length " << responseLength;
             cout << ") but only " << bufferLength - 3 << " bytes of data\n";
         }
+        if(verbose_ >= 4) {
+            cout << "  ";
+            hexDump(cout, &buffer[3], bufferLength - 3);
+            cout << endl;
+        }
         
         responseLength = bufferLength - 3;
     }
     else {
         if(verbose_ >= 3) {
             cout << "I2C response from octave " << octave << ", key " << key << ", length " << responseLength << endl;
+        }
+        if(verbose_ >= 4) {
+            cout << "  ";
+            hexDump(cout, &buffer[3], responseLength);
+            cout << endl;
         }
     }
     
@@ -1974,6 +1964,15 @@ void TouchkeyDevice::processI2CResponseFrame(unsigned char * const buffer, const
         }
         sensorDisplay_->setDisplayData(data);
     }
+    
+    // Change the first byte to contain the note number this data is expected to have come
+    // from (based on which key we are presently querying)
+    buffer[2] = lowestMidiNote_ + (octave * 12 + key);
+    
+	// Send raw data as an OSC blob
+	lo_blob b = lo_blob_new(responseLength + 1, &buffer[2]);
+	keyboard_.sendMessage("/touchkeys/rawbytes", "b", b, LO_ARGS_END);
+	lo_blob_free(b);
 }
 
 // Parse raw data from a status request.  Buffer should start immediately after the
@@ -2027,6 +2026,54 @@ bool TouchkeyDevice::processStatusFrame(unsigned char * buffer, int maxLength, T
 	}
 	
 	return true;
+}
+
+// Prepare the indicated key for raw data collection
+void TouchkeyDevice::rawDataPrepareCollection(int octave, int key, int mode, int scaler) {
+    usleep(10000);
+    
+    // Command to set the mode of the key
+    unsigned char commandSetMode[] = {ESCAPE_CHARACTER, kControlCharacterFrameBegin,
+        kFrameTypeSendI2CCommand, (unsigned char)octave, (unsigned char)key,
+        3 /* xmit */, 0 /* response */, 0 /* command offset */, 1 /* mode */, (unsigned char)mode,
+        ESCAPE_CHARACTER, kControlCharacterFrameEnd};
+	
+	if(write(device_, (char*)commandSetMode, 12) < 0) {
+        if(verbose_ >= 1)
+            cout << "ERROR: unable to write setMode command.  errno = " << errno << endl;
+	}
+	tcdrain(device_);
+    
+    usleep(10000);
+    
+    // Command to set the scaler of the key
+    unsigned char commandSetScaler[] = {ESCAPE_CHARACTER, kControlCharacterFrameBegin,
+        kFrameTypeSendI2CCommand, (unsigned char)octave, (unsigned char)key,
+        3 /* xmit */, 0 /* response */, 0 /* command offset */, 3 /* raw scaler */, (unsigned char)scaler,
+        ESCAPE_CHARACTER, kControlCharacterFrameEnd};
+	
+	if(write(device_, (char*)commandSetScaler, 12) < 0) {
+        if(verbose_ >= 1)
+            cout << "ERROR: unable to write setMode command.  errno = " << errno << endl;
+	}
+	tcdrain(device_);
+    
+    usleep(10000);
+    
+    unsigned char commandPrepareRead[] = {ESCAPE_CHARACTER, kControlCharacterFrameBegin,
+        kFrameTypeSendI2CCommand, (unsigned char)octave, (unsigned char)key,
+        1 /* xmit */, 0 /* response */, 6 /* data offset */,
+        ESCAPE_CHARACTER, kControlCharacterFrameEnd};
+    
+	if(write(device_, (char*)commandPrepareRead, 10) < 0) {
+        if(verbose_ >= 1)
+            cout << "ERROR: unable to write prepareRead command.  errno = " << errno << endl;
+	}
+	tcdrain(device_);
+    
+    usleep(10000);
+    
+    rawDataShouldChangeMode_ = false;
 }
 
 // Check for an ACK response from the device.  Returns true if found.  Returns

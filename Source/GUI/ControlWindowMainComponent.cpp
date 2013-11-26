@@ -369,7 +369,15 @@ void ControlWindowMainComponent::buttonClicked (Button* buttonThatWasClicked)
     if (buttonThatWasClicked == touchkeyStartButton)
     {
         //[UserButtonCode_touchkeyStartButton] -- add your button handler code here..
-        if(controller_->touchkeyDeviceIsRunning()) {
+#ifdef ENABLE_TOUCHKEYS_SENSOR_TEST
+        if(controller_->touchkeySensorTestIsRunning()) {
+            // TouchKeys were performing a sensor test. Stop the test.
+            controller_->touchkeySensorTestStop();
+        }
+        else if(controller_->touchkeyDeviceIsRunning()) {
+#else
+        if(controller_->touchkeyDeviceIsRunning()) {  
+#endif
             // TouchKeys were running. Stop and close.
             controller_->closeTouchkeyDevice();
         }
@@ -533,7 +541,15 @@ void ControlWindowMainComponent::synchronize() {
         return;
 
     // Update TouchKeys status
+#ifdef ENABLE_TOUCHKEYS_SENSOR_TEST
+    if(controller_->touchkeySensorTestIsRunning()) {
+        touchkeyStartButton->setButtonText("Stop");
+        touchkeyStatusLabel->setText("Testing", dontSendNotification);
+    }
+    else if(controller_->touchkeyDeviceIsRunning()) {
+#else
     if(controller_->touchkeyDeviceIsRunning()) {
+#endif
         touchkeyStartButton->setButtonText("Stop");
         touchkeyStatusLabel->setText("Running", dontSendNotification);
     }
@@ -642,6 +658,15 @@ void ControlWindowMainComponent::synchronize() {
         addZoneButton->setEnabled(false);
     else
         addZoneButton->setEnabled(true);
+}
+
+// Return the currently selected TouchKeys string
+String ControlWindowMainComponent::currentTouchkeysSelectedPath()
+{
+    String devName = controller_->touchkeyDevicePrefix().c_str();
+    devName += touchkeyDeviceComboBox->getText();
+    
+    return devName;
 }
 
 // Update the state of the keyboard segment tab bar. Called only when segments change

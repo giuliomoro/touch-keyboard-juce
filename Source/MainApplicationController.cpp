@@ -25,14 +25,15 @@
 */
 
 #include "MainApplicationController.h"
+#ifndef TOUCHKEYS_NO_GUI
+#include "Display/KeyboardTesterDisplay.h"
+#endif
 #include <cstdlib>
 #include <sstream>
 
 // Strings for pitch classes (two forms for sharps), for static methods
 const char* kNoteNames[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 const char* kNoteNamesAlternate[12] = {"C", "Db", "D ", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"};
-
-#undef USE_TWO_SEGMENTS
 
 MainApplicationController::MainApplicationController()
 : midiInputController_(keyboardController_),
@@ -52,6 +53,8 @@ MainApplicationController::MainApplicationController()
   experimentalMappingsEnabled_(false),
 #ifndef TOUCHKEYS_NO_GUI
   keyboardDisplayWindow_(0),
+  keyboardTesterDisplay_(0),
+  keyboardTesterWindow_(0),
 #endif
   segmentCounter_(0),
   loggingActive_(false)
@@ -81,7 +84,10 @@ MainApplicationController::MainApplicationController()
 }
 
 MainApplicationController::~MainApplicationController() {
-
+#ifdef ENABLE_TOUCHKEYS_SENSOR_TEST
+    if(touchkeySensorTestIsRunning())
+        touchkeySensorTestStop();
+#endif
 }
 
 bool MainApplicationController::touchkeyDeviceStartupSequence(const char * path) {
@@ -417,6 +423,112 @@ bool MainApplicationController::mappingIsExperimental(int index) {
         return true;
     return false;
 }
+
+#ifdef ENABLE_TOUCHKEYS_SENSOR_TEST
+// Start testing the TouchKeys sensors. Returns true on success.
+bool MainApplicationController::touchkeySensorTestStart(const char *path, int firstKey) {
+#ifndef TOUCHKEYS_NO_GUI
+    if(path == 0 || firstKey < touchkeyController_.lowestMidiNote())
+        return false;
+    if(keyboardTesterDisplay_ != 0)
+        return true;
+    
+    // First, close the existing device which stops the data autogathering
+    closeTouchkeyDevice();
+    
+    // Now reopen the TouchKeys device
+    if(!touchkeyController_.openDevice(path)) {
+        touchkeyErrorMessage_ = "Failed to open";
+        touchkeyErrorOccurred_ = true;
+        return false;
+    }
+    
+    // Next, see if a real TouchKeys device is present at the other end
+    if(!touchkeyDeviceCheckForPresence()) {
+        touchkeyErrorMessage_ = "Device not recognized";
+        touchkeyErrorOccurred_ = true;
+        return false;
+    }
+    
+    // Now, create the KeyboardTesterDisplay object which will handle processing
+    // raw data and displaying the results. Also a new window to hold it.
+    keyboardTesterDisplay_ = new KeyboardTesterDisplay(*this, keyboardController_);
+    keyboardTesterDisplay_->setKeyboardRange(touchkeyController_.lowestKeyPresentMidiNote(), touchkeyController_.highestMidiNote());
+    keyboardTesterWindow_ = new GraphicsDisplayWindow("TouchKeys Sensor Test", *keyboardTesterDisplay_);
+    
+    // Start raw data gathering from the indicated key (converted to octave/key notation)
+    int keyOffset = 72 + firstKey - touchkeyController_.lowestMidiNote();
+    if(keyOffset < 0) // Shouldn't happen...
+        keyOffset = 0;
+    
+    if(!touchkeyController_.startRawDataCollection(keyOffset / 12, keyOffset % 12, 3, 2)) { // FIXME: check these values
+        touchkeyErrorMessage_ = "Failed to start";
+        touchkeyErrorOccurred_ = true;
+        return false;
+    }
+    
+    touchkeyErrorMessage_ = "";
+    touchkeyErrorOccurred_ = false;
+    return true;
+#endif
+}
+
+// Stop testing the TouchKeys sensors
+void MainApplicationController::touchkeySensorTestStop() {
+#ifndef TOUCHKEYS_NO_GUI
+    if(keyboardTesterDisplay_ == 0)
+        return;
+    
+    // Stop raw data gathering first and close device
+    touchkeyController_.stopAutoGathering();
+    touchkeyController_.closeDevice();
+    
+    // Delete the testing objects
+    delete keyboardTesterWindow_;
+    delete keyboardTesterDisplay_;
+    
+    keyboardTesterWindow_ = 0;
+    keyboardTesterDisplay_ = 0;
+    
+    touchkeyErrorMessage_ = "";
+    touchkeyErrorOccurred_ = false;
+#endif
+}
+
+// Is the sensor test running?
+bool MainApplicationController::touchkeySensorTestIsRunning() {
+#ifdef TOUCHKEYS_NO_GUI   
+    return false;
+#else
+    return (keyboardTesterDisplay_ != 0);
+#endif
+}
+
+// Set the current key that is begin tested
+void MainApplicationController::touchkeySensorTestSetKey(int key) {
+#ifndef TOUCHKEYS_NO_GUI
+    if(keyboardTesterDisplay_ == 0 || key < touchkeyController_.lowestMidiNote())
+        return;
+
+    int keyOffset = key - touchkeyController_.lowestMidiNote();
+    if(keyOffset < 0) // Shouldn't happen...
+        keyOffset = 0;
+    
+    touchkeyController_.rawDataChangeKeyAndMode(keyOffset / 12, keyOffset % 12, 3, 2);
+#endif
+}
+
+// Reset the testing state to all sensors off
+void MainApplicationController::touchkeySensorTestResetState() {
+#ifndef TOUCHKEYS_NO_GUI
+    if(keyboardTesterDisplay_ == 0)
+        return;
+    for(int key = 0; key < 128; key++)
+        keyboardTesterDisplay_->resetSensorState(key);
+#endif
+}
+
+#endif // ENABLE_TOUCHKEYS_SENSOR_TEST
 
 // Return the name of a MIDI note given its number
 std::string MainApplicationController::midiNoteName(int noteNumber) {

@@ -44,7 +44,7 @@ public:
         // This method is where you should put your application's initialisation code..
 
         mainWindow_ = new MainWindow(controller_);
-        keyboardDisplayWindow_ = new GraphicsDisplayWindow("TouchKeys Display", controller_);
+        keyboardDisplayWindow_ = new GraphicsDisplayWindow("TouchKeys Display", controller_.keyboardDisplay());
         
         controller_.setKeyboardDisplayWindow(keyboardDisplayWindow_);
     }
