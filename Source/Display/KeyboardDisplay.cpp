@@ -262,7 +262,7 @@ void KeyboardDisplay::mouseUp(float x, float y) {
 	if(currentHighlightedKey_ != -1)
 		keyClicked(currentHighlightedKey_);
 	
-	//currentHighlightedKey_ = -1;
+	currentHighlightedKey_ = -1;
 	needsUpdate_ = true;	
 }
 
@@ -611,6 +611,8 @@ KeyboardDisplay::Point KeyboardDisplay::internalToScreen(Point& inPoint) {
 // in, otherwise return -1 if no key matches.
 
 int KeyboardDisplay::keyForLocation(Point& internalPoint) {
+    std::cout << "(" << internalPoint.x << "," << internalPoint.y << ")\n";
+    
 	// First, check that the point is within the overall bounding box of the keyboard
 	if(internalPoint.y < -totalDisplayHeight_*0.5 + kDisplayBottomMargin ||
 	   internalPoint.y > totalDisplayHeight_*0.5 - kDisplayTopMargin)
@@ -641,8 +643,10 @@ int KeyboardDisplay::keyForLocation(Point& internalPoint) {
 	
 	// Check if we're on the front area of the white keys, and if so, ignore points located in the gaps
 	// between the keys
+    
+    std::cout << "norm " << (-internalPoint.y + totalDisplayHeight_*0.5) << std::endl;
 	
-	if(internalPoint.y + totalDisplayHeight_*0.5 - kDisplayBottomMargin <= kWhiteKeyFrontLength) {
+	if(-internalPoint.y + totalDisplayHeight_*0.5 - kDisplayBottomMargin <= kWhiteKeyFrontLength) {
 		if(normalizedHLoc - floorf(normalizedHLoc) > kWhiteKeyFrontWidth / (kWhiteKeyFrontWidth + kInterKeySpacing))
 			return -1;		
 		return lowestC + chromaticKeyNumber;		
@@ -673,7 +677,7 @@ int KeyboardDisplay::keyForLocation(Point& internalPoint) {
 		
 		// By now, we've established that we're not on top of a white key.  See if we align to a black key.
 		// Watch the vertical gap between white and black keys
-		if(internalPoint.y + totalDisplayHeight_*0.5 - kDisplayBottomMargin <=
+		if(-internalPoint.y + totalDisplayHeight_*0.5 - kDisplayBottomMargin <=
 		   kWhiteKeyFrontLength + kWhiteKeyBackLength - kBlackKeyLength)
 			return -1;
 		
