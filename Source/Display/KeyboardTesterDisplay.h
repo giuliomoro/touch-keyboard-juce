@@ -43,6 +43,9 @@ public:
     // Render the display
     void render();
 
+    // Called when a given key is clicked by mouse
+    void keyClicked(int key);
+    
     // Set the threshold for a value considered active
     void setSensorThreshold(int threshold);
     
@@ -59,7 +62,7 @@ public:
     bool oscHandlerMethod(const char *path, const char *types, int numValues, lo_arg **values, void *data);
     
 private:
-    void drawSensorState(int key, float x, float y, float width, float height);
+    void drawSensorState(int key, float x, float y, float width, float height, bool white, float whiteOffset);
 
     MainApplicationController& controller_;
     PianoKeyboard& keyboard_;

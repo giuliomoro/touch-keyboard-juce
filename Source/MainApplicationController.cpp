@@ -457,7 +457,7 @@ bool MainApplicationController::touchkeySensorTestStart(const char *path, int fi
     keyboardTesterWindow_ = new GraphicsDisplayWindow("TouchKeys Sensor Test", *keyboardTesterDisplay_);
     
     // Start raw data gathering from the indicated key (converted to octave/key notation)
-    int keyOffset = 72 + firstKey - touchkeyController_.lowestMidiNote();
+    int keyOffset = firstKey - touchkeyController_.lowestMidiNote();
     if(keyOffset < 0) // Shouldn't happen...
         keyOffset = 0;
     

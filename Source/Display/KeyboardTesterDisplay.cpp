@@ -68,7 +68,8 @@ void KeyboardTesterDisplay::render() {
 			drawWhiteKey(0, 0, keyShape(key), key == lowestMidiNote_,
                          key == highestMidiNote_, (key == currentlyActiveKey_) || (key == currentHighlightedKey_));
             // Draw sensor state for this key
-            drawSensorState(key, kWhiteKeyBackOffsets[keyShape(key)], 0, kWhiteKeyBackWidths[keyShape(key)], kWhiteKeyFrontLength + kWhiteKeyBackLength);
+            drawSensorState(key, 0, 0, kWhiteKeyBackWidths[keyShape(key)], kWhiteKeyFrontLength + kWhiteKeyBackLength,
+                            true, kWhiteKeyBackOffsets[keyShape(key)]);
 			glTranslatef(kWhiteKeyFrontWidth + kInterKeySpacing, 0, 0);
 		}
 		else {
@@ -80,7 +81,7 @@ void KeyboardTesterDisplay::render() {
 			glTranslatef(offsetH, offsetV, 0.0);
 			drawBlackKey(0, 0, (key == currentlyActiveKey_) || (key == currentHighlightedKey_));
             // Draw sensor state for this key
-            drawSensorState(key, 0, 0, kBlackKeyWidth, kBlackKeyLength);
+            drawSensorState(key, 0, 0, kBlackKeyWidth, kBlackKeyLength, false, 0);
 			glTranslatef(-offsetH, -offsetV, 0.0);
 		}
 	}
@@ -90,6 +91,11 @@ void KeyboardTesterDisplay::render() {
     
 	needsUpdate_ = false;    
 	glFlush();
+}
+
+// Called when a given key is clicked by mouse
+void KeyboardTesterDisplay::keyClicked(int key) {
+    controller_.touchkeySensorTestSetKey(key);
 }
 
 // Set the threshold level at which a sensor is considered active
@@ -140,33 +146,107 @@ void KeyboardTesterDisplay::resetSensorState(int key) {
 }
 
 // Draw the given key sensors as being active, good, or inactive
-void KeyboardTesterDisplay::drawSensorState(int key, float x, float y, float width, float height) {
+void KeyboardTesterDisplay::drawSensorState(int key, float x, float y, float width, float height, bool white, float whiteOffset) {
     float heightInset = height / ((float)kNumSensorsPerKey * 10);
     
     glPushMatrix();
     glTranslatef(x, y, 0);
     
-    for(int i = 0; i < kNumSensorsPerKey; i++) {
-        // Draw each sensor in sequence: red = never activated; yellow = active; green = previously
-        // activated (good)
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        if(keySensorActive_[key] & (1 << i) && key == currentlyActiveKey_)
-            glColor3f(1.0, 1.0, 0.0);   // Sensor active right now = yellow
-        else if(keySensorGood_[key] & (1 << i))
-            glColor3f(0.0, 1.0, 0.0);   // Sensor has been active (good) = green
-        else
-            glColor3f(1.0, 0.0, 0.0);   // Sensor has not yet been active = red
+    if(white) {
+        float hSensorWidth = kWhiteKeyFrontWidth * 0.25;
         
-        glBegin(GL_POLYGON);
-        glVertex2f(width * 0.1, heightInset);
-        glVertex2f(width * 0.1, height / (float)kNumSensorsPerKey - heightInset);
-        glVertex2f(width * 0.9, height / (float)kNumSensorsPerKey - heightInset);
-        glVertex2f(width * 0.9, heightInset);
-        glEnd();
+        // Draw the first four sensors horizontally for the white keys
+        glPushMatrix();
         
-        glTranslatef(0, height / (float)kNumSensorsPerKey, 0);
+        for(int i = 0; i < 4; i++) {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            if(keySensorActive_[key] & (1 << i) && key == currentlyActiveKey_)
+                glColor3f(1.0, 1.0, 0.0);   // Sensor active right now = yellow
+            else if(keySensorGood_[key] & (1 << i))
+                glColor3f(0.0, 1.0, 0.0);   // Sensor has been active (good) = green
+            else
+                glColor3f(1.0, 0.0, 0.0);   // Sensor has not yet been active = red
+            
+            glBegin(GL_POLYGON);
+            glVertex2f(hSensorWidth * 0.1, heightInset);
+            glVertex2f(hSensorWidth * 0.1, 4.0*height / (float)kNumSensorsPerKey - heightInset);
+            glVertex2f(hSensorWidth * 0.9, 4.0*height / (float)kNumSensorsPerKey - heightInset);
+            glVertex2f(hSensorWidth * 0.9, heightInset);
+            glEnd();
+            glTranslatef(hSensorWidth, 0, 0);
+        }
+        
+        glPopMatrix();
+        glTranslatef(whiteOffset, 4.0*height / (float)kNumSensorsPerKey, 0);
+        
+        for(int i = 4; i < kNumSensorsPerKey; i++) {
+            // Draw each sensor in sequence: red = never activated; yellow = active; green = previously
+            // activated (good)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            if(keySensorActive_[key] & (1 << i) && key == currentlyActiveKey_)
+                glColor3f(1.0, 1.0, 0.0);   // Sensor active right now = yellow
+            else if(keySensorGood_[key] & (1 << i))
+                glColor3f(0.0, 1.0, 0.0);   // Sensor has been active (good) = green
+            else
+                glColor3f(1.0, 0.0, 0.0);   // Sensor has not yet been active = red
+            
+            glBegin(GL_POLYGON);
+            glVertex2f(width * 0.1, heightInset);
+            glVertex2f(width * 0.1, height / (float)kNumSensorsPerKey - heightInset);
+            glVertex2f(width * 0.9, height / (float)kNumSensorsPerKey - heightInset);
+            glVertex2f(width * 0.9, heightInset);
+            glEnd();
+            
+            glTranslatef(0, height / (float)kNumSensorsPerKey, 0);
+        }
     }
-    
+    else { // Black
+        // Draw in two rows
+        glPushMatrix();
+        for(int i = 0; i < kNumSensorsPerKey / 2; i++) {
+            // Draw each sensor in sequence: red = never activated; yellow = active; green = previously
+            // activated (good)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            if(keySensorActive_[key] & (1 << i) && key == currentlyActiveKey_)
+                glColor3f(1.0, 1.0, 0.0);   // Sensor active right now = yellow
+            else if(keySensorGood_[key] & (1 << i))
+                glColor3f(0.0, 1.0, 0.0);   // Sensor has been active (good) = green
+            else
+                glColor3f(1.0, 0.0, 0.0);   // Sensor has not yet been active = red
+            
+            glBegin(GL_POLYGON);
+            glVertex2f(width * 0.55, heightInset);
+            glVertex2f(width * 0.55, 2.0*height / (float)kNumSensorsPerKey - heightInset);
+            glVertex2f(width * 0.9, 2.0*height / (float)kNumSensorsPerKey - heightInset);
+            glVertex2f(width * 0.9, heightInset);
+            glEnd();
+            
+            glTranslatef(0, 2.0*height / (float)kNumSensorsPerKey, 0);
+        }
+        glPopMatrix();
+        glPushMatrix();
+        for(int i = kNumSensorsPerKey / 2; i < kNumSensorsPerKey; i++) {
+            // Draw each sensor in sequence: red = never activated; yellow = active; green = previously
+            // activated (good)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            if(keySensorActive_[key] & (1 << i) && key == currentlyActiveKey_)
+                glColor3f(1.0, 1.0, 0.0);   // Sensor active right now = yellow
+            else if(keySensorGood_[key] & (1 << i))
+                glColor3f(0.0, 1.0, 0.0);   // Sensor has been active (good) = green
+            else
+                glColor3f(1.0, 0.0, 0.0);   // Sensor has not yet been active = red
+            
+            glBegin(GL_POLYGON);
+            glVertex2f(width * 0.1, heightInset);
+            glVertex2f(width * 0.1, 2.0*height / (float)kNumSensorsPerKey - heightInset);
+            glVertex2f(width * 0.45, 2.0*height / (float)kNumSensorsPerKey - heightInset);
+            glVertex2f(width * 0.45, heightInset);
+            glEnd();
+            
+            glTranslatef(0, 2.0*height / (float)kNumSensorsPerKey, 0);
+        }
+        glPopMatrix();
+    }
     glPopMatrix();
 }
 
