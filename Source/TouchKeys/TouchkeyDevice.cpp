@@ -665,6 +665,40 @@ bool TouchkeyDevice::setKeyNoiseThreshold(int octave, int key, int value) {
 	return checkForAck(250);	
 }
 
+// Update the baseline sensor values on the given key
+bool TouchkeyDevice::setKeyUpdateBaseline(int octave, int key) {
+    unsigned char baselineCommand[] = {ESCAPE_CHARACTER, kControlCharacterFrameBegin,
+        kFrameTypeSendI2CCommand, (unsigned char)octave, (unsigned char)key,
+        2 /* xmit */, 0 /* response */, 0 /* command offset */, 6 /* baseline update */,
+        ESCAPE_CHARACTER, kControlCharacterFrameEnd};
+    
+    // Send command
+	if(write(device_, (char*)baselineCommand, 11) < 0) {
+        if(verbose_ >= 1)
+            cout << "ERROR: unable to write baseline update command.  errno = " << errno << endl;
+	}
+	tcdrain(device_);
+	
+	if(verbose_ >= 2)
+		cout << "Updating baseline on octave " << octave << " key " << key << endl;
+	
+    checkForAck(100);
+    
+    unsigned char commandPrepareRead[] = {ESCAPE_CHARACTER, kControlCharacterFrameBegin,
+        kFrameTypeSendI2CCommand, (unsigned char)octave, (unsigned char)key,
+        1 /* xmit */, 0 /* response */, 6 /* data offset */,
+        ESCAPE_CHARACTER, kControlCharacterFrameEnd};
+    
+	if(write(device_, (char*)commandPrepareRead, 10) < 0) {
+        if(verbose_ >= 1)
+            cout << "ERROR: unable to write prepareRead command.  errno = " << errno << endl;
+	}
+	tcdrain(device_);
+    
+	// Return value depends on ACK or NAK received
+	return checkForAck(100);
+}
+
 // Jump to the built-in bootloader of the TouchKeys device
 void TouchkeyDevice::jumpToBootloader() {
 	unsigned char command[] = {ESCAPE_CHARACTER, kControlCharacterFrameBegin, kFrameTypeEnterSelfProgramMode,
