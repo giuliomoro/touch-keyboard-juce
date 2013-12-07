@@ -259,6 +259,7 @@ public:
 	bool setKeyCentroidScaler(int octave, int key, int value);
 	bool setKeyMinimumCentroidSize(int octave, int key, int value);
 	bool setKeyNoiseThreshold(int octave, int key, int value);
+    bool setKeyUpdateBaseline(int octave, int key);
     
     // Jump to device internal bootloader
     void jumpToBootloader();
