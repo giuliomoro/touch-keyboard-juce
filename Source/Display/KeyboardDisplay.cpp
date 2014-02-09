@@ -305,8 +305,16 @@ void KeyboardDisplay::setTouchForKey(int key, const KeyTouchFrame& touch) {
 	
 	//TouchInfo t = {touch.locH, touch.locs[0], touch.locs[1], touch.locs[2], touch.sizes[0], touch.sizes[1], touch.sizes[2]};
 	//currentTouches_[key] = t;
-	currentTouches_[key] = {true, touch.locH, touch.locs[0], touch.locs[1], touch.locs[2], touch.sizes[0], touch.sizes[1], touch.sizes[2]};
-    
+	//currentTouches_[key] = {true, touch.locH, touch.locs[0], touch.locs[1], touch.locs[2], touch.sizes[0], touch.sizes[1], touch.sizes[2]};
+    currentTouches_[key].active = true;
+	currentTouches_[key].locH = touch.locH;
+	currentTouches_[key].locV1 = touch.locs[0];
+	currentTouches_[key].locV2 = touch.locs[1];
+	currentTouches_[key].locV3 = touch.locs[2];
+	currentTouches_[key].size1 = touch.sizes[0];
+	currentTouches_[key].size2 = touch.sizes[1];
+	currentTouches_[key].size3 = touch.sizes[2];
+
 	needsUpdate_ = true;
 }
 

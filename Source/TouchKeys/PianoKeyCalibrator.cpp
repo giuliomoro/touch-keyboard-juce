@@ -180,7 +180,7 @@ void PianoKeyCalibrator::calibrationClear() {
 // Generate new quiescent values without changing the press values
 void PianoKeyCalibrator::calibrationUpdateQuiescent() {
 	calibrationStart();
-	usleep(250000);			// Wait 0.25 seconds for data to collect
+	Thread::sleep(250);			// Wait 0.25 seconds for data to collect
 	internalUpdateQuiescent();
 	calibrationAbort();
 }

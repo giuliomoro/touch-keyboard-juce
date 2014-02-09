@@ -431,7 +431,11 @@ void MidiKeyboardSegment::releaseOscMidiConverter(int controlId) {
 
 // Helper predicate function for filtering strings
 inline bool char_is_not_alphanumeric(int c) {
+#ifdef _MSC_VER
+	return !isalnum(c);
+#else
     return !std::isalnum(c);
+#endif
 }
 
 // Create a new mapping factory for this segment. A pointer should be passed in

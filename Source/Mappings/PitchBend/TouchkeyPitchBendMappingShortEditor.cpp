@@ -187,7 +187,11 @@ void TouchkeyPitchBendMappingShortEditor::synchronize()
     if(!rangeEditor->hasKeyboardFocus(true)) {
         float value = factory_.getBendRange();
         char st[16];
+#ifdef _MSC_VER
+		_snprintf_s(st, 16, _TRUNCATE, "%.2f", value);
+#else
         snprintf(st, 16, "%.2f", value);
+#endif
 
         rangeEditor->setText(st);
     }
@@ -195,7 +199,11 @@ void TouchkeyPitchBendMappingShortEditor::synchronize()
     if(!thresholdEditor->hasKeyboardFocus(true)) {
         float value = factory_.getBendThresholdKeyLength();
         char st[16];
+#ifdef _MSC_VER
+		_snprintf_s(st, 16, _TRUNCATE, "%.2f", value);
+#else
         snprintf(st, 16, "%.2f", value);
+#endif
 
         thresholdEditor->setText(st);
     }

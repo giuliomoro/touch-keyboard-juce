@@ -82,6 +82,7 @@ bool MidiOutputController::enablePort(int identifier, int deviceNumber) {
 	return true;
 }
 
+#ifndef JUCE_WINDOWS
 bool MidiOutputController::enableVirtualPort(int identifier, const char *name) {
     // Check if there is a port for this identifier, and disable it if so
     if(activePorts_.count(identifier) > 0)
@@ -102,6 +103,7 @@ bool MidiOutputController::enableVirtualPort(int identifier, const char *name) {
     
 	return true;
 }
+#endif
 
 void MidiOutputController::disablePort(int identifier) {
 	if(activePorts_.count(identifier) <= 0)

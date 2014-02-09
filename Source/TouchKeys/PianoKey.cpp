@@ -687,7 +687,7 @@ std::pair<float, std::list<int> > PianoKey::touchMatchClosestPoints(const float*
 		}
 	}
 	
-	float minVal = INFINITY;
+	float minVal = std::numeric_limits<float>::infinity();
 	std::set<int> newPointsCopy(availableNewPoints);
 	std::set<int>::iterator it;
 	std::list<int> order;

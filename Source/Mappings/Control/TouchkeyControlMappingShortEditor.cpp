@@ -251,15 +251,22 @@ void TouchkeyControlMappingShortEditor::synchronize()
     if(!inputRangeLowEditor->hasKeyboardFocus(true)) {
         float value = factory_.getRangeInputMin();
         char st[16];
+#ifdef _MSC_VER
+		_snprintf_s(st, 16, _TRUNCATE, "%.2f", value);
+#else
         snprintf(st, 16, "%.2f", value);
-
+#endif
         inputRangeLowEditor->setText(st);
     }
 
     if(!inputRangeHighEditor->hasKeyboardFocus(true)) {
         float value = factory_.getRangeInputMax();
         char st[16];
+#ifdef _MSC_VER
+		_snprintf_s(st, 16, _TRUNCATE, "%.2f", value);
+#else
         snprintf(st, 16, "%.2f", value);
+#endif
 
         inputRangeHighEditor->setText(st);
     }

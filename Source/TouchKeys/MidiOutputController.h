@@ -52,7 +52,9 @@ public:
 	
 	// Methods to connect/disconnect from a target port
     bool enablePort(int identifier, int deviceNumber);
+#ifndef JUCE_WINDOWS
     bool enableVirtualPort(int identifier, const char *name);
+#endif
 	void disablePort(int identifier);
 	void disableAllPorts();
     

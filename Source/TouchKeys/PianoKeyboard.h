@@ -29,7 +29,6 @@
 #include <iostream>
 #include <fstream>
 #include <map>
-#include "../JuceLibraryCode/JuceHeader.h"
 #include "../Utility/Types.h"
 #include "../Utility/Node.h"
 #include "PianoKey.h"
@@ -38,7 +37,7 @@
 #include "../Display/KeyPositionGraphDisplay.h"
 #include "Osc.h"
 #include "../Utility/Scheduler.h"
-
+#include "../JuceLibraryCode/JuceHeader.h"
 
 #define NUM_KEYS 88
 #define NUM_PEDALS 3

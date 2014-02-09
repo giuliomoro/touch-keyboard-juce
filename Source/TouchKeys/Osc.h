@@ -24,6 +24,7 @@
 #ifndef OSC_H
 #define OSC_H
 
+#include <cstdint>
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -32,8 +33,8 @@
 #include <string>
 #include <vector>
 #include <set>
-#include "../JuceLibraryCode/JuceHeader.h"
 #include "lo/lo.h"
+#include "../JuceLibraryCode/JuceHeader.h"
 
 using namespace std;
 
@@ -104,8 +105,12 @@ public:
         // Only start the server if the port is positive
         if(port > 0) {
             char portStr[16];
+#ifdef _MSC_VER
+			_snprintf_s(portStr, 16, _TRUNCATE, "%d", port);
+#else
             snprintf(portStr, 16, "%d", port);
-            
+#endif
+
             oscServerThread_ = lo_server_thread_new(portStr, staticErrorHandler);
             if(oscServerThread_ != 0) {
                 lo_server_thread_add_method(oscServerThread_, NULL, NULL, OscReceiver::staticHandler, (void *)this);

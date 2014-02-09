@@ -298,9 +298,11 @@ void KeyboardZoneComponent::comboBoxChanged (ComboBox* comboBoxThatHasChanged)
             controller_->disableMIDIOutputPort(keyboardSegment_->outputPort());
         }
         else if(selection == 2 - kMidiOutputDeviceComboBoxOffset) { // Virtual output
+#ifndef JUCE_WINDOWS
             char st[20];
             snprintf(st, 20, "TouchKeys %d", keyboardSegment_->outputPort());
             controller_->enableMIDIOutputVirtualPort(keyboardSegment_->outputPort(), st);
+#endif
         }
         else if(selection >= 0 && selection < midiOutputDeviceIDs_.size()) {
             int deviceId = midiOutputDeviceIDs_[selection];
@@ -445,8 +447,10 @@ void KeyboardZoneComponent::synchronize(bool forceUpdates)
     if(selectedMidiOutputDevice != lastSelectedMidiOutputID_) {
         if(selectedMidiOutputDevice == MidiOutputController::kMidiOutputNotOpen)
             midiOutputDeviceComboBox->setSelectedId(1, dontSendNotification);
+#ifndef JUCE_WINDOWS
         else if(selectedMidiOutputDevice == MidiOutputController::kMidiVirtualOutputPortNumber)
             midiOutputDeviceComboBox->setSelectedId(2, dontSendNotification);
+#endif
         else {
             // Find the output device in the vector
             for(int i = 0; i < midiOutputDeviceIDs_.size(); i++) {
@@ -476,7 +480,11 @@ void KeyboardZoneComponent::synchronize(bool forceUpdates)
     if(!pitchWheelRangeEditor->hasKeyboardFocus(true) || forceUpdates) {
         float value = keyboardSegment_->midiPitchWheelRange();
         char st[16];
+#ifdef _MSC_VER
+		_snprintf_s(st, 16, _TRUNCATE, "%.1f", value);
+#else
         snprintf(st, 16, "%.1f", value);
+#endif
         pitchWheelRangeEditor->setText(st);
     }
     if(!midiOutputChannelLowEditor->hasKeyboardFocus(true) || forceUpdates) {
@@ -556,13 +564,16 @@ void KeyboardZoneComponent::updateOutputDeviceList()
     // *** MIDI output devices ***
     vector<pair<int, string> > devices = controller_->availableMIDIOutputDevices();
     vector<pair<int, string> >::iterator it;
-    char virtualPortName[24];
 
-    snprintf(virtualPortName, 24, "Virtual Port (%d)", keyboardSegment_->outputPort());
     midiOutputDeviceComboBox->clear();
     midiOutputDeviceIDs_.clear();
     midiOutputDeviceComboBox->addItem("Disabled", 1);
-    midiOutputDeviceComboBox->addItem(virtualPortName, 2);
+#ifndef JUCE_WINDOWS
+    char virtualPortName[24];
+    snprintf(virtualPortName, 24, "Virtual Port (%d)", keyboardSegment_->outputPort());
+	midiOutputDeviceComboBox->addItem(virtualPortName, 2);
+#endif
+
     int counter = kMidiOutputDeviceComboBoxOffset;
     for(it = devices.begin(); it != devices.end(); ++it) {
         if(it->first < 0)

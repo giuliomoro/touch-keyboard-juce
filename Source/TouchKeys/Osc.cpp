@@ -413,8 +413,12 @@ bool OscReceiver::setPort(const int port)
     
     // Now create a new one on the new port
     char portStr[16];
+#ifdef _MSC_VER
+	_snprintf_s(portStr, 16, _TRUNCATE, "%d", port);
+#else
     snprintf(portStr, 16, "%d", port);
-    
+#endif
+
     oscServerThread_ = lo_server_thread_new(portStr, staticErrorHandler);
     if(oscServerThread_ != 0) {
         lo_server_thread_add_method(oscServerThread_, NULL, NULL, OscReceiver::staticHandler, (void *)this);

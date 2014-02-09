@@ -20,9 +20,9 @@
   TouchkeyOscEmulator.cpp: emulates a TouchKeys source using OSC messages
 */
 
-#include "TouchkeyOscEmulator.h"
 #include <cstdlib>
 #include <cstring>
+#include "TouchkeyOscEmulator.h"
 
 // Main constructor
 TouchkeyOscEmulator::TouchkeyOscEmulator(PianoKeyboard& keyboard, OscMessageSource& messageSource)

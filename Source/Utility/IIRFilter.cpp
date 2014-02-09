@@ -21,8 +21,11 @@
   in a given Node.
 */
 
-#include "IIRFilter.h"
+#ifdef _MSC_VER
+#define _USE_MATH_DEFINES
+#endif
 #include <cmath>
+#include "IIRFilter.h"
 
 // These are static functions to design IIR filters specifically for floating-point datatypes.
 // vector<double> and be converted to another type at the end if needed.

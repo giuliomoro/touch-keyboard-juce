@@ -31,13 +31,12 @@
 
 #include <iostream>
 #include <vector>
-#include "../JuceLibraryCode/JuceHeader.h"
+#include "TouchKeys/Osc.h"
 #include "TouchKeys/MidiInputController.h"
 #include "TouchKeys/MidiKeyboardSegment.h"
 #include "TouchKeys/MidiOutputController.h"
 #include "TouchKeys/TouchkeyDevice.h"
 #include "TouchKeys/TouchkeyOscEmulator.h"
-#include "TouchKeys/Osc.h"
 #include "Mappings/Vibrato/TouchkeyVibratoMappingFactory.h"
 #include "Mappings/PitchBend/TouchkeyPitchBendMappingFactory.h"
 #include "Mappings/Control/TouchkeyControlMappingFactory.h"
@@ -47,6 +46,7 @@
 #include "Mappings/KeyDivision/TouchkeyKeyDivisionMappingFactory.h"
 #include "Mappings/MappingFactorySplitter.h"
 #include "TouchKeys/LogPlayback.h"
+#include "../JuceLibraryCode/JuceHeader.h"
 
 #ifdef TOUCHKEY_ENTROPY_GENERATOR_ENABLE
 #include "TouchKeys/TouchkeyEntropyGenerator.h"
@@ -186,10 +186,12 @@ public:
     }
     void enableMIDIOutputPort(int identifier, int deviceNumber) {
         midiOutputController_.enablePort(identifier, deviceNumber);
-    }
+	}
+#ifndef JUCE_WINDOWS
     void enableMIDIOutputVirtualPort(int identifier, const char *name) {
         midiOutputController_.enableVirtualPort(identifier, name);
-    }
+	}
+#endif
     void disableMIDIOutputPort(int identifier) {
         midiOutputController_.disablePort(identifier);
     }

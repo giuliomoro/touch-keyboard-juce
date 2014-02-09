@@ -164,7 +164,7 @@ void Scheduler::run() {
             double targetTimeMilliseconds = startTimeMilliseconds_ + timestamp_to_milliseconds(t);
             
             // Wait until that time arrives, provided it hasn't already
-            int timeDifferenceMilliseconds = (int)round(targetTimeMilliseconds - Time::getMillisecondCounterHiRes());
+            int timeDifferenceMilliseconds = (int)floor(targetTimeMilliseconds - Time::getMillisecondCounterHiRes() + 0.5);
 #ifdef DEBUG_SCHEDULER
             std::cerr << "Scheduler::run: waiting for " << timeDifferenceMilliseconds << "ms\n";
 #endif

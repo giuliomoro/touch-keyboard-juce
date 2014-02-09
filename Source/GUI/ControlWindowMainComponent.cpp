@@ -708,7 +708,11 @@ void ControlWindowMainComponent::updateKeyboardSegments()
             newComponent->setKeyboardSegment(segment);
 
             char name[16];
+#ifdef _MSC_VER
+			_snprintf_s(name, 16, _TRUNCATE, "Zone %d", segment->outputPort());
+#else
             snprintf(name, 16, "Zone %d", segment->outputPort());
+#endif
 
             // Add the component, telling the tab manager to take charge of deleting it at the end
             keyboardZoneTabbedComponent->addTab(name, Colours::lightgrey, newComponent, true);

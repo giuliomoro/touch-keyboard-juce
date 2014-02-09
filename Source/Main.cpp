@@ -20,8 +20,8 @@
   Main.cpp: main startup routines, connecting to Juce library
 */
 
-#include "../JuceLibraryCode/JuceHeader.h"
 #include "MainApplicationController.h"
+#include "../JuceLibraryCode/JuceHeader.h"
 
 #ifndef TOUCHKEYS_NO_GUI
 #include "GUI/MainWindow.h"
@@ -211,8 +211,10 @@ int main (int argc, char* argv[])
 
             // TODO: enable multiple keyboard segments
             if(useVirtualMidiOutput) {
+#ifndef JUCE_WINDOWS
                 cout << "Opening virtual MIDI output\n";
                 controller.enableMIDIOutputVirtualPort(0, "TouchKeys");
+#endif
             }
             else {
                 cout << "Opening MIDI output device " << midiOutputNum << endl;

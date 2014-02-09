@@ -32,9 +32,11 @@
 #include <deque>
 #include <errno.h>
 #include <fcntl.h>
-#include <termios.h>
 #include <limits>
 #include <list>
+#ifndef _MSC_VER
+#include <termios.h>
+#endif
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include "../JuceLibraryCode/JuceHeader.h"

@@ -189,7 +189,7 @@ int OscMidiConverter::currentControllerValue(int channel) {
 #endif
     }
     
-    int roundedControlValue = (int)roundf(controlValue);
+    int roundedControlValue = (int)floorf(controlValue + 0.5f);
     if(roundedControlValue > controlMaxValue_)
         roundedControlValue = controlMaxValue_;
     if(roundedControlValue < controlMinValue_)

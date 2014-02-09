@@ -32,12 +32,14 @@
 
 #include <iostream>
 #include <set>
+#include <cmath>
+#include <stdint.h>
 #include <boost/circular_buffer.hpp>
 #include <boost/lambda/lambda.hpp>
-#include <cmath>
-#include "../JuceLibraryCode/JuceHeader.h"
 #include "Types.h"
 #include "Trigger.h"
+#include "../JuceLibraryCode/JuceHeader.h"
+
 
 template<typename OutputType> class NodeNonInterpolating;
 template<typename OutputType> class Node;
@@ -639,7 +641,7 @@ public:
 	typedef typename boost::circular_buffer<OutputType,Alloc>::capacity_type capacity_type;
 	typedef typename boost::circular_buffer<OutputType,Alloc>::array_range array_range;
 	typedef typename boost::circular_buffer<OutputType,Alloc>::const_array_range const_array_range;
-	typedef typename boost::circular_buffer<OutputType,Alloc>::return_value_type return_value_type;
+	typedef typename boost::circular_buffer<OutputType,Alloc>::param_value_type return_value_type;
 	
 	// We only support const iterators.  (Modifying data in the buffer is restricted to only a few specialized instances.)
 	

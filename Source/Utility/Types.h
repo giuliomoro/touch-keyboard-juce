@@ -23,6 +23,11 @@
 #ifndef KEYCONTROL_TYPES_H
 #define KEYCONTROL_TYPES_H
 
+// For Windows, which defines min() and max() macros
+#ifdef max
+#undef max
+#endif
+
 #include <limits>
 #include <cstdlib>
 #include <cmath>
@@ -74,11 +79,23 @@ template<> struct missing_value<unsigned long long> {
 };
 template<> struct missing_value<float> { 
 	static const float missing() { return std::numeric_limits<float>::quiet_NaN(); } 
-	static const bool isMissing(float val) { return std::isnan(val); }
+	static const bool isMissing(float val) { 
+#ifdef _MSC_VER
+		return (_isnan(val) != 0);
+#else
+		return std::isnan(val); 
+#endif
+	}
 };
 template<> struct missing_value<double> { 
 	static const double missing() { return std::numeric_limits<double>::quiet_NaN(); } 
-	static const bool isMissing(double val) { return std::isnan(val);  }
+	static const bool isMissing(double val) {
+#ifdef _MSC_VER
+		return (_isnan(val) != 0);
+#else
+		return std::isnan(val);  
+#endif
+	}
 };
 template<typename T1, typename T2>
 struct missing_value<std::pair<T1,T2> > {

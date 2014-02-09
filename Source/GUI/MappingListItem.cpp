@@ -203,7 +203,7 @@ void MappingListItem::setMappingFactory(MappingFactory *factory)
     if(factory_->hasBasicEditor()) {
         // Has a short editor: make one and add it to the window, using the same bounds
         // as before
-        const Rectangle<int>& bounds = mappingShortEditorComponent->getBounds();
+        const juce::Rectangle<int>& bounds = mappingShortEditorComponent->getBounds();
         mappingShortEditorComponent = factory_->createBasicEditor();
         addAndMakeVisible(mappingShortEditorComponent);
         mappingShortEditorComponent->setBounds(bounds);

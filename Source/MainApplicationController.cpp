@@ -535,7 +535,11 @@ std::string MainApplicationController::midiNoteName(int noteNumber) {
     if(noteNumber < 0 || noteNumber > 127)
         return "";
     char name[6];
+#ifdef _MSC_VER
+	_snprintf_s(name, 6, _TRUNCATE, "%s%d", kNoteNames[noteNumber % 12], (noteNumber / 12) - 1);
+#else
     snprintf(name, 6, "%s%d", kNoteNames[noteNumber % 12], (noteNumber / 12) - 1);
+#endif
 
     return name;
 }

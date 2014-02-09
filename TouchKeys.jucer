@@ -319,6 +319,26 @@
         <MODULEPATH id="juce_audio_basics" path="../juce/modules"/>
       </MODULEPATHS>
     </LINUX_MAKE>
+    <VS2012 targetFolder="Builds/VisualStudio2012" externalLibraries="liblo.lib&#10;pthreadVC2.lib">
+      <CONFIGURATIONS>
+        <CONFIGURATION name="Debug" winWarningLevel="4" generateManifest="1" winArchitecture="32-bit"
+                       isDebug="1" optimisation="1" targetName="TouchKeys" headerPath="H:\Documents\boost_1_55_0;H:\Documents\liblo-0.26;H:\Documents\pthreads\Pre-built.2\include"/>
+        <CONFIGURATION name="Release" winWarningLevel="4" generateManifest="1" winArchitecture="32-bit"
+                       isDebug="0" optimisation="2" targetName="TouchKeys" headerPath="H:\Documents\boost_1_55_0;H:\Documents\liblo-0.26;H:\Documents\pthreads\Pre-built.2\include"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_opengl" path="../juce/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../juce/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../juce/modules"/>
+        <MODULEPATH id="juce_graphics" path="../juce/modules"/>
+        <MODULEPATH id="juce_events" path="../juce/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../juce/modules"/>
+        <MODULEPATH id="juce_core" path="../juce/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../juce/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../juce/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="../juce/modules"/>
+      </MODULEPATHS>
+    </VS2012>
   </EXPORTFORMATS>
   <JUCEOPTIONS/>
 </JUCERPROJECT>
