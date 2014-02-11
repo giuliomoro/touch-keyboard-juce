@@ -34,7 +34,7 @@ TouchkeyDevice::TouchkeyDevice(PianoKeyboard& keyboard)
 ioThread_(boost::bind(&TouchkeyDevice::runLoop, this, _1), "TouchKeyDevice::ioThread"),
 rawDataThread_(boost::bind(&TouchkeyDevice::rawDataRunLoop, this, _1), "TouchKeyDevice::rawDataThread"),
 autoGathering_(false), shouldStop_(false), sendRawOscMessages_(false),
-verbose_(0), numOctaves_(0), lowestMidiNote_(48), lowestKeyPresentMidiNote_(48),
+verbose_(1), numOctaves_(0), lowestMidiNote_(48), lowestKeyPresentMidiNote_(48),
 updatedLowestMidiNote_(48), deviceSoftwareVersion_(-1), deviceHardwareVersion_(-1),
 expectedLengthWhite_(kTransmissionLengthWhiteNewHardware),
 expectedLengthBlack_(kTransmissionLengthBlackNewHardware), deviceHasRGBLEDs_(false),
@@ -125,8 +125,10 @@ bool TouchkeyDevice::openDevice(const char * inputDevicePath) {
 	// Open the device
 	device_ = open(inputDevicePath, O_RDWR | O_NOCTTY | O_NDELAY);
 	
-	if(device_ < 0)
+	if(device_ < 0) {
+        cout << "failed to open " << inputDevicePath << endl;
 		return false;
+    }
 	return true;
 }
 
