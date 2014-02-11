@@ -352,6 +352,12 @@ private:
     bool internalRGBLEDAllOff();                        // RGB LEDs off
     int  internalRGBLEDMIDIToBoardNumber(const int midiNote);   // Get board number for MIDI note
     int  internalRGBLEDMIDIToLEDNumber(const int midiNote);     // Get LED number for MIDI note
+    
+    // Device low-level access methods
+    long deviceRead(char *buffer, unsigned int count);
+    int deviceWrite(char *buffer, unsigned int count);
+    void deviceFlush(bool bothDirections);
+    void deviceDrainOutput();
 	
 private:
 	PianoKeyboard& keyboard_;	// Main keyboard controller
