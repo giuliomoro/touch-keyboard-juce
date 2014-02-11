@@ -24,7 +24,7 @@
 #ifndef OSC_H
 #define OSC_H
 
-#include <cstdint>
+//#include <cstdint>
 #include <iostream>
 #include <iomanip>
 #include <fstream>

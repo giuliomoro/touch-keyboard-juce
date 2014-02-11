@@ -34,7 +34,7 @@ TouchkeyDevice::TouchkeyDevice(PianoKeyboard& keyboard)
 ioThread_(boost::bind(&TouchkeyDevice::runLoop, this, _1), "TouchKeyDevice::ioThread"),
 rawDataThread_(boost::bind(&TouchkeyDevice::rawDataRunLoop, this, _1), "TouchKeyDevice::rawDataThread"),
 autoGathering_(false), shouldStop_(false), sendRawOscMessages_(false),
-verbose_(0), numOctaves_(0), lowestMidiNote_(48), lowestKeyPresentMidiNote_(48),
+verbose_(1), numOctaves_(0), lowestMidiNote_(48), lowestKeyPresentMidiNote_(48),
 updatedLowestMidiNote_(48), deviceSoftwareVersion_(-1), deviceHardwareVersion_(-1),
 expectedLengthWhite_(kTransmissionLengthWhiteNewHardware),
 expectedLengthBlack_(kTransmissionLengthBlackNewHardware), deviceHasRGBLEDs_(false),
@@ -129,8 +129,9 @@ bool TouchkeyDevice::openDevice(const char * inputDevicePath) {
 #else
 	device_ = open(inputDevicePath, O_RDWR | O_NOCTTY | O_NDELAY);
 
-	if(device_ < 0)
+	if(device_ < 0) {
 		return false;
+    }
 #endif
 	return true;
 }
@@ -166,26 +167,22 @@ bool TouchkeyDevice::checkIfDevicePresent(int millisecondsToWait) {
 #else
 	if(device_ < 0)
 		return false;
-	tcflush(device_, TCIFLUSH);							// Flush device input
-	if(write(device_, (char*)kCommandStatus, 5) < 0) {	// Write status command
+#endif
+    deviceFlush(false);
+    
+	if(deviceWrite((char*)kCommandStatus, 5) < 0) {	// Write status command
         if(verbose_ >= 1)
             cout << "ERROR: unable to write status command.  errno = " << errno << endl;
 		return false;
 	}	
-	tcdrain(device_);									// Force output reach device
-#endif;
+
 
 	// Wait the specified amount of time for a response before giving up
     startTime = Time::getMillisecondCounterHiRes();
     currentTime = startTime;
 
 	while(currentTime - startTime < (double)millisecondsToWait) {
-#ifdef _MSC_VER
-	// WINDOWS_TODO
-	long count = -1;
-#else
-		long count = read(device_, (char *)&ch, 1);
-#endif
+        long count = deviceRead((char *)&ch, 1);
 
 		if(count < 0) {				// Check if an error occurred on read
 			if(errno != EAGAIN) {
@@ -219,12 +216,8 @@ bool TouchkeyDevice::checkIfDevicePresent(int millisecondsToWait) {
 						// Gather and parse the status frame
 						
 						while(currentTime - startTime < millisecondsToWait) {
-#ifdef _MSC_VER
-							// WINDOWS_TODO
-							count = -1;
-#else
-							count = read(device_, (char *)&ch, 1);
-#endif						
+							count = deviceRead((char *)&ch, 1);
+						
 							if(count == 0)
 								continue;
 							if(count < 0) {
@@ -343,19 +336,11 @@ bool TouchkeyDevice::checkIfDevicePresent(int millisecondsToWait) {
 						}
 						else {
 							if(verbose_ >= 1) cout << "Warning: device present, but received invalid status frame.\n";
-#ifdef _MSC_VER
-							// WINDOWS_TODO
-#else
-							tcflush(device_, TCIOFLUSH);	// Throw away anything else in the buffer
-#endif
+                            deviceFlush(true);
 							return false;					// Yes... found the device
 						}
 
-#ifdef _MSC_VER
-						// WINDOWS_TODO
-#else
-						tcflush(device_, TCIOFLUSH);	// Throw away anything else in the buffer
-#endif
+                        deviceFlush(true);
 						return true;					// Yes... found the device
 					}
 				}
@@ -392,15 +377,10 @@ bool TouchkeyDevice::startAutoGathering() {
 	autoGathering_ = true;
     
     // Tell the device to start scanning for new data
-#ifdef _MSC_VER
-	// WINDOWS_TODO
-#else
-	if(write(device_, (char*)kCommandStartScanning, 5) < 0) {
+	if(deviceWrite((char*)kCommandStartScanning, 5) < 0) {
         if(verbose_ >= 1)
             cout << "ERROR: unable to write startAutoGather command.  errno = " << errno << endl;
 	}
-	tcdrain(device_);
-#endif
 
 	keyboard_.sendMessage("/touchkeys/allnotesoff", "", LO_ARGS_END);
 	if(keyboard_.gui() != 0) {
@@ -425,15 +405,10 @@ void TouchkeyDevice::stopAutoGathering() {
     calibrationAbort();	
     
     // Tell device to stop scanning
-#ifdef _MSC_VER
-	// WINDOWS_TODO
-#else
-	if(write(device_, (char*)kCommandStopScanning, 5) < 0) {
+	if(deviceWrite((char*)kCommandStopScanning, 5) < 0) {
         if(verbose_ >= 1)
             cout << "ERROR: unable to write stopAutoGather command.  errno = " << errno << endl;
-	}		
-	tcdrain(device_);
-#endif
+	}
 	
     // Setting this to true tells the run loop to exit what it's doing
 	shouldStop_ = true;
@@ -531,15 +506,10 @@ bool TouchkeyDevice::setScanInterval(int intervalMilliseconds) {
 		kFrameTypeScanRate, (unsigned char)(intervalMilliseconds & 0xFF), ESCAPE_CHARACTER, kControlCharacterFrameEnd};
 	
 	// Send command
-#ifdef _MSC_VER
-	// WINDOWS_TODO
-#else
-	if(write(device_, (char*)command, 6) < 0) {
+	if(deviceWrite((char*)command, 6) < 0) {
         if(verbose_ >= 1)
             cout << "ERROR: unable to write startRawDataCollection command.  errno = " << errno << endl;
 	}
-	tcdrain(device_);
-#endif
 	
 	if(verbose_ >= 2)
 		cout << "Setting scan interval to " << intervalMilliseconds << endl;
@@ -577,15 +547,10 @@ bool TouchkeyDevice::setKeySensitivity(int octave, int key, int value) {
 		chOctave, chKey, chVal, ESCAPE_CHARACTER, kControlCharacterFrameEnd};
 	
 	// Send command
-#ifdef _MSC_VER
-	// WINDOWS_TODO
-#else
-	if(write(device_, (char*)command, 8) < 0) {
+	if(deviceWrite((char*)command, 8) < 0) {
         if(verbose_ >= 1)
             cout << "ERROR: unable to write setKeySensitivity command.  errno = " << errno << endl;
 	}
-	tcdrain(device_);
-#endif
 
 	if(verbose_ >= 2)
 		cout << "Setting sensitivity to " << value << endl;
@@ -621,16 +586,11 @@ bool TouchkeyDevice::setKeyCentroidScaler(int octave, int key, int value) {
 		chOctave, chKey, chVal, ESCAPE_CHARACTER, kControlCharacterFrameEnd};
 	
 	// Send command
-#ifdef _MSC_VER
-	// WINDOWS_TODO
-#else
-	if(write(device_, (char*)command, 8) < 0) {
+	if(deviceWrite((char*)command, 8) < 0) {
         if(verbose_ >= 1)
             cout << "ERROR: unable to write setKeyCentroidScaler command.  errno = " << errno << endl;
 	}
-	tcdrain(device_);
-#endif
-
+    
 	if(verbose_ >= 2)
 		cout << "Setting size scaler to " << value << endl;
 	
@@ -666,15 +626,10 @@ bool TouchkeyDevice::setKeyMinimumCentroidSize(int octave, int key, int value) {
 		chOctave, chKey, chValHi, chValLo, ESCAPE_CHARACTER, kControlCharacterFrameEnd};
 	
 	// Send command
-#ifdef _MSC_VER
-	// WINDOWS_TODO
-#else
-	if(write(device_, (char*)command, 9) < 0) {
+	if(deviceWrite((char*)command, 9) < 0) {
         if(verbose_ >= 1)
             cout << "ERROR: unable to write setKeyMinimumCentroidSize command.  errno = " << errno << endl;
 	}
-	tcdrain(device_);
-#endif
 
 	if(verbose_ >= 2)
 		cout << "Setting minimum centroid size to " << value << endl;
@@ -708,15 +663,10 @@ bool TouchkeyDevice::setKeyNoiseThreshold(int octave, int key, int value) {
 		chOctave, chKey, chVal, ESCAPE_CHARACTER, kControlCharacterFrameEnd};
 	
 	// Send command
-#ifdef _MSC_VER
-	// WINDOWS_TODO
-#else
-	if(write(device_, (char*)command, 8) < 0) {
+	if(deviceWrite((char*)command, 8) < 0) {
         if(verbose_ >= 1)
             cout << "ERROR: unable to write setKeyNoiseThreshold command.  errno = " << errno << endl;
 	}
-	tcdrain(device_);
-#endif
 
 	if(verbose_ >= 2)
 		cout << "Setting noise threshold to " << value << endl;
@@ -733,15 +683,10 @@ bool TouchkeyDevice::setKeyUpdateBaseline(int octave, int key) {
         ESCAPE_CHARACTER, kControlCharacterFrameEnd};
     
     // Send command
-#ifdef _MSC_VER
-	// WINDOWS_TODO
-#else
-	if(write(device_, (char*)baselineCommand, 11) < 0) {
+	if(deviceWrite((char*)baselineCommand, 11) < 0) {
         if(verbose_ >= 1)
             cout << "ERROR: unable to write baseline update command.  errno = " << errno << endl;
 	}
-	tcdrain(device_);
-#endif
 
 	if(verbose_ >= 2)
 		cout << "Updating baseline on octave " << octave << " key " << key << endl;
@@ -753,15 +698,10 @@ bool TouchkeyDevice::setKeyUpdateBaseline(int octave, int key) {
         1 /* xmit */, 0 /* response */, 6 /* data offset */,
         ESCAPE_CHARACTER, kControlCharacterFrameEnd};
     
-#ifdef _MSC_VER
-	// WINDOWS_TODO
-#else
-	if(write(device_, (char*)commandPrepareRead, 10) < 0) {
+	if(deviceWrite((char*)commandPrepareRead, 10) < 0) {
         if(verbose_ >= 1)
             cout << "ERROR: unable to write prepareRead command.  errno = " << errno << endl;
 	}
-	tcdrain(device_);
-#endif
 
 	// Return value depends on ACK or NAK received
 	return checkForAck(100);
@@ -773,15 +713,10 @@ void TouchkeyDevice::jumpToBootloader() {
 		ESCAPE_CHARACTER, kControlCharacterFrameEnd};
 	
 	// Send command
-#ifdef _MSC_VER
-	// WINDOWS_TODO
-#else
-	if(write(device_, (char*)command, 5) < 0) {
+	if(deviceWrite((char*)command, 5) < 0) {
         if(verbose_ >= 1)
             cout << "ERROR: unable to write jumpToBootloader command.  errno = " << errno << endl;
 	}
-	tcdrain(device_);
-#endif
 }
 
 // Set the LED color for the given MIDI note (if RGB LEDs are present). This method
@@ -916,15 +851,10 @@ bool TouchkeyDevice::internalRGBLEDSetColor(const int device, const int led, con
     command[location++] = kControlCharacterFrameEnd;
     
 	// Send command
-#ifdef _MSC_VER
-	// WINDOWS_TODO
-#else
-	if(write(device_, (char*)command, location) < 0) {
+	if(deviceWrite((char*)command, location) < 0) {
         if(verbose_ >= 1)
             cout << "ERROR: unable to write setRGBLEDColor command.  errno = " << errno << endl;
 	}
-	tcdrain(device_);
-#endif
 	
 	if(verbose_ >= 3)
 		cout << "Setting RGB LED color for device " << device << ", led " << led << endl;
@@ -949,16 +879,11 @@ bool TouchkeyDevice::internalRGBLEDAllOff() {
     command[4] = kControlCharacterFrameEnd;
 	
 	// Send command
-#ifdef _MSC_VER
-	// WINDOWS_TODO
-#else
-	if(write(device_, (char*)command, 5) < 0) {
+	if(deviceWrite((char*)command, 5) < 0) {
         if(verbose_ >= 1)
             cout << "ERROR: unable to write setRGBLEDAllOff command.  errno = " << errno << endl;
 	}
-	tcdrain(device_);
-#endif
-
+    
 	if(verbose_ >= 3)
 		cout << "Turning off all RGB LEDs" << endl;
     
@@ -1262,12 +1187,7 @@ void TouchkeyDevice::ledUpdateLoop(DeviceThread *thread) {
             ledUpdateQueue_.pop_back();
         }
         
-#ifdef _MSC_VER
-		// WINDOWS_TODO
-		break;
-#else
-        usleep(20000);  // Wait 20ms to check again
-#endif
+        Thread::sleep(20);
     }
 }
 
@@ -1304,17 +1224,11 @@ void TouchkeyDevice::runLoop(DeviceThread *thread) {
                 rgbledSetColorHSV(currentNote, (float)(currentNote - 21)/(float)(highestMidiNote() - 21), 1.0, 1.0);
             }
 */        
-#ifdef _MSC_VER
-		// WINDOWS_TODO
-		long count = -1;
-#else
- 		long count = read(device_, (char *)buffer, 1024);
-#endif
+ 		long count = deviceRead((char *)buffer, 1024);
 
 		if(count == 0) {
 #ifdef _MSC_VER
-			// WINDOWS_TODO
-			break;
+            Thread::sleep(1);
 #else
 			usleep(500);
 #endif
@@ -1328,8 +1242,7 @@ void TouchkeyDevice::runLoop(DeviceThread *thread) {
 			}
 			
 #ifdef _MSC_VER
-			// WINDOWS_TODO
-			break;
+			Thread::sleep(1);
 #else
 			usleep(500);
 #endif
@@ -1442,28 +1355,17 @@ void TouchkeyDevice::rawDataRunLoop(DeviceThread *thread) {
             }
             
             // Request data
-#ifdef _MSC_VER
-			// WINDOWS_TODO
-#else
-            if(write(device_, (char*)gatherDataCommand, 9) < 0) {
+            if(deviceWrite((char*)gatherDataCommand, 9) < 0) {
                 if(verbose_ >= 1)
                     cout << "ERROR: unable to write gather data command.  errno = " << errno << endl;
             }
-            tcdrain(device_);
-#endif
         }
       
-#ifdef _MSC_VER
-		// WINDOWS_TODO
-		long count = -1;
-#else
- 		long count = read(device_, (char *)buffer, 1024);
-#endif
+ 		long count = deviceRead((char *)buffer, 1024);
 
 		if(count == 0) {
 #ifdef _MSC_VER
-			// WINDOWS_TODO
-			break;
+			Thread::sleep(1);
 #else
 			usleep(500);
 #endif
@@ -1477,8 +1379,7 @@ void TouchkeyDevice::rawDataRunLoop(DeviceThread *thread) {
 			}
 			
 #ifdef _MSC_VER
-			// WINDOWS_TODO
-			break;
+			Thread::sleep(1);
 #else
 			usleep(500);
 #endif
@@ -2183,11 +2084,7 @@ bool TouchkeyDevice::processStatusFrame(unsigned char * buffer, int maxLength, T
 
 // Prepare the indicated key for raw data collection
 void TouchkeyDevice::rawDataPrepareCollection(int octave, int key, int mode, int scaler) {
-#ifdef _MSC_VER
-			// WINDOWS_TODO
-#else
-			usleep(10000);
-#endif
+    Thread::sleep(10);
     
     // Command to set the mode of the key
     unsigned char commandSetMode[] = {ESCAPE_CHARACTER, kControlCharacterFrameBegin,
@@ -2195,21 +2092,12 @@ void TouchkeyDevice::rawDataPrepareCollection(int octave, int key, int mode, int
         3 /* xmit */, 0 /* response */, 0 /* command offset */, 1 /* mode */, (unsigned char)mode,
         ESCAPE_CHARACTER, kControlCharacterFrameEnd};
 	
-#ifdef _MSC_VER
-	// WINDOWS_TODO
-#else
-	if(write(device_, (char*)commandSetMode, 12) < 0) {
+	if(deviceWrite((char*)commandSetMode, 12) < 0) {
         if(verbose_ >= 1)
             cout << "ERROR: unable to write setMode command.  errno = " << errno << endl;
 	}
-	tcdrain(device_);
-#endif
 
-#ifdef _MSC_VER
-			// WINDOWS_TODO
-#else
-			usleep(10000);
-#endif
+    Thread::sleep(10);
     
     // Command to set the scaler of the key
     unsigned char commandSetScaler[] = {ESCAPE_CHARACTER, kControlCharacterFrameBegin,
@@ -2217,42 +2105,24 @@ void TouchkeyDevice::rawDataPrepareCollection(int octave, int key, int mode, int
         3 /* xmit */, 0 /* response */, 0 /* command offset */, 3 /* raw scaler */, (unsigned char)scaler,
         ESCAPE_CHARACTER, kControlCharacterFrameEnd};
 	
-#ifdef _MSC_VER
-	// WINDOWS_TODO
-#else
-	if(write(device_, (char*)commandSetScaler, 12) < 0) {
+	if(deviceWrite((char*)commandSetScaler, 12) < 0) {
         if(verbose_ >= 1)
             cout << "ERROR: unable to write setMode command.  errno = " << errno << endl;
 	}
-	tcdrain(device_);
-#endif
-
-#ifdef _MSC_VER
-			// WINDOWS_TODO
-#else
-			usleep(10000);
-#endif
+    
+    Thread::sleep(10);
     
     unsigned char commandPrepareRead[] = {ESCAPE_CHARACTER, kControlCharacterFrameBegin,
         kFrameTypeSendI2CCommand, (unsigned char)octave, (unsigned char)key,
         1 /* xmit */, 0 /* response */, 6 /* data offset */,
         ESCAPE_CHARACTER, kControlCharacterFrameEnd};
     
-#ifdef _MSC_VER
-	// WINDOWS_TODO
-#else
-	if(write(device_, (char*)commandPrepareRead, 10) < 0) {
+	if(deviceWrite((char*)commandPrepareRead, 10) < 0) {
         if(verbose_ >= 1)
             cout << "ERROR: unable to write prepareRead command.  errno = " << errno << endl;
 	}
-	tcdrain(device_);
-#endif
 
-#ifdef _MSC_VER
-			// WINDOWS_TODO
-#else
-			usleep(10000);
-#endif
+   Thread::sleep(10);
     
     rawDataShouldChangeMode_ = false;
 }
@@ -2273,12 +2143,7 @@ bool TouchkeyDevice::checkForAck(int timeoutMilliseconds) {
 	//gettimeofday(&currentTime, 0);
 	
 	while(currentTime - startTime < (double)timeoutMilliseconds) {
-#ifdef _MSC_VER
-		// WINDOWS_TODO
-		long count = -1;
-#else
-		long count = read(device_, (char *)&ch, 1);
-#endif
+		long count = deviceRead((char *)&ch, 1);
 
 		if(count < 0) {				// Check if an error occurred on read
 			if(errno != EAGAIN) {
@@ -2324,6 +2189,52 @@ void TouchkeyDevice::hexDump(ostream& str, unsigned char * buffer, int length) {
 	}
 	str << std::dec;
 }
+
+// Read from the TouchKeys device
+long TouchkeyDevice::deviceRead(char *buffer, unsigned int count) {
+#ifdef _MSC_VER
+    // WINDOWS_TODO
+    return -1;
+#else
+    return read(device_, buffer, count);
+#endif
+}
+
+// Write to the TouchKeys device
+int TouchkeyDevice::deviceWrite(char *buffer, unsigned int count) {
+    long result;
+    
+#ifdef _MSC_VER
+    // WINDOWS_TODO
+    return -1;
+#else
+    result = write(device_, buffer, count);
+#endif
+    deviceDrainOutput();
+    return result;
+}
+
+// Flush the TouchKeys device input
+void TouchkeyDevice::deviceFlush(bool bothDirections) {
+#ifdef _MSC_VER
+    // WINDOWS_TODO
+#else
+    if(bothDirections)
+        tcflush(device_, TCIOFLUSH);
+    else
+        tcflush(device_, TCIFLUSH);							// Flush device input
+#endif
+}
+
+// Flush the TouchKeys device input
+void TouchkeyDevice::deviceDrainOutput() {
+#ifdef _MSC_VER
+    // WINDOWS_TODO
+#else
+    tcdrain(device_);
+#endif
+}
+
 
 TouchkeyDevice::~TouchkeyDevice() {
     if (logFileCreated_)
