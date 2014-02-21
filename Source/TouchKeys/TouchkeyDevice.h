@@ -235,7 +235,7 @@ public:
 	void stopAutoGathering();	
 	
 	// Status query methods
-	bool isOpen() { return device_ >= 0; }
+	bool isOpen();
 	bool isAutoGathering() { return autoGathering_; }
 	int numberOfOctaves() { return numOctaves_; }
     
@@ -362,7 +362,11 @@ private:
 private:
 	PianoKeyboard& keyboard_;	// Main keyboard controller
 
+#ifdef _MSC_VER
+	HANDLE serialHandle_;		// Serial port handle
+#else
 	int device_;				// File descriptor
+#endif
 	DeviceThread ioThread_;		// Thread that handles the communication from the device
     DeviceThread rawDataThread_;// Thread that handles raw data collection
 	//CriticalSection ioMutex_;	// Mutex synchronizing access between internal and external threads
