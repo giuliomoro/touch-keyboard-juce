@@ -92,7 +92,7 @@ MainApplicationController::~MainApplicationController() {
 
 bool MainApplicationController::touchkeyDeviceStartupSequence(const char * path) {
 #ifdef TOUCHKEY_ENTROPY_GENERATOR_ENABLE
-    if(!strcmp(path, "/dev/Entropy Generator")) {
+    if(!strcmp(path, "/dev/Entropy Generator") || !strcmp(path, "\\\\.\\Entropy Generator")) {
         entropyGeneratorSelected_ = true;
         touchkeyEntropyGenerator_.start();
     }
@@ -140,18 +140,54 @@ bool MainApplicationController::touchkeyDeviceStartupSequence(const char * path)
 }
 
 std::string MainApplicationController::touchkeyDevicePrefix() {
+#ifdef _MSC_VER
+	return "\\\\.\\";
+#else
     if(SystemStats::getOperatingSystemType() == SystemStats::Linux) {
         return "/dev/serial/by-id/";
     }
     else {
         return "/dev/";
     }
+#endif
 }
 
 // Return a list of available TouchKey devices
 std::vector<std::string> MainApplicationController::availableTouchkeyDevices() {
     std::vector<std::string> devices;
-    
+
+#ifdef _MSC_VER
+    for(int i = 1; i <= 128; i++) {
+		String comPortName("COM");
+		comPortName += i;
+
+        DWORD dwSize = 0;
+        LPCOMMCONFIG lpCC = (LPCOMMCONFIG) new BYTE[1];
+        BOOL ret = GetDefaultCommConfig(comPortName.toUTF8(), lpCC, &dwSize);
+        delete [] lpCC;
+
+		if(ret) 
+			devices.push_back(comPortName.toStdString());
+		else {
+			if(GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+				//Logger::writeToLog(String::formatted("Found " + comPortName));
+				lpCC = (LPCOMMCONFIG) new BYTE[dwSize];
+				ret = GetDefaultCommConfig(comPortName.toUTF8(), lpCC, &dwSize);
+				if(ret)
+					devices.push_back(comPortName.toStdString());
+				else {
+					int error = GetLastError();
+					//Logger::writeToLog(String("2Didn't find " + comPortName + "; error " + String(error)));
+				}
+				delete [] lpCC;
+			}
+			else {
+				int error = GetLastError();
+				//Logger::writeToLog(String("Didn't find " + comPortName + "; error " + String(error)));
+			}
+		}
+    }
+#else
     if(SystemStats::getOperatingSystemType() == SystemStats::Linux) {
         DirectoryIterator devDirectory(File("/dev/serial/by-id"),false,"*");
         
@@ -166,6 +202,7 @@ std::vector<std::string> MainApplicationController::availableTouchkeyDevices() {
             devices.push_back(string(devDirectory.getFile().getFileName().toUTF8()));
         }
     }
+#endif
     
 #ifdef TOUCHKEY_ENTROPY_GENERATOR_ENABLE
     devices.push_back("Entropy Generator");

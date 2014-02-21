@@ -30,7 +30,12 @@ const char* kKeyNames[13] = {"C ", "C#", "D ", "D#", "E ", "F ", "F#", "G ", "G#
 // Constructor
 
 TouchkeyDevice::TouchkeyDevice(PianoKeyboard& keyboard) 
-: keyboard_(keyboard), device_(-1),
+: keyboard_(keyboard),
+#ifdef _MSC_VER
+serialHandle_(INVALID_HANDLE_VALUE),
+#else
+device_(-1),
+#endif
 ioThread_(boost::bind(&TouchkeyDevice::runLoop, this, _1), "TouchKeyDevice::ioThread"),
 rawDataThread_(boost::bind(&TouchkeyDevice::rawDataRunLoop, this, _1), "TouchKeyDevice::rawDataThread"),
 autoGathering_(false), shouldStop_(false), sendRawOscMessages_(false),
@@ -119,13 +124,51 @@ void TouchkeyDevice::stopLogging()
 
 bool TouchkeyDevice::openDevice(const char * inputDevicePath) {
 	// If the device is already open, close it
-	if(device_ >= 0)
+	if(isOpen())
 		closeDevice();
 	
 	// Open the device
 #ifdef _MSC_VER
-	// WINDOWS_TODO
-	return false;
+	// Open the serial port
+	serialHandle_ = CreateFile(inputDevicePath, GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+	if(serialHandle_ == INVALID_HANDLE_VALUE) {
+		Logger::writeToLog("Unable to open serial port " + String(inputDevicePath));
+		return false;
+	}
+
+	// Set some serial parameters, though they don't actually affect the operation
+	// of the port since it is all native USB
+	DCB serialParams = { 0 };
+	serialParams.DCBlength = sizeof(serialParams);
+
+	if(!BuildCommDCBA("baud=1000000 data=8 parity=N stop=1 dtr=on rts=on", &serialParams)) {
+		Logger::writeToLog("Unable to create port settings\n");
+		CloseHandle(serialHandle_);
+		serialHandle_ = INVALID_HANDLE_VALUE;
+		return false;
+	}
+
+	if(!SetCommState(serialHandle_, &serialParams)) {
+		Logger::writeToLog("Unable to set comm state\n");
+		CloseHandle(serialHandle_);
+		serialHandle_ = INVALID_HANDLE_VALUE;
+		return false;
+	}
+
+	// Set timeouts
+	COMMTIMEOUTS timeout = { 0 };
+	timeout.ReadIntervalTimeout = MAXDWORD;
+	timeout.ReadTotalTimeoutConstant = 0;
+	timeout.ReadTotalTimeoutMultiplier = 0;
+	timeout.WriteTotalTimeoutConstant = 0;
+	timeout.WriteTotalTimeoutMultiplier = 0;
+
+	if(!SetCommTimeouts(serialHandle_, &timeout)) {
+		Logger::writeToLog("Unable to set timeouts\n");
+		CloseHandle(serialHandle_);
+		serialHandle_ = INVALID_HANDLE_VALUE;
+		return false;
+	}
 #else
 	device_ = open(inputDevicePath, O_RDWR | O_NOCTTY | O_NDELAY);
 
@@ -138,17 +181,26 @@ bool TouchkeyDevice::openDevice(const char * inputDevicePath) {
 
 // Close the touchkey serial device
 void TouchkeyDevice::closeDevice() {
-	if(device_ < 0)
+	if(!isOpen())
 		return;
 	
 	stopAutoGathering();
 	keysPresent_.clear();
 
 #ifdef _MSC_VER
-	// WINDOWS_TODO
+	CloseHandle(serialHandle_);
+	serialHandle_ = INVALID_HANDLE_VALUE;
 #else
 	close(device_);
     device_ = -1;
+#endif
+}
+
+bool TouchkeyDevice::isOpen() {
+#ifdef _MSC_VER
+	return serialHandle_ != INVALID_HANDLE_VALUE;
+#else
+	return device_ >= 0; 
 #endif
 }
 
@@ -161,13 +213,8 @@ bool TouchkeyDevice::checkIfDevicePresent(int millisecondsToWait) {
 	unsigned char ch;
 	bool controlSeq = false, startingFrame = false;
     
-#ifdef _MSC_VER
-	// WINDOWS_TODO
-	return false;
-#else
-	if(device_ < 0)
+	if(!isOpen())
 		return false;
-#endif
     deviceFlush(false);
     
 	if(deviceWrite((char*)kCommandStatus, 5) < 0) {	// Write status command
@@ -2193,8 +2240,11 @@ void TouchkeyDevice::hexDump(ostream& str, unsigned char * buffer, int length) {
 // Read from the TouchKeys device
 long TouchkeyDevice::deviceRead(char *buffer, unsigned int count) {
 #ifdef _MSC_VER
-    // WINDOWS_TODO
-    return -1;
+	int n;
+
+	if(!ReadFile(serialHandle_, buffer, count, (LPDWORD)((void *)&n), NULL))
+		return -1;
+	return n;
 #else
     return read(device_, buffer, count);
 #endif
@@ -2202,11 +2252,11 @@ long TouchkeyDevice::deviceRead(char *buffer, unsigned int count) {
 
 // Write to the TouchKeys device
 int TouchkeyDevice::deviceWrite(char *buffer, unsigned int count) {
-    long result;
+    int result;
     
 #ifdef _MSC_VER
-    // WINDOWS_TODO
-    return -1;
+    if(!WriteFile(serialHandle_, buffer, count, (LPDWORD)((void *)&result), NULL))
+		return -1;
 #else
     result = write(device_, buffer, count);
 #endif
@@ -2214,10 +2264,10 @@ int TouchkeyDevice::deviceWrite(char *buffer, unsigned int count) {
     return result;
 }
 
-// Flush the TouchKeys device input
+// Flush (discard) the TouchKeys device input
 void TouchkeyDevice::deviceFlush(bool bothDirections) {
 #ifdef _MSC_VER
-    // WINDOWS_TODO
+	// WINDOWS_TODO (?)
 #else
     if(bothDirections)
         tcflush(device_, TCIOFLUSH);
@@ -2226,10 +2276,10 @@ void TouchkeyDevice::deviceFlush(bool bothDirections) {
 #endif
 }
 
-// Flush the TouchKeys device input
+// Flush the TouchKeys device output
 void TouchkeyDevice::deviceDrainOutput() {
 #ifdef _MSC_VER
-    // WINDOWS_TODO
+    FlushFileBuffers(serialHandle_);
 #else
     tcdrain(device_);
 #endif
