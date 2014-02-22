@@ -319,7 +319,8 @@
         <MODULEPATH id="juce_audio_basics" path="../juce/modules"/>
       </MODULEPATHS>
     </LINUX_MAKE>
-    <VS2012 targetFolder="Builds/VisualStudio2012" externalLibraries="liblo.lib&#10;pthreadVC2.lib">
+    <VS2012 targetFolder="Builds/VisualStudio2012" externalLibraries="liblo.lib&#10;pthreadVC2.lib"
+            smallIcon="mbX6Jp" bigIcon="b3DhPc">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" winWarningLevel="4" generateManifest="1" winArchitecture="32-bit"
                        isDebug="1" optimisation="1" targetName="TouchKeys" headerPath="H:\Documents\boost_1_55_0;H:\Documents\liblo-0.26;H:\Documents\pthreads\Pre-built.2\include"/>

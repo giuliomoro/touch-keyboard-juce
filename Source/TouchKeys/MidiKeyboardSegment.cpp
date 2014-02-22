@@ -355,6 +355,8 @@ bool MidiKeyboardSegment::oscHandlerMethod(const char *path, const char *types, 
     if(touchkeyStandaloneMode_) {
         if(!strcmp(path, "/touchkeys/on") && numValues > 0) {
             int noteNumber = values[0]->i;
+            if(!respondsToNote(noteNumber))
+                return true;
             if(noteNumber >= 0 && noteNumber < 128) {
                 // Generate MIDI note on for this message
                 MidiMessage msg(MidiMessage::noteOn(1, noteNumber, (uint8)64));
@@ -364,6 +366,8 @@ bool MidiKeyboardSegment::oscHandlerMethod(const char *path, const char *types, 
         }
         else if(!strcmp(path, "/touchkeys/off") && numValues > 0) {
             int noteNumber = values[0]->i;
+            if(!respondsToNote(noteNumber))
+                return true;
             if(noteNumber >= 0 && noteNumber < 128) {
                 // Generate MIDI note off for this message
                 MidiMessage msg(MidiMessage::noteOff(1, noteNumber));
