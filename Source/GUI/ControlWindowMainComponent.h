@@ -60,7 +60,7 @@ public:
     void textEditorFocusLost(TextEditor &editor);
 
     void synchronize();
-    
+
     // Return the currently selected TouchKeys string
     String currentTouchkeysSelectedPath();
     //[/UserMethods]

@@ -278,9 +278,9 @@ void ControlWindowMainComponent::resized()
     midiInputDeviceComboBox->setBounds (72, 168, 224, 24);
     label->setBounds (16, 168, 55, 24);
     groupComponent->setBounds (8, 8, 304, 128);
-    label2->setBounds (16, 32, 55, 24);
+    label2->setBounds (16, 32, 60, 24);
     touchkeyDeviceComboBox->setBounds (72, 32, 224, 24);
-    label3->setBounds (16, 96, 55, 24);
+    label3->setBounds (16, 96, 60, 24);
     touchkeyStartButton->setBounds (216, 96, 79, 24);
     touchkeyStatusLabel->setBounds (72, 96, 136, 24);
     oscGroupComponent->setBounds (8, 288, 304, 96);
@@ -376,7 +376,7 @@ void ControlWindowMainComponent::buttonClicked (Button* buttonThatWasClicked)
         }
         else if(controller_->touchkeyDeviceIsRunning()) {
 #else
-        if(controller_->touchkeyDeviceIsRunning()) {  
+        if(controller_->touchkeyDeviceIsRunning()) {
 #endif
             // TouchKeys were running. Stop and close.
             controller_->closeTouchkeyDevice();
@@ -665,7 +665,7 @@ String ControlWindowMainComponent::currentTouchkeysSelectedPath()
 {
     String devName = controller_->touchkeyDevicePrefix().c_str();
     devName += touchkeyDeviceComboBox->getText();
-    
+
     return devName;
 }
 
@@ -793,7 +793,7 @@ BEGIN_JUCER_METADATA
   <GROUPCOMPONENT name="new group" id="9106305fd2211185" memberName="groupComponent"
                   virtualName="" explicitFocusOrder="0" pos="8 8 304 128" title="TouchKeys"/>
   <LABEL name="new label" id="944877a84dcfc602" memberName="label2" virtualName=""
-         explicitFocusOrder="0" pos="16 32 55 24" edTextCol="ff000000"
+         explicitFocusOrder="0" pos="16 32 60 24" edTextCol="ff000000"
          edBkgCol="0" labelText="Device:&#10;" editableSingleClick="0"
          editableDoubleClick="0" focusDiscardsChanges="0" fontname="Default font"
          fontsize="15" bold="0" italic="0" justification="33"/>
@@ -801,7 +801,7 @@ BEGIN_JUCER_METADATA
             virtualName="" explicitFocusOrder="0" pos="72 32 224 24" editable="0"
             layout="33" items="" textWhenNonSelected="" textWhenNoItems="(no choices)"/>
   <LABEL name="new label" id="1cdf89082d95c72c" memberName="label3" virtualName=""
-         explicitFocusOrder="0" pos="16 96 55 24" edTextCol="ff000000"
+         explicitFocusOrder="0" pos="16 96 60 24" edTextCol="ff000000"
          edBkgCol="0" labelText="Status:&#10;" editableSingleClick="0"
          editableDoubleClick="0" focusDiscardsChanges="0" fontname="Default font"
          fontsize="15" bold="0" italic="0" justification="33"/>
