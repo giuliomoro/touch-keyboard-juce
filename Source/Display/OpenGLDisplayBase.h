@@ -24,6 +24,8 @@
 #ifndef touchkeys_OpenGLDisplayBase_h
 #define touchkeys_OpenGLDisplayBase_h
 
+class OpenGLJuceCanvas;
+
 // Virtual base class that implements some basic methods that the OS-specific
 // GUI can attach to. Specific displays are subclasses of this
 
@@ -32,12 +34,14 @@ public:
     OpenGLDisplayBase() {}
     
     virtual ~OpenGLDisplayBase() {}
+    
+    // Canvas reference method
+    virtual void setCanvas(OpenGLJuceCanvas *canvas) = 0;
 	
 	// Setup method for display size
 	virtual void setDisplaySize(float width, float height) = 0;
 	
 	// Drawing methods
-	virtual bool needsRender() = 0;
 	virtual void render() = 0;
 	
 	// Interaction methods

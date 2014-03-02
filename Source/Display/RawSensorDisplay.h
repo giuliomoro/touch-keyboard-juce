@@ -56,12 +56,15 @@ private:
 public:
 	RawSensorDisplay();
 	
+    // Set canvas for triggering rendering;
+    void setCanvas(OpenGLJuceCanvas *canvas) { canvas_ = canvas; }
+    void tellCanvasToRepaint();
+    
 	// Setup methods for display size and keyboard range
 	void setDisplaySize(float width, float height);
     float aspectRatio() { return totalDisplayWidth_ / totalDisplayHeight_; }
 	
 	// Drawing methods
-	bool needsRender() { return needsUpdate_; }
 	void render();
 	
 	// Interaction methods
@@ -88,11 +91,12 @@ private:
 	
     
 private:
+	OpenGLJuceCanvas *canvas_;                      // Reference to object which handles rendering
+    
 	float displayPixelWidth_, displayPixelHeight_;	// Pixel resolution of the surrounding window
 	float totalDisplayWidth_, totalDisplayHeight_;	// Size of the internal view (centered around origin)
     float yMin_, yMax_;                             // Range of the graph axes
     
-	bool needsUpdate_;								// Whether the keyboard should be redrawn
 	CriticalSection displayMutex_;					// Synchronize access between data and display threads
     std::vector<int> displayValues_;                // Values to display as a bar graph
 };

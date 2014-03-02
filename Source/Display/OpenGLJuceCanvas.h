@@ -38,9 +38,10 @@ public:
     // *** Constructor / Destructor ***
     OpenGLJuceCanvas(OpenGLDisplayBase& display) : display_(display) {
         openGLContext_.setRenderer (this);
-        openGLContext_.setComponentPaintingEnabled (true);
-        openGLContext_.setContinuousRepainting (true);
+        openGLContext_.setComponentPaintingEnabled (false);
+        openGLContext_.setContinuousRepainting (false);
         openGLContext_.attachTo (*this);
+        display_.setCanvas(this);
     }
     ~OpenGLJuceCanvas() {
         openGLContext_.detach();
@@ -50,24 +51,21 @@ public:
     void newOpenGLContextCreated() {}
     void openGLContextClosing() {}
     
-    void mouseDown (const MouseEvent& e)
-    {
+    void mouseDown (const MouseEvent& e) {
         if(e.mods.isLeftButtonDown())
             display_.mouseDown(e.x, e.y);
         else if(e.mods.isRightButtonDown())
             display_.rightMouseDown(e.x, e.y);
     }
     
-    void mouseDrag (const MouseEvent& e)
-    {
+    void mouseDrag (const MouseEvent& e) {
         if(e.mods.isLeftButtonDown())
             display_.mouseDragged(e.x, e.y);
         else if(e.mods.isRightButtonDown())
             display_.rightMouseDragged(e.x, e.y);
     }
     
-    void mouseUp (const MouseEvent& e)
-    {
+    void mouseUp (const MouseEvent& e) {
         if(e.mods.isLeftButtonDown())
             display_.mouseUp(e.x, e.y);
         else if(e.mods.isRightButtonDown())
@@ -81,9 +79,13 @@ public:
     
     void paint (Graphics&) {}
     
-    void renderOpenGL()
-    {
+    void renderOpenGL() {
         display_.render();
+    }
+    
+    // Method to tell the OpenGLContext to repaint
+    void triggerRepaint() {
+        openGLContext_.triggerRepaint();
     }
     
 private:

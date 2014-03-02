@@ -22,6 +22,7 @@
 */
 
 #include "KeyboardDisplay.h"
+#include "OpenGLJuceCanvas.h"
 #include <iostream>
 #include <cmath>
 
@@ -62,9 +63,9 @@ const float KeyboardDisplay::kWhiteKeyFrontBackCutoff = (6.5 / 19.0);
 const float KeyboardDisplay::kDisplayMinTouchSize = 0.1;
 const float KeyboardDisplay::kDisplayTouchSizeScaler = 0.5;
 
-KeyboardDisplay::KeyboardDisplay() : lowestMidiNote_(0), highestMidiNote_(0),
+KeyboardDisplay::KeyboardDisplay() : canvas_(0), lowestMidiNote_(0), highestMidiNote_(0),
 totalDisplayWidth_(1.0), totalDisplayHeight_(1.0), displayPixelWidth_(1.0), displayPixelHeight_(1.0),
-needsUpdate_(true), currentHighlightedKey_(-1), touchSensingEnabled_(false), analogSensorsPresent_(false) {
+currentHighlightedKey_(-1), touchSensingEnabled_(false), analogSensorsPresent_(false) {
 	// Initialize OpenGL settings: 2D only
 	  
 	//glMatrixMode(GL_PROJECTION);
@@ -73,6 +74,12 @@ needsUpdate_(true), currentHighlightedKey_(-1), touchSensingEnabled_(false), ana
     clearAllTouches();
     for(int i = 0; i < 128; i++)
         midiActiveForKey_[i] = false;
+}
+
+// Tell the underlying canvas to repaint itself
+void KeyboardDisplay::tellCanvasToRepaint() {
+    if(canvas_ != 0)
+        canvas_->triggerRepaint();
 }
 
 void KeyboardDisplay::setKeyboardRange(int lowest, int highest) {
@@ -228,8 +235,6 @@ void KeyboardDisplay::render() {
 			glTranslatef(-offsetH, -offsetV, 0.0);
 		}
 	}
-
-	needsUpdate_ = false;
     
 	glFlush();
 }
@@ -241,7 +246,7 @@ void KeyboardDisplay::mouseDown(float x, float y) {
 	Point scaledPoint = screenToInternal(mousePoint);	
 	
 	currentHighlightedKey_ = keyForLocation(scaledPoint);
-	needsUpdate_ = true;
+	tellCanvasToRepaint();
 }
 
 void KeyboardDisplay::mouseDragged(float x, float y) {
@@ -249,7 +254,7 @@ void KeyboardDisplay::mouseDragged(float x, float y) {
 	Point scaledPoint = screenToInternal(mousePoint);	
 	
 	currentHighlightedKey_ = keyForLocation(scaledPoint);
-	needsUpdate_ = true;
+	tellCanvasToRepaint();
 }
 
 void KeyboardDisplay::mouseUp(float x, float y) {
@@ -263,7 +268,7 @@ void KeyboardDisplay::mouseUp(float x, float y) {
 		keyClicked(currentHighlightedKey_);
 	
 	currentHighlightedKey_ = -1;
-	needsUpdate_ = true;	
+	tellCanvasToRepaint();	
 }
 
 void KeyboardDisplay::rightMouseDown(float x, float y) {
@@ -274,7 +279,7 @@ void KeyboardDisplay::rightMouseDown(float x, float y) {
 	if(key != -1)
 		keyRightClicked(key);
 	
-	needsUpdate_ = true;
+	tellCanvasToRepaint();
 }
 
 void KeyboardDisplay::rightMouseDragged(float x, float y) {
@@ -315,7 +320,7 @@ void KeyboardDisplay::setTouchForKey(int key, const KeyTouchFrame& touch) {
 	currentTouches_[key].size2 = touch.sizes[1];
 	currentTouches_[key].size3 = touch.sizes[2];
 
-	needsUpdate_ = true;
+	tellCanvasToRepaint();
 }
 
 // Clear touch information for this key
@@ -326,7 +331,7 @@ void KeyboardDisplay::clearTouchForKey(int key) {
 	//currentTouches_.erase(key);
     currentTouches_[key].active = 0;
     
-	needsUpdate_ = true;
+	tellCanvasToRepaint();
 }
 
 // Clear all current touch information
@@ -338,7 +343,7 @@ void KeyboardDisplay::clearAllTouches() {
     for(int i = 0; i < 128; i++)
         currentTouches_[i].active = false;
     
-	needsUpdate_ = true;
+	tellCanvasToRepaint();
 }
 
 // Indicate whether the given key is calibrated or not
@@ -347,7 +352,7 @@ void KeyboardDisplay::setAnalogCalibrationStatusForKey(int key, bool isCalibrate
     if(key < 0 || key > 127)
         return;
     analogValueIsCalibratedForKey_[key] = isCalibrated;
-    needsUpdate_ = true;
+    tellCanvasToRepaint();
 }
 
 // Set the current value of the analog sensor for the given key.
@@ -359,7 +364,7 @@ void KeyboardDisplay::setAnalogValueForKey(int key, float value) {
     if(key < 0 || key > 127)
         return;
     analogValueForKey_[key] = value;
-    needsUpdate_ = true;
+    tellCanvasToRepaint();
 }
 
 // Clear all the analog data for all keys
@@ -367,20 +372,20 @@ void KeyboardDisplay::clearAnalogData() {
     for(int key = 0; key < 128; key++) {
         analogValueForKey_[key] = 0.0;
     }
-    needsUpdate_ = true;
+    tellCanvasToRepaint();
 }
 
 void KeyboardDisplay::setMidiActive(int key, bool active) {
     if(key < 0 || key > 127)
         return;
     midiActiveForKey_[key] = active;
-    needsUpdate_ = true;
+    tellCanvasToRepaint();
 }
 
 void KeyboardDisplay::clearMidiData() {
     for(int key = 0; key < 128; key++)
         midiActiveForKey_[key] = false;
-    needsUpdate_ = true;
+    tellCanvasToRepaint();
 }
 
 // Indicate whether a given key has touch sensing capability
@@ -619,7 +624,7 @@ KeyboardDisplay::Point KeyboardDisplay::internalToScreen(Point& inPoint) {
 // in, otherwise return -1 if no key matches.
 
 int KeyboardDisplay::keyForLocation(Point& internalPoint) {
-    std::cout << "(" << internalPoint.x << "," << internalPoint.y << ")\n";
+    // std::cout << "(" << internalPoint.x << "," << internalPoint.y << ")\n";
     
 	// First, check that the point is within the overall bounding box of the keyboard
 	if(internalPoint.y < -totalDisplayHeight_*0.5 + kDisplayBottomMargin ||
@@ -652,7 +657,7 @@ int KeyboardDisplay::keyForLocation(Point& internalPoint) {
 	// Check if we're on the front area of the white keys, and if so, ignore points located in the gaps
 	// between the keys
     
-    std::cout << "norm " << (-internalPoint.y + totalDisplayHeight_*0.5) << std::endl;
+    // std::cout << "norm " << (-internalPoint.y + totalDisplayHeight_*0.5) << std::endl;
 	
 	if(-internalPoint.y + totalDisplayHeight_*0.5 - kDisplayBottomMargin <= kWhiteKeyFrontLength) {
 		if(normalizedHLoc - floorf(normalizedHLoc) > kWhiteKeyFrontWidth / (kWhiteKeyFrontWidth + kInterKeySpacing))

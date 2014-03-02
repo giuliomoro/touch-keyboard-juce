@@ -23,6 +23,7 @@
 */
 
 #include "KeyPositionGraphDisplay.h"
+#include "OpenGLJuceCanvas.h"
 #include <iostream>
 #include <cmath>
 
@@ -36,9 +37,9 @@ const float KeyPositionGraphDisplay::kDisplayTopMargin = 0.5;
 const float KeyPositionGraphDisplay::kDisplayGraphWidth = 20.0;
 const float KeyPositionGraphDisplay::kDisplayGraphHeight = 10.0;
 
-KeyPositionGraphDisplay::KeyPositionGraphDisplay() :
+KeyPositionGraphDisplay::KeyPositionGraphDisplay() : canvas_(0),
 displayPixelWidth_(1.0), displayPixelHeight_(1.0), totalDisplayWidth_(1.0), totalDisplayHeight_(1.0), 
-xMin_(0.0), xMax_(1.0), yMin_(-0.2), yMax_(1.2), needsUpdate_(true)
+xMin_(0.0), xMax_(1.0), yMin_(-0.2), yMax_(1.2)
 {
 	// Initialize OpenGL settings: 2D only
     
@@ -50,6 +51,12 @@ xMin_(0.0), xMax_(1.0), yMin_(-0.2), yMax_(1.2), needsUpdate_(true)
     
     totalDisplayWidth_ = kDisplaySideMargin*2 + kDisplayGraphWidth;
     totalDisplayHeight_ = kDisplayTopMargin + kDisplayBottomMargin + kDisplayGraphHeight;
+}
+
+// Tell the underlying canvas to repaint itself
+void KeyPositionGraphDisplay::tellCanvasToRepaint() {
+    if(canvas_ != 0)
+        canvas_->triggerRepaint();
 }
 
 void KeyPositionGraphDisplay::setDisplaySize(float width, float height) {
@@ -149,8 +156,6 @@ void KeyPositionGraphDisplay::render() {
         glVertex2f(graphToDisplayX(releaseFinishTimestamp_), kDisplayGraphHeight);
         glEnd();
     }
-    
-    needsUpdate_ = false;
 	
 	glFlush();
 }
@@ -160,29 +165,21 @@ void KeyPositionGraphDisplay::render() {
 void KeyPositionGraphDisplay::mouseDown(float x, float y) {
 	//Point mousePoint = {x, y};
 	//Point scaledPoint = screenToInternal(mousePoint);
-	
-	//needsUpdate_ = true;
 }
 
 void KeyPositionGraphDisplay::mouseDragged(float x, float y) {
 	//Point mousePoint = {x, y};
 	//Point scaledPoint = screenToInternal(mousePoint);
-
-    //needsUpdate_ = true;
 }
 
 void KeyPositionGraphDisplay::mouseUp(float x, float y) {
 	//Point mousePoint = {x, y};
 	//Point scaledPoint = screenToInternal(mousePoint);
-	
-	//needsUpdate_ = true;
 }
 
 void KeyPositionGraphDisplay::rightMouseDown(float x, float y) {
 	//Point mousePoint = {x, y};
 	//Point scaledPoint = screenToInternal(mousePoint);
-	
-	//needsUpdate_ = true;
 }
 
 void KeyPositionGraphDisplay::rightMouseDragged(float x, float y) {
@@ -232,7 +229,7 @@ void KeyPositionGraphDisplay::copyKeyDataFromBuffer(Node<key_position>& keyBuffe
     xMax_ = keyTimestamps_.back();
     yMin_ = -0.2;
     yMax_ = 1.2;
-    needsUpdate_ = true;
+    tellCanvasToRepaint();
 }
 
 // Conversion from internal coordinate space to external pixel values and back
