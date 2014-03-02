@@ -211,6 +211,13 @@ public:
     void midiTouchkeysStandaloneModeDisable();
     bool midiTouchkeysStandaloneModeIsEnabled() { return touchkeyStandaloneModeEnabled_; }
     
+    // *** Update sync methods ***
+    // The controller maintains a variable that tells when the devices should be updated
+    // by the control window component. Whenever it changes value, the devices should be rescanned.
+    
+    int devicesShouldUpdate() { return deviceUpdateCounter_; }
+    void tellDevicesToUpdate() { deviceUpdateCounter_++; }
+    
     // *** OSC device methods ***
     
     bool oscTransmitEnabled() {
@@ -357,6 +364,8 @@ private:
     std::string touchkeyErrorMessage_;
     bool touchkeyAutodetecting_;
     bool touchkeyStandaloneModeEnabled_;
+    int deviceUpdateCounter_;               // Unique number that increments every time devices should
+                                            // be rescanned
     
     // OSC information
     bool oscReceiveEnabled_;

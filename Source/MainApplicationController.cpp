@@ -48,6 +48,7 @@ MainApplicationController::MainApplicationController()
   touchkeyErrorMessage_(""),
   touchkeyAutodetecting_(false),
   touchkeyStandaloneModeEnabled_(false),
+  deviceUpdateCounter_(0),
   oscReceiveEnabled_(false),
   oscReceivePort_(kDefaultOscReceivePort),
   experimentalMappingsEnabled_(false),
@@ -367,7 +368,7 @@ void MainApplicationController::midiTouchkeysStandaloneModeDisable() {
     touchkeyStandaloneModeEnabled_ = false;
     // Go through all segments and disable standalone mode
     for(int i = 0; i < midiInputController_.numSegments(); i++) {
-        midiInputController_.segment(i)->enableTouchkeyStandaloneMode();
+        midiInputController_.segment(i)->disableTouchkeyStandaloneMode();
     }
 }
 

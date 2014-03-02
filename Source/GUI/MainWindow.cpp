@@ -252,7 +252,7 @@ void MainWindow::getCommandInfo(CommandID commandID, ApplicationCommandInfo& res
         case kCommandRescanDevices:
             result.setInfo("Rescan Devices", "Rescans available TouchKeys and MIDI devices", controlCategory, 0);
             result.setTicked(false);
-            result.setActive(false);
+            result.setActive(true);
             result.addDefaultKeypress ('R', ModifierKeys::commandModifier);
             break;
         case kCommandEnableExperimentalMappings:
@@ -290,7 +290,7 @@ bool MainWindow::perform(const InvocationInfo& info) {
         case kCommandNewPreset:            
             break;
         case kCommandRescanDevices:
-            std::cout << "Rescan\n";
+            controller_.tellDevicesToUpdate();
             break;
         case kCommandEnableExperimentalMappings:
             controller_.setExperimentalMappingsEnabled(!controller_.experimentalMappingsEnabled());

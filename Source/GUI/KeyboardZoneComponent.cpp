@@ -424,7 +424,12 @@ void KeyboardZoneComponent::synchronize(bool forceUpdates)
 {
     if(keyboardSegment_ == 0 || controller_ == 0)
         return;
-
+    
+    if(forceUpdates) {
+        // Update the controls to reflect the current state
+        updateOutputDeviceList();
+    }
+        
     // Update note ranges
     std::pair<int, int> range = keyboardSegment_->noteRange();
     if(!rangeLowComboBox->hasKeyboardFocus(true) || forceUpdates) {
@@ -444,7 +449,7 @@ void KeyboardZoneComponent::synchronize(bool forceUpdates)
 
     // Update MIDI output status
     int selectedMidiOutputDevice = controller_->selectedMIDIOutputPort(keyboardSegment_->outputPort());
-    if(selectedMidiOutputDevice != lastSelectedMidiOutputID_) {
+    if(selectedMidiOutputDevice != lastSelectedMidiOutputID_ || forceUpdates) {
         if(selectedMidiOutputDevice == MidiOutputController::kMidiOutputNotOpen)
             midiOutputDeviceComboBox->setSelectedId(1, dontSendNotification);
 #ifndef JUCE_WINDOWS
@@ -573,14 +578,23 @@ void KeyboardZoneComponent::updateOutputDeviceList()
     snprintf(virtualPortName, 24, "Virtual Port (%d)", keyboardSegment_->outputPort());
 	midiOutputDeviceComboBox->addItem(virtualPortName, 2);
 #endif
-
+    
+    // Check whether the currently selected ID still exists while
+    // we build the list
+    bool lastSelectedDeviceExists = false;
     int counter = kMidiOutputDeviceComboBoxOffset;
     for(it = devices.begin(); it != devices.end(); ++it) {
         if(it->first < 0)
             continue;
         midiOutputDeviceComboBox->addItem((*it).second.c_str(), counter);
         midiOutputDeviceIDs_.push_back(it->first);
+        if(it->first == lastSelectedMidiOutputID_)
+            lastSelectedDeviceExists = true;
         counter++;
+    }
+    
+    if(!lastSelectedDeviceExists) {
+        controller_->disableMIDIOutputPort(keyboardSegment_->outputPort());
     }
 }
 
