@@ -50,6 +50,7 @@ public:
     void setMainApplicationController(MainApplicationController *controller) {
         // Attach the user interface to the controller and vice-versa
         controller_ = controller;
+        lastControllerUpdateDeviceCount_ = controller_->devicesShouldUpdate();
         updateInputDeviceList();
     }
 
@@ -89,6 +90,8 @@ private:
     std::vector<int> midiInputDeviceIDs_;
     int lastSelectedMidiInputID_;
     int lastSegmentUniqueIdentifier_;
+    
+    int lastControllerUpdateDeviceCount_;
     //[/UserVariables]
 
     //==============================================================================

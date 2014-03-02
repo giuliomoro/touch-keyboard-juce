@@ -51,6 +51,9 @@ public:
 
     void shutdown() {
         // Add your application's shutdown code here..
+        if(controller_.touchkeyDeviceIsRunning())
+            controller_.stopTouchkeyDevice();
+        
         mainWindow_ = nullptr; // (deletes our window)
         
         controller_.setKeyboardDisplayWindow(0);    // Delete display window and disconnect from controller

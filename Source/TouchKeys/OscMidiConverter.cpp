@@ -490,7 +490,8 @@ void OscMidiConverter::sendCurrentValue(int port, int channel, int note, bool fo
         midiOutputController_->sendAftertouchChannel(port, channel, roundedControlValue);
     }
     else if(controller_ == MidiKeyboardSegment::kControlPolyphonicAftertouch && note >= 0) {
-        midiOutputController_->sendAftertouchPoly(port, channel, note, roundedControlValue);
+        midiOutputController_->sendAftertouchPoly(port, channel, note + keyboardSegment_.outputTransposition(),
+                                                    roundedControlValue);
     }
     else if(controllerIs14Bit_) {
         // LSB for controllers 0-31 are found on controllers 32-63

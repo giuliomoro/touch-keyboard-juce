@@ -39,7 +39,7 @@ device_(-1),
 ioThread_(boost::bind(&TouchkeyDevice::runLoop, this, _1), "TouchKeyDevice::ioThread"),
 rawDataThread_(boost::bind(&TouchkeyDevice::rawDataRunLoop, this, _1), "TouchKeyDevice::rawDataThread"),
 autoGathering_(false), shouldStop_(false), sendRawOscMessages_(false),
-verbose_(1), numOctaves_(0), lowestMidiNote_(48), lowestKeyPresentMidiNote_(48),
+verbose_(0), numOctaves_(0), lowestMidiNote_(48), lowestKeyPresentMidiNote_(48),
 updatedLowestMidiNote_(48), deviceSoftwareVersion_(-1), deviceHardwareVersion_(-1),
 expectedLengthWhite_(kTransmissionLengthWhiteNewHardware),
 expectedLengthBlack_(kTransmissionLengthBlackNewHardware), deviceHasRGBLEDs_(false),
@@ -444,18 +444,20 @@ bool TouchkeyDevice::startAutoGathering() {
 }
 
 // Stop the run loop if applicable
-void TouchkeyDevice::stopAutoGathering() {
+void TouchkeyDevice::stopAutoGathering(bool writeStopCommandToDevice) {
     // Check if actually running
 	if(!autoGathering_ || !isOpen())
 		return;
     // Stop any calibration in progress
     calibrationAbort();	
     
-    // Tell device to stop scanning
-	if(deviceWrite((char*)kCommandStopScanning, 5) < 0) {
-        if(verbose_ >= 1)
-            cout << "ERROR: unable to write stopAutoGather command.  errno = " << errno << endl;
-	}
+    if(writeStopCommandToDevice) {
+        // Tell device to stop scanning
+        if(deviceWrite((char*)kCommandStopScanning, 5) < 0) {
+            if(verbose_ >= 1)
+                cout << "ERROR: unable to write stopAutoGather command.  errno = " << errno << endl;
+        }
+    }
 	
     // Setting this to true tells the run loop to exit what it's doing
 	shouldStop_ = true;
@@ -466,12 +468,15 @@ void TouchkeyDevice::stopAutoGathering() {
 	
     // Wait for run loop thread to finish. Set a timeout in case there's
     // some sort of device hangup
-    if(ioThread_.isThreadRunning())
-        ioThread_.stopThread(3000);
-    if(ledThread_.isThreadRunning())
-        ledThread_.stopThread(3000);
-    if(rawDataThread_.isThreadRunning())
-        rawDataThread_.stopThread(3000);
+    if(ioThread_.getThreadId() != Thread::getCurrentThreadId())
+        if(ioThread_.isThreadRunning())
+            ioThread_.stopThread(3000);
+    if(ledThread_.getThreadId() != Thread::getCurrentThreadId())
+        if(ledThread_.isThreadRunning())
+            ledThread_.stopThread(3000);
+    if(rawDataThread_.getThreadId() != Thread::getCurrentThreadId())
+        if(rawDataThread_.isThreadRunning())
+            rawDataThread_.stopThread(3000);
 	
     // Stop any currently playing notes
 	keyboard_.sendMessage("/touchkeys/allnotesoff", "", LO_ARGS_END);
@@ -1285,7 +1290,8 @@ void TouchkeyDevice::runLoop(DeviceThread *thread) {
 			if(errno != EAGAIN) {	// EAGAIN just means no data was available
                 if(verbose_ >= 1)
                     cout << "Unable to read from device (error " << errno << ").  Aborting.\n";
-				shouldStop_ = true;
+                stopAutoGathering(false);
+				//shouldStop_ = true;
 			}
 			
 #ifdef _MSC_VER
@@ -1422,7 +1428,8 @@ void TouchkeyDevice::rawDataRunLoop(DeviceThread *thread) {
 			if(errno != EAGAIN) {	// EAGAIN just means no data was available
                 if(verbose_ >= 1)
                     cout << "Unable to read from device (error " << errno << ").  Aborting.\n";
-				shouldStop_ = true;
+                stopAutoGathering(false);
+				//shouldStop_ = true;
 			}
 			
 #ifdef _MSC_VER

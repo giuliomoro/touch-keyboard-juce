@@ -232,7 +232,7 @@ public:
 	// Start or stop the processing.  startAutoGathering() returns
 	// true on success.
 	bool startAutoGathering();
-	void stopAutoGathering();	
+	void stopAutoGathering(bool writeStopCommandToDevice = true);
 	
 	// Status query methods
 	bool isOpen();

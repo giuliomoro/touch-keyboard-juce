@@ -517,11 +517,20 @@ void ControlWindowMainComponent::updateInputDeviceList()
     midiInputDeviceComboBox->addItem("Disabled", 1);
     midiInputDeviceComboBox->addItem("TouchKeys Standalone", 2);
     counter = kMidiInputDeviceComboBoxOffset;
+    
+    // Check whether the currently selected ID still exists while
+    // we build the list
+    bool lastSelectedDeviceExists = false;
     for(it = devices.begin(); it != devices.end(); ++it) {
         midiInputDeviceComboBox->addItem((*it).second.c_str(), counter);
         midiInputDeviceIDs_.push_back(it->first);
+        if(it->first == lastSelectedMidiInputID_)
+            lastSelectedDeviceExists = true;
         counter++;
     }
+    
+    if(!lastSelectedDeviceExists)
+        controller_->disableAllMIDIInputPorts();
 }
 
 void ControlWindowMainComponent::updateOscHostPort()
@@ -539,6 +548,14 @@ void ControlWindowMainComponent::updateOscHostPort()
 void ControlWindowMainComponent::synchronize() {
     if(controller_ == 0)
         return;
+    
+    bool devicesUpdated = false;
+    
+    if(controller_->devicesShouldUpdate() != lastControllerUpdateDeviceCount_) {
+        lastControllerUpdateDeviceCount_ = controller_->devicesShouldUpdate();
+        updateInputDeviceList();
+        devicesUpdated = true;
+    }
 
     // Update TouchKeys status
 #ifdef ENABLE_TOUCHKEYS_SENSOR_TEST
@@ -571,7 +588,7 @@ void ControlWindowMainComponent::synchronize() {
         if(selectedMidiInputDevices.empty()) {
             midiInputDeviceComboBox->setSelectedId(1, dontSendNotification);
         }
-        else if(selectedMidiInputDevices.front() != lastSelectedMidiInputID_){
+        else if(selectedMidiInputDevices.front() != lastSelectedMidiInputID_ || devicesUpdated){
             // Input has changed from before. Find it in vector
             // If there is more than one selected ID, we will only take the first one for
             // the current UI. This affects the display but not the functionality.
@@ -644,7 +661,7 @@ void ControlWindowMainComponent::synchronize() {
     // Synchronize every tab component
     for(int tab = 0; tab < keyboardZoneTabbedComponent->getNumTabs(); tab++) {
         KeyboardZoneComponent *component = static_cast<KeyboardZoneComponent*> (keyboardZoneTabbedComponent->getTabContentComponent(tab));
-        component->synchronize();
+        component->synchronize(devicesUpdated);
     }
 
     // Update add/remove buttons

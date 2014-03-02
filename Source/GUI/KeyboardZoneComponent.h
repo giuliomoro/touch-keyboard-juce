@@ -54,8 +54,6 @@ public:
         controller_ = controller;
         mappingListComponent->setMainApplicationController(controller_);
         if(controller_ != 0) {
-            // Update the controls to reflect the current state
-            updateOutputDeviceList();
             synchronize(true);
         }
     }
@@ -64,8 +62,6 @@ public:
         keyboardSegment_ = segment;
         mappingListComponent->setKeyboardSegment(keyboardSegment_);
         if(controller_ != 0) {
-            // Update the controls to reflect the current state
-            updateOutputDeviceList();
             synchronize(true);
         }
     }
