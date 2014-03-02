@@ -57,11 +57,14 @@ private:
 public:
 	KeyPositionGraphDisplay();
 	
+    // Set canvas for triggering rendering;
+    void setCanvas(OpenGLJuceCanvas *canvas) { canvas_ = canvas; }
+    void tellCanvasToRepaint();
+    
 	// Setup methods for display size and keyboard range
 	void setDisplaySize(float width, float height);
 	
 	// Drawing methods
-	bool needsRender() { return needsUpdate_; }
 	void render();
 	
 	// Interaction methods
@@ -78,22 +81,22 @@ public:
     void setKeyPressStart(key_position position, timestamp_type timestamp) {
         pressStartTimestamp_ = timestamp;
         pressStartPosition_ = position;
-        needsUpdate_ = true;
+        tellCanvasToRepaint();
     }
     void setKeyPressFinish(key_position position, timestamp_type timestamp) {
         pressFinishTimestamp_ = timestamp;
         pressFinishPosition_ = position;
-        needsUpdate_ = true;
+        tellCanvasToRepaint();
     }
     void setKeyReleaseStart(key_position position, timestamp_type timestamp) {
         releaseStartTimestamp_ = timestamp;
         releaseStartPosition_ = position;
-        needsUpdate_ = true;
+        tellCanvasToRepaint();
     }
     void setKeyReleaseFinish(key_position position, timestamp_type timestamp) {
         releaseFinishTimestamp_ = timestamp;
         releaseFinishPosition_ = position;
-        needsUpdate_ = true;
+        tellCanvasToRepaint();
     }
     
 private:
@@ -107,13 +110,13 @@ private:
 	Point screenToInternal(Point& inPoint);
 	Point internalToScreen(Point& inPoint);
 	
-    
 private:
+    OpenGLJuceCanvas *canvas_;                      // Reference to canvas that renders OpenGL
+    
 	float displayPixelWidth_, displayPixelHeight_;	// Pixel resolution of the surrounding window
 	float totalDisplayWidth_, totalDisplayHeight_;	// Size of the internal view (centered around origin)
     float xMin_, xMax_, yMin_, yMax_;               // Coordinates for the graph axes
 
-	bool needsUpdate_;								// Whether the keyboard should be redrawn
 	CriticalSection displayMutex_;					// Synchronize access between data and display threads
     
     std::vector<key_position> keyPositions_;        // Positions (0-1 normalized) of the key

@@ -21,6 +21,7 @@
 */
 
 #include "RawSensorDisplay.h"
+#include "OpenGLJuceCanvas.h"
 #include <iostream>
 #include <cmath>
 
@@ -36,9 +37,9 @@ const float RawSensorDisplay::kDisplayBarSpacing = 0.25;
 const float RawSensorDisplay::kDisplayBarHeight = 10.0;
 
 
-RawSensorDisplay::RawSensorDisplay() :
+RawSensorDisplay::RawSensorDisplay() : canvas_(0),
 displayPixelWidth_(1.0), displayPixelHeight_(1.0), totalDisplayWidth_(1.0), totalDisplayHeight_(1.0), 
-yMin_(-10), yMax_(256), needsUpdate_(true) {
+yMin_(-10), yMax_(256) {
 	// Initialize OpenGL settings: 2D only
     
 	//glMatrixMode(GL_PROJECTION);
@@ -46,6 +47,12 @@ yMin_(-10), yMax_(256), needsUpdate_(true) {
     
     totalDisplayWidth_ = kDisplaySideMargin*2 + kDisplayBarWidth;
     totalDisplayHeight_ = kDisplayTopMargin + kDisplayBottomMargin + kDisplayBarHeight;
+}
+
+// Tell the underlying canvas to repaint itself
+void RawSensorDisplay::tellCanvasToRepaint() {
+    if(canvas_ != 0)
+        canvas_->triggerRepaint();
 }
 
 void RawSensorDisplay::setDisplaySize(float width, float height) {
@@ -97,8 +104,6 @@ void RawSensorDisplay::render() {
         
         glTranslatef(kDisplayBarWidth + kDisplayBarSpacing, 0.0, 0.0);
     }
-    
-    needsUpdate_ = false;
 	
 	glFlush();
 }
@@ -110,7 +115,7 @@ void RawSensorDisplay::setDisplayData(std::vector<int> const& values) {
     // Update display width according to number of data points
     totalDisplayWidth_ = kDisplaySideMargin*2 + (kDisplayBarWidth + kDisplayBarSpacing) * displayValues_.size();
     
-    needsUpdate_ = true;
+    tellCanvasToRepaint();
 }
 
 // Mouse interaction methods
@@ -118,29 +123,21 @@ void RawSensorDisplay::setDisplayData(std::vector<int> const& values) {
 void RawSensorDisplay::mouseDown(float x, float y) {
 	//Point mousePoint = {x, y};
 	//Point scaledPoint = screenToInternal(mousePoint);
-	
-	//needsUpdate_ = true;
 }
 
 void RawSensorDisplay::mouseDragged(float x, float y) {
 	//Point mousePoint = {x, y};
 	//Point scaledPoint = screenToInternal(mousePoint);
-    
-    //needsUpdate_ = true;
 }
 
 void RawSensorDisplay::mouseUp(float x, float y) {
 	//Point mousePoint = {x, y};
 	//Point scaledPoint = screenToInternal(mousePoint);
-	
-	//needsUpdate_ = true;
 }
 
 void RawSensorDisplay::rightMouseDown(float x, float y) {
 	//Point mousePoint = {x, y};
 	//Point scaledPoint = screenToInternal(mousePoint);
-	
-	//needsUpdate_ = true;
 }
 
 void RawSensorDisplay::rightMouseDragged(float x, float y) {

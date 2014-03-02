@@ -95,6 +95,10 @@ protected:
 public:
 	KeyboardDisplay();
     virtual ~KeyboardDisplay() {}
+    
+    // Set canvas for triggering rendering;
+    void setCanvas(OpenGLJuceCanvas *canvas) { canvas_ = canvas; }
+    void tellCanvasToRepaint();
 	
 	// Setup methods for display size and keyboard range
 	void setKeyboardRange(int lowest, int highest);
@@ -102,7 +106,6 @@ public:
 	virtual void setDisplaySize(float width, float height);
 	
 	// Drawing methods
-	virtual bool needsRender() { return needsUpdate_; }
 	virtual void render();
 	
 	// Interaction methods
@@ -159,11 +162,11 @@ protected:
 	int keyForLocation(Point& internalPoint);
 		
 protected:
-	
+	OpenGLJuceCanvas *canvas_;                      // Reference to object which handles rendering
+    
 	int lowestMidiNote_, highestMidiNote_;			// Which keys should be displayed (use MIDI note numbers)	
 	float totalDisplayWidth_, totalDisplayHeight_;	// Size of the internal view (centered around origin)
     float displayPixelWidth_, displayPixelHeight_;	// Pixel resolution of the surrounding window
-	bool needsUpdate_;								// Whether the keyboard should be redrawn
 	int currentHighlightedKey_;						// What key is being clicked on at the moment
 	bool touchSensingEnabled_;						// Whether touch-sensitive keys are being used
 	bool touchSensingPresentOnKey_[128];			// Whether the key with this MIDI note has a touch sensor

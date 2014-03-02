@@ -165,7 +165,7 @@ std::vector<std::string> MainApplicationController::availableTouchkeyDevices() {
         LPCOMMCONFIG lpCC = (LPCOMMCONFIG) new BYTE[1];
         BOOL ret = GetDefaultCommConfig(comPortName.toUTF8(), lpCC, &dwSize);
         delete [] lpCC;
-
+        
 		if(ret) 
 			devices.push_back(comPortName.toStdString());
 		else {
