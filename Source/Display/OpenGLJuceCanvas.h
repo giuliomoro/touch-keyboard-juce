@@ -39,7 +39,12 @@ public:
     OpenGLJuceCanvas(OpenGLDisplayBase& display) : display_(display) {
         openGLContext_.setRenderer (this);
         openGLContext_.setComponentPaintingEnabled (false);
-        openGLContext_.setContinuousRepainting (false);
+        // Funny OpenGL bugs in Linux version that results in improper drawing when in background
+        // For other OSes, save the cycles of continuous repainting.
+        if(SystemStats::getOperatingSystemType() == SystemStats::Linux)
+            openGLContext_.setContinuousRepainting (true);
+        else
+            openGLContext_.setContinuousRepainting (false);
         openGLContext_.attachTo (*this);
         display_.setCanvas(this);
     }

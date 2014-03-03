@@ -594,7 +594,12 @@ void KeyboardZoneComponent::updateOutputDeviceList()
     }
     
     if(!lastSelectedDeviceExists) {
+#ifndef JUCE_WINDOWS
+        if(lastSelectedMidiOutputID_ != MidiOutputController::kMidiVirtualOutputPortNumber)
+            controller_->disableMIDIOutputPort(keyboardSegment_->outputPort());
+#else   // No virtual port on Windows
         controller_->disableMIDIOutputPort(keyboardSegment_->outputPort());
+#endif
     }
 }
 
