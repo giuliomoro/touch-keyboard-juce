@@ -943,15 +943,8 @@ void MidiKeyboardSegment::handleControlChangeRetransit(int controllerNumber, con
             oscMidiConverters_[controllerNumber]->resend(message.getChannel() - 1);
         }
         else {
-            // KLUDGE
-            if(controllerNumber == 64) {
-                MidiMessage newMessage = MidiMessage::controllerEvent(message.getChannel(), 67, 127 - message.getControllerValue());
-                midiOutputController_->sendMessage(outputPortNumber_, newMessage);
-            }
-            else {
-                // Send this control change through unchanged
-                midiOutputController_->sendMessage(outputPortNumber_, message);
-            }
+            // Send this control change through unchanged
+            midiOutputController_->sendMessage(outputPortNumber_, message);
         }
     }
     else if(controllerActions_[controllerNumber] == kControlActionBroadcast) {
