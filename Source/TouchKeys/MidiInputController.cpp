@@ -27,7 +27,7 @@
 #include "MidiOutputController.h"
 #include "../Mappings/MappingFactory.h"
 
-#define DEBUG_MIDI_INPUT_CONTROLLER
+#undef DEBUG_MIDI_INPUT_CONTROLLER
 #undef MIDI_INPUT_CONTROLLER_DEBUG_RAW
 
 // Constructor
@@ -348,6 +348,55 @@ void MidiInputController::allNotesOff() {
     
     for(int i = 0; i < segments_.size(); i++)
         segments_[i]->allNotesOff();
+}
+
+// Return the current preset as an XmlElement, suitable for
+// saving to file. This element will need to be deleted when finished
+
+XmlElement* MidiInputController::getSegmentPreset() {
+    ScopedLock sl(segmentsMutex_);
+    XmlElement* controllerElement = new XmlElement("KeyboardSegments");
+    
+    // Add settings for each zone to the element
+    for(int i = 0; i < segments_.size(); i++) {
+        XmlElement* segmentElement = segments_[i]->getPreset();
+        controllerElement->addChildElement(segmentElement);
+    }
+    
+    // Return the element
+    return controllerElement;
+}
+
+// Load keyboard segments from a preset; returns true on success
+
+bool MidiInputController::loadSegmentPreset(XmlElement const* preset) {
+    ScopedLock sl(segmentsMutex_);
+
+    for(int i = 0; i < segments_.size(); i++)
+        delete segments_[i];
+    segments_.clear();
+    
+    XmlElement *element = preset->getChildByName("Segment");
+    while(element != 0) {
+        // Create a new segment and populate its values
+        MidiKeyboardSegment *segment = new MidiKeyboardSegment(keyboard_);
+        segment->setMidiOutputController(midiOutputController_);
+        
+        // Load settings for this particular segment
+        if(!segment->loadPreset(element)) {
+            delete segment;
+            for(int i = 0; i < segments_.size(); i++)
+                delete segments_[i];
+            segments_.clear();
+            return false;
+        }
+    
+        segments_.push_back(segment);
+        element = element->getNextElementWithTagName("Segment");
+    }
+    
+    segmentUniqueIdentifier_++;
+    return true;
 }
 
 // This gets called every time MIDI data becomes available on any input controller. source tells

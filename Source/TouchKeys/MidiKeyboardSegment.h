@@ -228,6 +228,14 @@ public:
     
     // Return a unique identifier of the mapping state, so we know when something has changed
     int mappingFactoryUniqueIdentifier() { return mappingFactoryUniqueIdentifier_; }
+    
+    // **** Preset methods ****
+    
+    // Get an XML element describing current settings (for saving presets)
+    XmlElement* getPreset();
+    
+    // Load settings from an XML element
+    bool loadPreset(XmlElement const* preset);
 
 private:
 	// Mode-specific MIDI input handlers

@@ -330,6 +330,17 @@ public:
     // Whether a given mapping is experimental
     bool mappingIsExperimental(int index);
     
+    // *** Preset Save/Load ***
+    // These methods save the current settings to file or load settings
+    // from a file. They return true on success.
+    bool savePresetToFile(const char *filename);
+    bool loadPresetFromFile(const char *filename);
+    
+#ifndef TOUCHKEYS_NO_GUI
+    bool savePresetWithDialog();
+    bool loadPresetWithDialog();
+#endif
+    
 #ifdef ENABLE_TOUCHKEYS_SENSOR_TEST
     // *** TouchKeys sensor testing methods ***
     // Start testing the TouchKeys sensors
@@ -353,6 +364,9 @@ public:
     static int midiNoteNumberForName(std::string const& name);
     
 private:
+    bool savePresetHelper(File& outputFile);
+    bool loadPresetHelper(File const& inputFile);
+    
     // TouchKeys objects
     PianoKeyboard keyboardController_;
     MidiInputController midiInputController_;

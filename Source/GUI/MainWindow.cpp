@@ -97,12 +97,10 @@ PopupMenu MainWindow::getMenuForIndex(int menuIndex, const String& menuName) {
     PopupMenu menu;
     
     if(menuIndex == 0) { // File
-        menu.addCommandItem(&commandManager_, kCommandNewPreset);
+        menu.addCommandItem(&commandManager_, kCommandClearPreset);
         menu.addSeparator();
         menu.addCommandItem(&commandManager_, kCommandOpenPreset);
-        menu.addSeparator();
         menu.addCommandItem(&commandManager_, kCommandSavePreset);
-        menu.addCommandItem(&commandManager_, kCommandSavePresetAs);
 #ifndef JUCE_MAC
         menu.addSeparator();
         menu.addCommandItem(&commandManager_, StandardApplicationCommandIDs::quit);
@@ -153,8 +151,9 @@ void MainWindow::getAllCommands(Array <CommandID>& commands) {
     // this returns the set of all commands that this target can perform..
     const CommandID ids[] = {
         // File
-        kCommandNewPreset, kCommandOpenPreset, kCommandSavePreset,
-        kCommandSavePresetAs,
+        kCommandClearPreset,
+        kCommandOpenPreset,
+        kCommandSavePreset,
         // Edit
         StandardApplicationCommandIDs::undo,
         StandardApplicationCommandIDs::redo,
@@ -190,28 +189,22 @@ void MainWindow::getCommandInfo(CommandID commandID, ApplicationCommandInfo& res
     switch (commandID) {
             
         // *** File Menu ***
-        case kCommandNewPreset:
-            result.setInfo("New Preset", "Clears the current settings", presetsCategory, 0);
+        case kCommandClearPreset:
+            result.setInfo("Clear Settings", "Clears the current settings", presetsCategory, 0);
             result.setTicked(false);
             result.setActive(false);
-            result.addDefaultKeypress ('N', ModifierKeys::commandModifier);
             break;
         case kCommandOpenPreset:
             result.setInfo("Open Preset...", "Opens an existing preset", presetsCategory, 0);
             result.setTicked(false);
-            result.setActive(false);
+            result.setActive(true);
             result.addDefaultKeypress ('O', ModifierKeys::commandModifier);
             break;
         case kCommandSavePreset:
-            result.setInfo("Save Preset", "Saves the current preset", presetsCategory, 0);
+            result.setInfo("Save Preset...", "Saves the current preset", presetsCategory, 0);
             result.setTicked(false);
-            result.setActive(false);
+            result.setActive(true);
             result.addDefaultKeypress ('S', ModifierKeys::commandModifier);
-            break;
-        case kCommandSavePresetAs:
-            result.setInfo("Save Preset As...", "Saves the current preset with a new name", presetsCategory, 0);
-            result.setTicked (false);
-            result.setActive(false);
             break;
         // Quit command is handled by JuceApplication
             
@@ -307,7 +300,13 @@ void MainWindow::getCommandInfo(CommandID commandID, ApplicationCommandInfo& res
 bool MainWindow::perform(const InvocationInfo& info) {
     switch (info.commandID)
     {
-        case kCommandNewPreset:            
+        case kCommandClearPreset:
+            break;
+        case kCommandOpenPreset:
+            controller_.loadPresetWithDialog();
+            break;
+        case kCommandSavePreset:
+            controller_.savePresetWithDialog();
             break;
         case kCommandRescanDevices:
             controller_.tellDevicesToUpdate();

@@ -39,10 +39,9 @@ private:
     enum CommandIDs
     {
         // File menu
-        kCommandNewPreset    = 0x2001,
+        kCommandClearPreset    = 0x2001,
         kCommandOpenPreset,
         kCommandSavePreset,
-        kCommandSavePresetAs,
         
         // Edit menu
         // (all standard)

@@ -223,6 +223,17 @@ MappingEditorComponent* TouchkeyControlMappingFactory::createBasicEditor() {
     return new TouchkeyControlMappingShortEditor(*this);
 }
 
+// ****** Preset Save/Load ******
+XmlElement* TouchkeyControlMappingFactory::getPreset() {
+    XmlElement* preset = new XmlElement("MappingFactory");
+    preset->setAttribute("type", "Control");
+    return preset;
+}
+
+bool TouchkeyControlMappingFactory::loadPreset(XmlElement const* preset) {
+    return true;
+}
+
 // ***** Private Methods *****
 
 void TouchkeyControlMappingFactory::initializeMappingParameters(int noteNumber, TouchkeyControlMapping *mapping) {
