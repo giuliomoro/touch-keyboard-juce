@@ -121,12 +121,12 @@ TouchkeyControlMappingShortEditor::TouchkeyControlMappingShortEditor (TouchkeyCo
     typeComboBox->addItem("1st Touch Relative", TouchkeyControlMapping::kTypeFirstTouchRelative);
     typeComboBox->addItem("Note Onset Relative", TouchkeyControlMapping::kTypeNoteOnsetRelative);
 
-    for(int i = 1; i <= 119; i++) {
-        controlComboBox->addItem(String(i), i);
-    }
     controlComboBox->addItem("Pitch Wheel", MidiKeyboardSegment::kControlPitchWheel);
     controlComboBox->addItem("Channel Pressure", MidiKeyboardSegment::kControlChannelAftertouch);
     controlComboBox->addItem("Poly Aftertouch", MidiKeyboardSegment::kControlPolyphonicAftertouch);
+    for(int i = 1; i <= 119; i++) {
+        controlComboBox->addItem(String(i), i);
+    }
     //[/UserPreSize]
 
     setSize (328, 71);
