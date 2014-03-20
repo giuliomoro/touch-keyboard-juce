@@ -276,7 +276,15 @@ void KeyboardZoneComponent::resized()
     label9->setBounds (24, 68, 104, 24);
     pitchWheelRangeEditor->setBounds (128, 68, 48, 24);
     keyboardControllersButton->setBounds (24, 100, 152, 20);
+    
     //[UserResized] Add your own custom resize handling here..
+    
+    // Resize the mapping list to fit the bottom of the window
+    Rectangle<int> const& ourBounds = getBounds();
+    Rectangle<int> mappingBounds = mappingListComponent->getBounds();
+    mappingBounds.setHeight(ourBounds.getHeight() - mappingBounds.getY());
+    mappingListComponent->setBounds(mappingBounds);
+    
     //[/UserResized]
 }
 
@@ -424,12 +432,12 @@ void KeyboardZoneComponent::synchronize(bool forceUpdates)
 {
     if(keyboardSegment_ == 0 || controller_ == 0)
         return;
-    
+
     if(forceUpdates) {
         // Update the controls to reflect the current state
         updateOutputDeviceList();
     }
-        
+
     // Update note ranges
     std::pair<int, int> range = keyboardSegment_->noteRange();
     if(!rangeLowComboBox->hasKeyboardFocus(true) || forceUpdates) {
@@ -578,7 +586,7 @@ void KeyboardZoneComponent::updateOutputDeviceList()
     snprintf(virtualPortName, 24, "Virtual Port (%d)", keyboardSegment_->outputPort());
 	midiOutputDeviceComboBox->addItem(virtualPortName, 2);
 #endif
-    
+
     // Check whether the currently selected ID still exists while
     // we build the list
     bool lastSelectedDeviceExists = false;
@@ -592,7 +600,7 @@ void KeyboardZoneComponent::updateOutputDeviceList()
             lastSelectedDeviceExists = true;
         counter++;
     }
-    
+
     if(!lastSelectedDeviceExists) {
 #ifndef JUCE_WINDOWS
         if(lastSelectedMidiOutputID_ != MidiOutputController::kMidiVirtualOutputPortNumber)
@@ -629,7 +637,7 @@ void KeyboardZoneComponent::createKeyboardControllerPopup()
     PopupMenu menu;
 
     menu.addItem(kKeyboardControllerSendPitchWheelRange, "Send Pitchwheel Range RPN", true, false);
-    menu.addSeparator();    
+    menu.addSeparator();
     menu.addItem(MidiKeyboardSegment::kControlPitchWheel, "Retransmit from Keyboard:", false);
     menu.addSeparator();
     menu.addItem(MidiKeyboardSegment::kControlPitchWheel, "Pitch Wheel", true, keyboardSegment_->usesKeyboardPitchWheel());
@@ -697,7 +705,7 @@ BEGIN_JUCER_METADATA
                  parentClasses="public Component, public TextEditor::Listener"
                  constructorParams="" variableInitialisers="controller_(0), keyboardSegment_(0)"
                  snapPixels="8" snapActive="1" snapShown="1" overlayOpacity="0.330"
-                 fixedSize="1" initialWidth="552" initialHeight="400">
+                 fixedSize="0" initialWidth="552" initialHeight="400">
   <BACKGROUND backgroundColour="ffd2d2d2"/>
   <JUCERCOMP name="mapping list" id="4d5d007374cdad00" memberName="mappingListComponent"
              virtualName="MappingListComponent" explicitFocusOrder="0" pos="0 168 552 260"

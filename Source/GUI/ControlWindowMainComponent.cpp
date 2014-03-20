@@ -31,9 +31,6 @@
 ControlWindowMainComponent::ControlWindowMainComponent ()
     : controller_(0)
 {
-    addAndMakeVisible (dataLoggingGroupComponent = new GroupComponent ("MIDI input group",
-                                                                       "Data Logging"));
-
     addAndMakeVisible (midiInputGroupComponent = new GroupComponent ("MIDI input group",
                                                                      "MIDI Input"));
 
@@ -45,7 +42,7 @@ ControlWindowMainComponent::ControlWindowMainComponent ()
     midiInputDeviceComboBox->addListener (this);
 
     addAndMakeVisible (label = new Label ("new label",
-                                          "Device:"));
+                                          "Keyboard:"));
     label->setFont (Font (15.00f, Font::plain));
     label->setJustificationType (Justification::centredLeft);
     label->setEditable (false, false, false);
@@ -150,10 +147,6 @@ ControlWindowMainComponent::ControlWindowMainComponent ()
     touchkeyOctaveComboBox->setTextWhenNoChoicesAvailable ("(no choices)");
     touchkeyOctaveComboBox->addListener (this);
 
-    addAndMakeVisible (loggingButton = new TextButton ("logging button"));
-    loggingButton->setButtonText ("Start Logging");
-    loggingButton->addListener (this);
-
     addAndMakeVisible (oscInputGroupComponent = new GroupComponent ("MIDI input group",
                                                                     "OSC Input"));
 
@@ -178,10 +171,6 @@ ControlWindowMainComponent::ControlWindowMainComponent ()
     oscInputPortTextEditor->setPopupMenuEnabled (true);
     oscInputPortTextEditor->setText ("8001");
 
-    addAndMakeVisible (playLogButton = new TextButton ("play log button"));
-    playLogButton->setButtonText ("Play Log...");
-    playLogButton->addListener (this);
-
     addAndMakeVisible (keyboardZoneTabbedComponent = new TabbedComponent (TabbedButtonBar::TabsAtTop));
     keyboardZoneTabbedComponent->setTabBarDepth (30);
     keyboardZoneTabbedComponent->setCurrentTabIndex (-1);
@@ -198,9 +187,25 @@ ControlWindowMainComponent::ControlWindowMainComponent ()
     touchkeyAutodetectButton->setButtonText ("Detect");
     touchkeyAutodetectButton->addListener (this);
 
+    addAndMakeVisible (midiInputAuxDeviceComboBox = new ComboBox ("MIDI input aux combo box"));
+    midiInputAuxDeviceComboBox->setEditableText (false);
+    midiInputAuxDeviceComboBox->setJustificationType (Justification::centredLeft);
+    midiInputAuxDeviceComboBox->setTextWhenNothingSelected (String::empty);
+    midiInputAuxDeviceComboBox->setTextWhenNoChoicesAvailable ("(no choices)");
+    midiInputAuxDeviceComboBox->addListener (this);
+
+    addAndMakeVisible (label5 = new Label ("new label",
+                                           "Aux:"));
+    label5->setFont (Font (15.00f, Font::plain));
+    label5->setJustificationType (Justification::centredRight);
+    label5->setEditable (false, false, false);
+    label5->setColour (TextEditor::textColourId, Colours::black);
+    label5->setColour (TextEditor::backgroundColourId, Colour (0x00000000));
+
 
     //[UserPreSize]
     lastSelectedMidiInputID_ = -1;
+    lastSelectedMidiAuxInputID_ = -1;
     lastSegmentUniqueIdentifier_ = -1;
 
     // Add octave labels to combo box
@@ -224,7 +229,6 @@ ControlWindowMainComponent::~ControlWindowMainComponent()
     //[Destructor_pre]. You can add your own custom destruction code here..
     //[/Destructor_pre]
 
-    dataLoggingGroupComponent = nullptr;
     midiInputGroupComponent = nullptr;
     midiInputDeviceComboBox = nullptr;
     label = nullptr;
@@ -243,16 +247,16 @@ ControlWindowMainComponent::~ControlWindowMainComponent()
     oscEnableRawButton = nullptr;
     label4 = nullptr;
     touchkeyOctaveComboBox = nullptr;
-    loggingButton = nullptr;
     oscInputGroupComponent = nullptr;
     oscInputEnableButton = nullptr;
     label6 = nullptr;
     oscInputPortTextEditor = nullptr;
-    playLogButton = nullptr;
     keyboardZoneTabbedComponent = nullptr;
     addZoneButton = nullptr;
     removeZoneButton = nullptr;
     touchkeyAutodetectButton = nullptr;
+    midiInputAuxDeviceComboBox = nullptr;
+    label5 = nullptr;
 
 
     //[Destructor]. You can add your own custom destruction code here..
@@ -273,36 +277,41 @@ void ControlWindowMainComponent::paint (Graphics& g)
 
 void ControlWindowMainComponent::resized()
 {
-    dataLoggingGroupComponent->setBounds (8, 392, 304, 64);
-    midiInputGroupComponent->setBounds (8, 144, 304, 64);
-    midiInputDeviceComboBox->setBounds (72, 168, 224, 24);
-    label->setBounds (16, 168, 55, 24);
+    midiInputGroupComponent->setBounds (8, 144, 304, 96);
+    midiInputDeviceComboBox->setBounds (80, 168, 216, 24);
+    label->setBounds (16, 168, 64, 24);
     groupComponent->setBounds (8, 8, 304, 128);
     label2->setBounds (16, 32, 60, 24);
     touchkeyDeviceComboBox->setBounds (72, 32, 224, 24);
     label3->setBounds (16, 96, 60, 24);
     touchkeyStartButton->setBounds (216, 96, 79, 24);
     touchkeyStatusLabel->setBounds (72, 96, 136, 24);
-    oscGroupComponent->setBounds (8, 288, 304, 96);
-    label7->setBounds (16, 344, 55, 24);
-    oscHostTextEditor->setBounds (64, 344, 128, 24);
-    label8->setBounds (200, 344, 40, 24);
-    oscPortTextEditor->setBounds (240, 344, 56, 24);
-    oscEnableButton->setBounds (24, 312, 144, 24);
-    oscEnableRawButton->setBounds (176, 312, 144, 24);
+    oscGroupComponent->setBounds (8, 320, 304, 96);
+    label7->setBounds (16, 376, 55, 24);
+    oscHostTextEditor->setBounds (64, 376, 128, 24);
+    label8->setBounds (200, 376, 40, 24);
+    oscPortTextEditor->setBounds (240, 376, 56, 24);
+    oscEnableButton->setBounds (24, 344, 144, 24);
+    oscEnableRawButton->setBounds (176, 344, 144, 24);
     label4->setBounds (16, 64, 104, 24);
     touchkeyOctaveComboBox->setBounds (120, 64, 88, 24);
-    loggingButton->setBounds (24, 416, 128, 24);
-    oscInputGroupComponent->setBounds (8, 216, 304, 64);
-    oscInputEnableButton->setBounds (24, 240, 152, 24);
-    label6->setBounds (200, 240, 40, 24);
-    oscInputPortTextEditor->setBounds (240, 240, 56, 24);
-    playLogButton->setBounds (168, 416, 128, 24);
+    oscInputGroupComponent->setBounds (8, 248, 304, 64);
+    oscInputEnableButton->setBounds (24, 272, 152, 24);
+    label6->setBounds (200, 272, 40, 24);
+    oscInputPortTextEditor->setBounds (240, 272, 56, 24);
     keyboardZoneTabbedComponent->setBounds (320, 0, 552, 464);
     addZoneButton->setBounds (776, 4, 38, 20);
     removeZoneButton->setBounds (824, 4, 38, 20);
     touchkeyAutodetectButton->setBounds (216, 64, 79, 24);
+    midiInputAuxDeviceComboBox->setBounds (80, 200, 216, 24);
+    label5->setBounds (24, 200, 55, 24);
     //[UserResized] Add your own custom resize handling here..
+    
+    // Resize KeyboardZoneComponent to fit new bounds
+    Rectangle<int> const& ourBounds = getBounds();
+    Rectangle<int> keyboardZoneBounds = keyboardZoneTabbedComponent->getBounds();
+    keyboardZoneBounds.setHeight(ourBounds.getHeight() - keyboardZoneBounds.getY());
+    keyboardZoneTabbedComponent->setBounds(keyboardZoneBounds);
     //[/UserResized]
 }
 
@@ -323,18 +332,17 @@ void ControlWindowMainComponent::comboBoxChanged (ComboBox* comboBoxThatHasChang
         if(selection == 1 - kMidiInputDeviceComboBoxOffset) {   // Disabled
             if(controller_->midiTouchkeysStandaloneModeIsEnabled())
                 controller_->midiTouchkeysStandaloneModeDisable();
-            controller_->disableAllMIDIInputPorts();
+            controller_->disablePrimaryMIDIInputPort();
         }
         else if(selection == 2 - kMidiInputDeviceComboBoxOffset) {  // Standalone mode
-            controller_->disableAllMIDIInputPorts();
+            controller_->disablePrimaryMIDIInputPort();
             controller_->midiTouchkeysStandaloneModeEnable();
         }
         else if(selection >= 0 && selection < midiInputDeviceIDs_.size()) {
             int deviceId = midiInputDeviceIDs_[selection];
             if(controller_->midiTouchkeysStandaloneModeIsEnabled())
                 controller_->midiTouchkeysStandaloneModeDisable();
-            controller_->disableAllMIDIInputPorts();
-            controller_->enableMIDIInputPort(deviceId);
+            controller_->enableMIDIInputPort(deviceId, true);
         }
         //[/UserComboBoxCode_midiInputDeviceComboBox]
     }
@@ -353,6 +361,29 @@ void ControlWindowMainComponent::comboBoxChanged (ComboBox* comboBoxThatHasChang
         if(controller_ != 0)
             controller_->touchkeyDeviceSetLowestMidiNote((octave + 1)*12);
         //[/UserComboBoxCode_touchkeyOctaveComboBox]
+    }
+    else if (comboBoxThatHasChanged == midiInputAuxDeviceComboBox)
+    {
+        //[UserComboBoxCode_midiInputAuxDeviceComboBox] -- add your combo box handling code here..
+        
+        // Look up the selected ID, remembering that Juce indices start at 1 and the first of
+        // these is "Disabled"
+        int selection = midiInputAuxDeviceComboBox->getSelectedId() - kMidiInputDeviceComboBoxOffset;
+        if(selection == 1 - kMidiInputDeviceComboBoxOffset) {   // Disabled
+            // Disable all aux ports
+            controller_->disableAllMIDIInputPorts(true);
+        }
+        else if(selection == 2 - kMidiInputDeviceComboBoxOffset) {
+            // Shouldn't happen; standalone mode not an aux feature
+            controller_->disableAllMIDIInputPorts(true);
+        }
+        else if(selection >= 0 && selection < midiInputDeviceIDs_.size()) {
+            int deviceId = midiInputDeviceIDs_[selection];
+            // Enable this aux port
+            controller_->disableAllMIDIInputPorts(true);
+            controller_->enableMIDIInputPort(deviceId, false);
+        }
+        //[/UserComboBoxCode_midiInputAuxDeviceComboBox]
     }
 
     //[UsercomboBoxChanged_Post]
@@ -403,25 +434,11 @@ void ControlWindowMainComponent::buttonClicked (Button* buttonThatWasClicked)
         controller_->oscTransmitSetRawDataEnabled(oscEnableRawButton->getToggleState());
         //[/UserButtonCode_oscEnableRawButton]
     }
-    else if (buttonThatWasClicked == loggingButton)
-    {
-        //[UserButtonCode_loggingButton] -- add your button handler code here..
-        if(controller_->isLogging())
-            controller_->stopLogging();
-        else
-            controller_->startLogging();
-        //[/UserButtonCode_loggingButton]
-    }
     else if (buttonThatWasClicked == oscInputEnableButton)
     {
         //[UserButtonCode_oscInputEnableButton] -- add your button handler code here..
         controller_->oscReceiveSetEnabled(oscInputEnableButton->getToggleState());
         //[/UserButtonCode_oscInputEnableButton]
-    }
-    else if (buttonThatWasClicked == playLogButton)
-    {
-        //[UserButtonCode_playLogButton] -- add your button handler code here..
-        //[/UserButtonCode_playLogButton]
     }
     else if (buttonThatWasClicked == addZoneButton)
     {
@@ -516,21 +533,31 @@ void ControlWindowMainComponent::updateInputDeviceList()
     midiInputDeviceIDs_.clear();
     midiInputDeviceComboBox->addItem("Disabled", 1);
     midiInputDeviceComboBox->addItem("TouchKeys Standalone", 2);
-    counter = kMidiInputDeviceComboBoxOffset;
     
+    midiInputAuxDeviceComboBox->clear();
+    midiInputAuxDeviceComboBox->addItem("Disabled", 1);
+    
+    counter = kMidiInputDeviceComboBoxOffset;
+
     // Check whether the currently selected ID still exists while
     // we build the list
     bool lastSelectedDeviceExists = false;
+    bool lastSelectedAuxDeviceExists = false;
     for(it = devices.begin(); it != devices.end(); ++it) {
         midiInputDeviceComboBox->addItem((*it).second.c_str(), counter);
+        midiInputAuxDeviceComboBox->addItem((*it).second.c_str(), counter);
         midiInputDeviceIDs_.push_back(it->first);
         if(it->first == lastSelectedMidiInputID_)
             lastSelectedDeviceExists = true;
+        if(it->first == lastSelectedMidiAuxInputID_)
+            lastSelectedAuxDeviceExists = true;
         counter++;
     }
-    
+
     if(!lastSelectedDeviceExists)
-        controller_->disableAllMIDIInputPorts();
+        controller_->disablePrimaryMIDIInputPort();
+    if(!lastSelectedAuxDeviceExists)
+        controller_->disableAllMIDIInputPorts(true);
 }
 
 void ControlWindowMainComponent::updateOscHostPort()
@@ -548,9 +575,9 @@ void ControlWindowMainComponent::updateOscHostPort()
 void ControlWindowMainComponent::synchronize() {
     if(controller_ == 0)
         return;
-    
+
     bool devicesUpdated = false;
-    
+
     if(controller_->devicesShouldUpdate() != lastControllerUpdateDeviceCount_) {
         lastControllerUpdateDeviceCount_ = controller_->devicesShouldUpdate();
         updateInputDeviceList();
@@ -584,23 +611,52 @@ void ControlWindowMainComponent::synchronize() {
         midiInputDeviceComboBox->setSelectedId(2, dontSendNotification);
     }
     else {
-        const std::vector<int>& selectedMidiInputDevices(controller_->selectedMIDIInputPorts());
-        if(selectedMidiInputDevices.empty()) {
+        // First query the primary port
+        int selectedPrimaryPort = controller_->selectedMIDIPrimaryInputPort();
+        if(selectedPrimaryPort < 0) {
             midiInputDeviceComboBox->setSelectedId(1, dontSendNotification);
         }
-        else if(selectedMidiInputDevices.front() != lastSelectedMidiInputID_ || devicesUpdated){
+        else if(selectedPrimaryPort != lastSelectedMidiInputID_ || devicesUpdated){
             // Input has changed from before. Find it in vector
             // If there is more than one selected ID, we will only take the first one for
             // the current UI. This affects the display but not the functionality.
             for(int i = 0; i < midiInputDeviceIDs_.size(); i++) {
-                if(midiInputDeviceIDs_[i] == selectedMidiInputDevices.front()) {
+                if(midiInputDeviceIDs_[i] == selectedPrimaryPort) {
                     midiInputDeviceComboBox->setSelectedId(i + kMidiInputDeviceComboBoxOffset, dontSendNotification);
                     break;
                 }
             }
             // ...and cache this as the last ID so we don't search again next time
-            lastSelectedMidiInputID_ = selectedMidiInputDevices.front();
+            lastSelectedMidiInputID_ = selectedPrimaryPort;
+            
+            // Now disable this item in the auxiliary combo box
+            for(int i = 0; i < midiInputAuxDeviceComboBox->getNumItems(); i++) {
+                int itemId = midiInputAuxDeviceComboBox->getItemId(i) - kMidiInputDeviceComboBoxOffset;
+                if(itemId >= 0) {
+                    midiInputAuxDeviceComboBox->setItemEnabled(midiInputAuxDeviceComboBox->getItemId(i),
+                                                               (itemId != selectedPrimaryPort));
+                }
+            }
         }
+    }
+        
+    // Then get all aux ports and display the first one
+    const std::vector<int>& selectedMidiInputDevices(controller_->selectedMIDIAuxInputPorts());
+    if(selectedMidiInputDevices.empty()) {
+        midiInputAuxDeviceComboBox->setSelectedId(1, dontSendNotification);
+    }
+    else if(selectedMidiInputDevices.front() != lastSelectedMidiAuxInputID_ || devicesUpdated){
+        // Input has changed from before. Find it in vector
+        // If there is more than one selected ID, we will only take the first one for
+        // the current UI. This affects the display but not the functionality.
+        for(int i = 0; i < midiInputDeviceIDs_.size(); i++) {
+            if(midiInputDeviceIDs_[i] == selectedMidiInputDevices.front()) {
+                midiInputAuxDeviceComboBox->setSelectedId(i + kMidiInputDeviceComboBoxOffset, dontSendNotification);
+                break;
+            }
+        }
+        // ...and cache this as the last ID so we don't search again next time
+        lastSelectedMidiAuxInputID_ = selectedMidiInputDevices.front();
     }
 
     // Update OSC status
@@ -646,13 +702,6 @@ void ControlWindowMainComponent::synchronize() {
         touchkeyAutodetectButton->setEnabled(true);
         touchkeyAutodetectButton->setButtonText("Detect");
     }
-
-    // Set the text on the logging button
-    if(controller_->isLogging()) {
-        loggingButton->setButtonText("Stop Logging");
-    }
-    else
-        loggingButton->setButtonText("Start Logging");
 
     // Update segments list if it has changed
     if(lastSegmentUniqueIdentifier_ != controller_->midiSegmentUniqueIdentifier())
@@ -792,19 +841,17 @@ BEGIN_JUCER_METADATA
 <JUCER_COMPONENT documentType="Component" className="ControlWindowMainComponent"
                  componentName="" parentClasses="public Component, public TextEditor::Listener"
                  constructorParams="" variableInitialisers="controller_(0)" snapPixels="8"
-                 snapActive="1" snapShown="1" overlayOpacity="0.330" fixedSize="1"
+                 snapActive="1" snapShown="1" overlayOpacity="0.330" fixedSize="0"
                  initialWidth="872" initialHeight="444">
   <BACKGROUND backgroundColour="ffd2d2d2"/>
-  <GROUPCOMPONENT name="MIDI input group" id="87491da999138aa9" memberName="dataLoggingGroupComponent"
-                  virtualName="" explicitFocusOrder="0" pos="8 392 304 64" title="Data Logging"/>
   <GROUPCOMPONENT name="MIDI input group" id="ce80a86ee6475cd9" memberName="midiInputGroupComponent"
-                  virtualName="" explicitFocusOrder="0" pos="8 144 304 64" title="MIDI Input"/>
+                  virtualName="" explicitFocusOrder="0" pos="8 144 304 96" title="MIDI Input"/>
   <COMBOBOX name="MIDI input combo box" id="def32c74505cfa50" memberName="midiInputDeviceComboBox"
-            virtualName="" explicitFocusOrder="0" pos="72 168 224 24" editable="0"
+            virtualName="" explicitFocusOrder="0" pos="80 168 216 24" editable="0"
             layout="33" items="" textWhenNonSelected="" textWhenNoItems="(no choices)"/>
   <LABEL name="new label" id="ad7bc4640d8023b7" memberName="label" virtualName=""
-         explicitFocusOrder="0" pos="16 168 55 24" edTextCol="ff000000"
-         edBkgCol="0" labelText="Device:" editableSingleClick="0" editableDoubleClick="0"
+         explicitFocusOrder="0" pos="16 168 64 24" edTextCol="ff000000"
+         edBkgCol="0" labelText="Keyboard:" editableSingleClick="0" editableDoubleClick="0"
          focusDiscardsChanges="0" fontname="Default font" fontsize="15"
          bold="0" italic="0" justification="33"/>
   <GROUPCOMPONENT name="new group" id="9106305fd2211185" memberName="groupComponent"
@@ -831,30 +878,30 @@ BEGIN_JUCER_METADATA
          editableDoubleClick="0" focusDiscardsChanges="0" fontname="Default font"
          fontsize="15" bold="0" italic="0" justification="33"/>
   <GROUPCOMPONENT name="OSC group" id="8268119e22809825" memberName="oscGroupComponent"
-                  virtualName="" explicitFocusOrder="0" pos="8 288 304 96" title="OSC Output"/>
+                  virtualName="" explicitFocusOrder="0" pos="8 320 304 96" title="OSC Output"/>
   <LABEL name="new label" id="896c0c48a1cf50a" memberName="label7" virtualName=""
-         explicitFocusOrder="0" pos="16 344 55 24" edTextCol="ff000000"
+         explicitFocusOrder="0" pos="16 376 55 24" edTextCol="ff000000"
          edBkgCol="0" labelText="Host:" editableSingleClick="0" editableDoubleClick="0"
          focusDiscardsChanges="0" fontname="Default font" fontsize="15"
          bold="0" italic="0" justification="33"/>
   <TEXTEDITOR name="new text editor" id="84778d0bbebedd36" memberName="oscHostTextEditor"
-              virtualName="" explicitFocusOrder="0" pos="64 344 128 24" initialText="127.0.0.1"
+              virtualName="" explicitFocusOrder="0" pos="64 376 128 24" initialText="127.0.0.1"
               multiline="0" retKeyStartsLine="0" readonly="0" scrollbars="1"
               caret="1" popupmenu="1"/>
   <LABEL name="new label" id="157c85bf83a7f936" memberName="label8" virtualName=""
-         explicitFocusOrder="0" pos="200 344 40 24" edTextCol="ff000000"
+         explicitFocusOrder="0" pos="200 376 40 24" edTextCol="ff000000"
          edBkgCol="0" labelText="Port:" editableSingleClick="0" editableDoubleClick="0"
          focusDiscardsChanges="0" fontname="Default font" fontsize="15"
          bold="0" italic="0" justification="33"/>
   <TEXTEDITOR name="new text editor" id="7c21f0c238812d11" memberName="oscPortTextEditor"
-              virtualName="" explicitFocusOrder="0" pos="240 344 56 24" initialText="8000"
+              virtualName="" explicitFocusOrder="0" pos="240 376 56 24" initialText="8000"
               multiline="0" retKeyStartsLine="0" readonly="0" scrollbars="1"
               caret="1" popupmenu="1"/>
   <TOGGLEBUTTON name="OSC enable button" id="ccd52591cfd0b632" memberName="oscEnableButton"
-                virtualName="" explicitFocusOrder="0" pos="24 312 144 24" buttonText="Enable OSC output"
+                virtualName="" explicitFocusOrder="0" pos="24 344 144 24" buttonText="Enable OSC output"
                 connectedEdges="0" needsCallback="1" radioGroupId="0" state="0"/>
   <TOGGLEBUTTON name="OSC enable raw button" id="4aaf8f80edaff24" memberName="oscEnableRawButton"
-                virtualName="" explicitFocusOrder="0" pos="176 312 144 24" buttonText="Send raw frames"
+                virtualName="" explicitFocusOrder="0" pos="176 344 144 24" buttonText="Send raw frames"
                 connectedEdges="0" needsCallback="1" radioGroupId="0" state="0"/>
   <LABEL name="new label" id="c5873c6498f8156d" memberName="label4" virtualName=""
          explicitFocusOrder="0" pos="16 64 104 24" edTextCol="ff000000"
@@ -864,26 +911,20 @@ BEGIN_JUCER_METADATA
   <COMBOBOX name="TouchKeys octave box" id="36ace32027c81d30" memberName="touchkeyOctaveComboBox"
             virtualName="" explicitFocusOrder="0" pos="120 64 88 24" editable="0"
             layout="33" items="" textWhenNonSelected="" textWhenNoItems="(no choices)"/>
-  <TEXTBUTTON name="logging button" id="44705422dd1cb795" memberName="loggingButton"
-              virtualName="" explicitFocusOrder="0" pos="24 416 128 24" buttonText="Start Logging"
-              connectedEdges="0" needsCallback="1" radioGroupId="0"/>
   <GROUPCOMPONENT name="MIDI input group" id="bb54712f78382055" memberName="oscInputGroupComponent"
-                  virtualName="" explicitFocusOrder="0" pos="8 216 304 64" title="OSC Input"/>
+                  virtualName="" explicitFocusOrder="0" pos="8 248 304 64" title="OSC Input"/>
   <TOGGLEBUTTON name="OSC input enable button" id="22a196770a440560" memberName="oscInputEnableButton"
-                virtualName="" explicitFocusOrder="0" pos="24 240 152 24" buttonText="Enable OSC input"
+                virtualName="" explicitFocusOrder="0" pos="24 272 152 24" buttonText="Enable OSC input"
                 connectedEdges="0" needsCallback="1" radioGroupId="0" state="0"/>
   <LABEL name="new label" id="c680c2da87cdcbf2" memberName="label6" virtualName=""
-         explicitFocusOrder="0" pos="200 240 40 24" edTextCol="ff000000"
+         explicitFocusOrder="0" pos="200 272 40 24" edTextCol="ff000000"
          edBkgCol="0" labelText="Port:" editableSingleClick="0" editableDoubleClick="0"
          focusDiscardsChanges="0" fontname="Default font" fontsize="15"
          bold="0" italic="0" justification="33"/>
   <TEXTEDITOR name="new text editor" id="d4a91e8bff5b6bc9" memberName="oscInputPortTextEditor"
-              virtualName="" explicitFocusOrder="0" pos="240 240 56 24" initialText="8001"
+              virtualName="" explicitFocusOrder="0" pos="240 272 56 24" initialText="8001"
               multiline="0" retKeyStartsLine="0" readonly="0" scrollbars="1"
               caret="1" popupmenu="1"/>
-  <TEXTBUTTON name="play log button" id="44858f01a66d263d" memberName="playLogButton"
-              virtualName="" explicitFocusOrder="0" pos="168 416 128 24" buttonText="Play Log..."
-              connectedEdges="0" needsCallback="1" radioGroupId="0"/>
   <TABBEDCOMPONENT name="keyboard zone tabbed component" id="33da3d6583cdacbf" memberName="keyboardZoneTabbedComponent"
                    virtualName="" explicitFocusOrder="0" pos="320 0 552 464" orientation="top"
                    tabBarDepth="30" initialTab="-1"/>
@@ -896,6 +937,14 @@ BEGIN_JUCER_METADATA
   <TEXTBUTTON name="TouchKeys autodetect button" id="6e19894bc11d0276" memberName="touchkeyAutodetectButton"
               virtualName="" explicitFocusOrder="0" pos="216 64 79 24" buttonText="Detect"
               connectedEdges="0" needsCallback="1" radioGroupId="0"/>
+  <COMBOBOX name="MIDI input aux combo box" id="1b77c934a4790942" memberName="midiInputAuxDeviceComboBox"
+            virtualName="" explicitFocusOrder="0" pos="80 200 216 24" editable="0"
+            layout="33" items="" textWhenNonSelected="" textWhenNoItems="(no choices)"/>
+  <LABEL name="new label" id="7409cb92cfa3b9f2" memberName="label5" virtualName=""
+         explicitFocusOrder="0" pos="24 200 55 24" edTextCol="ff000000"
+         edBkgCol="0" labelText="Aux:" editableSingleClick="0" editableDoubleClick="0"
+         focusDiscardsChanges="0" fontname="Default font" fontsize="15"
+         bold="0" italic="0" justification="34"/>
 </JUCER_COMPONENT>
 
 END_JUCER_METADATA

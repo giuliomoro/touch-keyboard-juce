@@ -64,6 +64,11 @@ MainWindow::MainWindow(MainApplicationController& controller)
     
     centreWithSize (getWidth(), getHeight());
     setUsingNativeTitleBar(true);
+    
+    // Allow resizing to be larger vertically
+    setResizable(true, true);
+    setResizeLimits(getWidth(), getHeight(), getWidth(), 2048);
+    
     setVisible (true);
 }
 
@@ -117,6 +122,9 @@ PopupMenu MainWindow::getMenuForIndex(int menuIndex, const String& menuName) {
     else if(menuIndex == 2) { // Control
         menu.addCommandItem(&commandManager_, kCommandRescanDevices);
         menu.addSeparator();
+        menu.addCommandItem(&commandManager_, kCommandLoggingStartStop);
+        menu.addCommandItem(&commandManager_, kCommandLoggingPlay);
+        menu.addSeparator();
         menu.addCommandItem(&commandManager_, kCommandEnableExperimentalMappings);
 #ifdef ENABLE_TOUCHKEYS_SENSOR_TEST
         menu.addCommandItem(&commandManager_, kCommandTestTouchkeySensors);
@@ -157,6 +165,8 @@ void MainWindow::getAllCommands(Array <CommandID>& commands) {
         StandardApplicationCommandIDs::selectAll,
         // Control
         kCommandRescanDevices,
+        kCommandLoggingStartStop,
+        kCommandLoggingPlay,
         kCommandEnableExperimentalMappings,
 #ifdef ENABLE_TOUCHKEYS_SENSOR_TEST
         kCommandTestTouchkeySensors,
@@ -255,6 +265,16 @@ void MainWindow::getCommandInfo(CommandID commandID, ApplicationCommandInfo& res
             result.setActive(true);
             result.addDefaultKeypress ('R', ModifierKeys::commandModifier);
             break;
+        case kCommandLoggingStartStop:
+            result.setInfo("Record Log File", "Records TouchKeys and MIDI data to file", controlCategory, 0);
+            result.setTicked(controller_.isLogging());
+            result.setActive(true);
+            break;
+        case kCommandLoggingPlay:
+            result.setInfo("Play Log...", "Plays TouchKeys and MIDI from file", controlCategory, 0);
+            result.setTicked(false);
+            result.setActive(false);
+            break;
         case kCommandEnableExperimentalMappings:
             result.setInfo("Enable Experimental Mappings", "Enables mappings which are still experimental", controlCategory, 0);
             result.setTicked(controller_.experimentalMappingsEnabled());
@@ -291,6 +311,15 @@ bool MainWindow::perform(const InvocationInfo& info) {
             break;
         case kCommandRescanDevices:
             controller_.tellDevicesToUpdate();
+            break;
+        case kCommandLoggingStartStop:
+            if(controller_.isLogging())
+                controller_.stopLogging();
+            else
+                controller_.startLogging();
+            break;
+        case kCommandLoggingPlay:
+            // TODO
             break;
         case kCommandEnableExperimentalMappings:
             controller_.setExperimentalMappingsEnabled(!controller_.experimentalMappingsEnabled());

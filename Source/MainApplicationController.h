@@ -172,17 +172,20 @@ public:
     void midiSegmentRemove(MidiKeyboardSegment *segment);
 
     // Select MIDI input/output devices
-    void enableMIDIInputPort(int portNumber) {
-        midiInputController_.enablePort(portNumber);
+    void enableMIDIInputPort(int portNumber, bool isPrimary) {
+        midiInputController_.enablePort(portNumber, isPrimary);
     }
-    void enableAllMIDIInputPorts() {
-        midiInputController_.enableAllPorts();
+    void enableAllMIDIInputPorts(int primaryPortNumber) {
+        midiInputController_.enableAllPorts(primaryPortNumber);
     }
     void disableMIDIInputPort(int portNumber) {
         midiInputController_.disablePort(portNumber);
     }
-    void disableAllMIDIInputPorts() {
-        midiInputController_.disableAllPorts();
+    void disablePrimaryMIDIInputPort() {
+        midiInputController_.disablePrimaryPort();
+    }
+    void disableAllMIDIInputPorts(bool auxiliaryOnly) {
+        midiInputController_.disableAllPorts(auxiliaryOnly);
     }
     void enableMIDIOutputPort(int identifier, int deviceNumber) {
         midiOutputController_.enablePort(identifier, deviceNumber);
@@ -200,8 +203,11 @@ public:
     }
     
     // Get selected MIDI input/output devices by ID
-    std::vector<int> selectedMIDIInputPorts() {
-        return midiInputController_.activePorts();
+    int selectedMIDIPrimaryInputPort() {
+        return midiInputController_.primaryActivePort();
+    }
+    std::vector<int> selectedMIDIAuxInputPorts() {
+        return midiInputController_.auxiliaryActivePorts();
     }
     int selectedMIDIOutputPort(int identifier) {
         return midiOutputController_.enabledPort(identifier);

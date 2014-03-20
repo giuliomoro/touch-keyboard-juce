@@ -89,13 +89,13 @@ private:
     MainApplicationController *controller_; // Pointer to the main application controller
     std::vector<int> midiInputDeviceIDs_;
     int lastSelectedMidiInputID_;
+    int lastSelectedMidiAuxInputID_;
     int lastSegmentUniqueIdentifier_;
-    
+
     int lastControllerUpdateDeviceCount_;
     //[/UserVariables]
 
     //==============================================================================
-    ScopedPointer<GroupComponent> dataLoggingGroupComponent;
     ScopedPointer<GroupComponent> midiInputGroupComponent;
     ScopedPointer<ComboBox> midiInputDeviceComboBox;
     ScopedPointer<Label> label;
@@ -114,16 +114,16 @@ private:
     ScopedPointer<ToggleButton> oscEnableRawButton;
     ScopedPointer<Label> label4;
     ScopedPointer<ComboBox> touchkeyOctaveComboBox;
-    ScopedPointer<TextButton> loggingButton;
     ScopedPointer<GroupComponent> oscInputGroupComponent;
     ScopedPointer<ToggleButton> oscInputEnableButton;
     ScopedPointer<Label> label6;
     ScopedPointer<TextEditor> oscInputPortTextEditor;
-    ScopedPointer<TextButton> playLogButton;
     ScopedPointer<TabbedComponent> keyboardZoneTabbedComponent;
     ScopedPointer<TextButton> addZoneButton;
     ScopedPointer<TextButton> removeZoneButton;
     ScopedPointer<TextButton> touchkeyAutodetectButton;
+    ScopedPointer<ComboBox> midiInputAuxDeviceComboBox;
+    ScopedPointer<Label> label5;
 
 
     //==============================================================================

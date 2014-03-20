@@ -64,28 +64,6 @@ enum {
 
 class MidiInputController : public MidiInputCallback {
 public:
-    /*
-	// Operating modes for MIDI input
-	enum {
-		ModeOff = 0,
-		ModePassThrough,
-		ModeMonophonic,
-		ModePolyphonic,
-		ModeChannelSelect,
-		ModeConstantControllers
-	};
-	
-	// Switch types for Channel Select mode
-	enum {
-		ChannelSelectSwitchTypeUnknown = 0,
-		ChannelSelectSwitchTypeLocation,
-		ChannelSelectSwitchTypeSize,
-		ChannelSelectSwitchTypeNumTouches,
-		ChannelSelectSwitchTypeAngle
-	};
-     */
-	
-public:
 	// Constructor
 	MidiInputController(PianoKeyboard& keyboard);
 
@@ -95,23 +73,14 @@ public:
 	
 	// Add/Remove MIDI input ports;
 	// Enable methods return true on success (at least one port enabled) 
-	bool enablePort(int portNumber);
-	bool enableAllPorts();
+	bool enablePort(int portNumber, bool isPrimary);
+	bool enableAllPorts(int primaryPortNumber);
 	void disablePort(int portNumber);
-	void disableAllPorts();
-	vector<int> activePorts();
+    void disablePrimaryPort();
+	void disableAllPorts(bool auxiliaryOnly);
+    int primaryActivePort();
+	vector<int> auxiliaryActivePorts();
 
-    //void touchkeyStandaloneTouchBegan(int noteNumber,  Node<KeyTouchFrame>* touchBuffer);
-    //void touchkeyStandaloneTouchEnded(int noteNumber);
-    
-    /*
-	// Set which channels we listen to
-	bool enableChannel(int channelNumber);
-	bool enableAllChannels();
-	void disableChannel(int channelNumber);
-	void disableAllChanels();
-	*/
-    
 	// Set/query the output controller
 	MidiOutputController* midiOutputController() { return midiOutputController_; }
 	void setMidiOutputController(MidiOutputController* ct);
@@ -144,21 +113,6 @@ public:
     void removeSegment(MidiKeyboardSegment* segment);
     void removeAllSegments();
     
-    /*
-	// Change or query the operating mode of the controller
-	int mode() { return mode_; }
-	void setModeOff();
-	void setModePassThrough();
-    void setModeMonophonic();
-	void setModePolyphonic();
-	void setModeChannelSelect(int switchType, int numDivisions, int defaultChannel);
-
-    int polyphony() { return retransmitMaxPolyphony_; }
-    void setPolyphony(int polyphony);
-    bool voiceStealingEnabled() { return useVoiceStealing_; }
-    void setVoiceStealingEnabled(bool enable) { useVoiceStealing_ = enable; }
-    */
-    
     // Juce MIDI callbacks
     void handleIncomingMidiMessage(MidiInput* source, const MidiMessage& message);
     void handlePartialSysexMessage(MidiInput* source,
@@ -182,72 +136,20 @@ public:
 	~MidiInputController();
 	
 private:
-	// Filtering by channel: return whether this message concerns one of the active channels
-	// we're listening to.
-	// bool messageIsForActiveChannel(const MidiMessage& message);
-	
-    /*
-	// Mode-specific MIDI input handlers
-	void modePassThroughHandler(MidiInput* source, const MidiMessage& message);	
-	void modeMonophonicHandler(MidiInput* source, const MidiMessage& message);
-
-	void modePolyphonicHandler(MidiInput* source, const MidiMessage& message);
-	void modePolyphonicNoteOn(unsigned char note, unsigned char velocity);
-	void modePolyphonicNoteOff(unsigned char note);
-	void modePolyphonicNoteOnCallback(const char *path, const char *types, int numValues, lo_arg **values);
-	
-	void modeChannelSelectHandler(MidiInput* source, const MidiMessage& message);
-	void modeChannelSelectNoteOn(unsigned char note, unsigned char velocity);
-	void modeChannelSelectNoteOff(unsigned char note);
-	void modeChannelSelectNoteOnCallback(const char *path, const char *types, int numValues, lo_arg **values);
-	
-	void modeConstantControllersHandler(MidiInput* source, const MidiMessage& message);
-	
-    // Helper functions for polyphonic mode
-    void modePolyphonicSetupHelper();
-    int oldestNote();
-    int newestNote();
-     */
-    
 	// ***** Member Variables *****
 	
 	PianoKeyboard& keyboard_;						// Reference to main keyboard data
     MidiOutputController *midiOutputController_;	// Destination for MIDI output
     
 	map<int, MidiInput*> activePorts_;              // Sources of MIDI data
+    int primaryActivePort_;                         // Which source is primary
     
     vector<MidiKeyboardSegment*> segments_;         // Segments of the keyboard
     CriticalSection segmentsMutex_;                 // Mutex protecting the segments list
     int segmentUniqueIdentifier_;                   // Identifier of when segment structure has changed
     
-
-    /*
-
-	
-	// Current operating mode of the controller
-	int mode_;
-	
-	// Mapping between input notes and output channels.  Depending on the mode of operation,
-	// each note may be rebroadcast on its own MIDI channel.  Need to keep track of what goes where.
-	// key is MIDI note #, value is output channel (0-15)
-	map<int, int> retransmitChannelForNote_;
-	set<int> retransmitChannelsAvailable_;
-	int retransmitMaxPolyphony_;
-    bool useVoiceStealing_;
-    map<int, timestamp_type> noteOnsetTimestamps_; // When each currently active note began, for stealing
-	
-	// Parameters for Channel Select mode of operation
-	int channelSelectSwitchType_;
-	int channelSelectNumberOfDivisions_;
-	int channelSelectDefaultChannel_;
-	int channelSelectLastOnsetChannel_;
-    */
-    
     // for logging
     ofstream midiLog;
-    
-    // for generating timestamps
-    // Scheduler eventScheduler_;
 };
 
 #endif /* MIDI_INPUT_CONTROLLER_H */
