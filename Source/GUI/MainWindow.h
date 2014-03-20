@@ -49,6 +49,8 @@ private:
         
         // Control menu
         kCommandRescanDevices = 0x2020,
+        kCommandLoggingStartStop,
+        kCommandLoggingPlay,
         kCommandEnableExperimentalMappings,
         kCommandTestTouchkeySensors,
         

@@ -27,12 +27,14 @@
 #include "MidiOutputController.h"
 #include "../Mappings/MappingFactory.h"
 
+#define DEBUG_MIDI_INPUT_CONTROLLER
 #undef MIDI_INPUT_CONTROLLER_DEBUG_RAW
 
 // Constructor
 
 MidiInputController::MidiInputController(PianoKeyboard& keyboard) 
-: keyboard_(keyboard), midiOutputController_(0), segmentUniqueIdentifier_(0)
+: keyboard_(keyboard), midiOutputController_(0), primaryActivePort_(-1),
+  segmentUniqueIdentifier_(0)
 {    
     logFileCreated = false;
     loggingActive = false;
@@ -120,37 +122,70 @@ vector<pair<int, string> > MidiInputController::availableMidiDevices() {
 // Enable a new MIDI port according to its index (returned from availableMidiDevices())
 // Returns true on success.
 
-bool MidiInputController::enablePort(int portNumber) {
+bool MidiInputController::enablePort(int portNumber, bool isPrimary) {
 	if(portNumber < 0)
 		return false;
+    // If this is already the primary port, nothing to do
+    if(isPrimary && primaryActivePort_ == portNumber)
+        return true;
+    
+    // If this port is active already but we are not making it primary,
+    // then fail: can't override primary with aux
+    if(!isPrimary)
+        if(activePorts_.count(portNumber) > 0)
+            return false;
 	
-    MidiInput *device = MidiInput::openDevice(portNumber, this);
+    // If there is already a (different) primary active port, disable it
+    if(isPrimary && primaryActivePort_ >= 0 && activePorts_.count(primaryActivePort_) > 0)
+        disablePort(primaryActivePort_);
+    
+    // Enable the port if it hasn't been already
+    if(activePorts_.count(portNumber) == 0) {
+        MidiInput *device = MidiInput::openDevice(portNumber, this);
+            
+        if(device == 0) {
+#ifdef DEBUG_MIDI_INPUT_CONTROLLER
+            cout << "Failed to enable MIDI input port " << portNumber << ")\n";
+#endif
+            return false;
+        }
         
-    if(device == 0) {
-        cout << "Failed to enable MIDI input port " << portNumber << ")\n";
-        return false;
+        
+#ifdef DEBUG_MIDI_INPUT_CONTROLLER
+        cout << "Enabling MIDI input port " << portNumber << " (" << device->getName() << ")\n";
+#endif
+        device->start();
+
+        // Save the device in the set of ports
+        activePorts_[portNumber] = device;
+    }
+    else {
+#ifdef DEBUG_MIDI_INPUT_CONTROLLER
+        cout << "MIDI input port " << portNumber << " already enabled\n";
+#endif
     }
     
-    //cout << "Enabling MIDI input port " << portNumber << " (" << device->getName() << ")\n";
-    device->start();
-
-    // Save the device in the set of ports
-    activePorts_[portNumber] = device;
-
+    if(isPrimary)
+        primaryActivePort_ = portNumber;
+    
 	return true;
 }
 
 // Enable all current MIDI ports
 
-bool MidiInputController::enableAllPorts() {
+bool MidiInputController::enableAllPorts(int primaryPortNumber) {
 	bool enabledPort = false;
 	vector<pair<int, string> > ports = availableMidiDevices();
 	vector<pair<int, string> >::iterator it = ports.begin();
 	
+#ifdef DEBUG_MIDI_INPUT_CONTROLLER
+    cout << "Enabling all MIDI input ports\n";
+#endif
+    
 	while(it != ports.end()) {
 		// Don't enable MIDI input from our own virtual output
 		if(it->second != string(kMidiVirtualOutputName.toUTF8()))
-			enabledPort |= enablePort((it++)->first);
+			enabledPort |= enablePort((it++)->first, it->first == primaryPortNumber);
 		else
 			it++;
 	}
@@ -169,20 +204,36 @@ void MidiInputController::disablePort(int portNumber) {
     if(device == 0)
         return;
     
-	//cout << "Disabling MIDI input port " << portNumber << " (" << device->getName() << ")\n";
+#ifdef DEBUG_MIDI_INPUT_CONTROLLER
+	cout << "Disabling MIDI input port " << portNumber << " (" << device->getName() << ")\n";
+#endif
+    
     device->stop();
     delete device;
     
 	activePorts_.erase(portNumber);
+    if(primaryActivePort_ == portNumber)
+        primaryActivePort_ = -1;
+}
+
+// Remove the primary MIDI input source
+
+void MidiInputController::disablePrimaryPort() {
+    if(primaryActivePort_ < 0)
+        return;
+    disablePort(primaryActivePort_);
 }
 
 // Remove all MIDI input sources and free associated memory
 
-void MidiInputController::disableAllPorts() {
+void MidiInputController::disableAllPorts(bool auxiliaryOnly) {
 	map<int, MidiInput*>::iterator it;
+	MidiInput* primaryPort = 0;
 	
-	//cout << "Disabling all MIDI input ports\n";
-	
+#ifdef DEBUG_MIDI_INPUT_CONTROLLER
+    cout << "Disabling all MIDI input ports\n";
+#endif
+    
 	it = activePorts_.begin();
 	
 	while(it != activePorts_.end()) {
@@ -190,22 +241,45 @@ void MidiInputController::disableAllPorts() {
             it++;
             continue;
         }
-		it->second->stop();                     // disable port
-		delete it->second;						// free MidiInputCallback
+        
+        // Save primary port?
+        if(it->first == primaryActivePort_ && auxiliaryOnly)
+            primaryPort = it->second;
+        else {
+            it->second->stop();                     // disable port
+            delete it->second;						// free MidiInputCallback
+        }
 		it++;
 	}
 	
-	activePorts_.clear();
+    // Clear all ports including primary
+    activePorts_.clear();
+    
+    // But did we save the priamry port?
+    if(auxiliaryOnly && primaryPort != 0) {
+        // Re-insert primary only
+        activePorts_[primaryActivePort_] = primaryPort;
+    }
+    else
+        primaryActivePort_ = -1;
 }
 
-// Return a list of active ports
+// Return the primary active port corresponding to the TK keyboard
 
-vector<int> MidiInputController::activePorts() {
+int MidiInputController::primaryActivePort() {
+    return primaryActivePort_;
+}
+
+// Return a list of active ports other than the primary
+
+vector<int> MidiInputController::auxiliaryActivePorts() {
     vector<int> ports;
     
 	map<int, MidiInput*>::iterator it;
     
     for(it = activePorts_.begin(); it != activePorts_.end(); ++it) {
+        if(it->first == primaryActivePort_)
+            continue;
         ports.push_back(it->first);
     }
     
@@ -339,6 +413,6 @@ MidiInputController::~MidiInputController() {
     if(logFileCreated) {
         midiLog.close();
     }
-	disableAllPorts();
+	disableAllPorts(false);
     removeAllSegments();
 }
