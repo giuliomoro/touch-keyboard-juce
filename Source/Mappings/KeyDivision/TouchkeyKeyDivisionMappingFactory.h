@@ -83,8 +83,6 @@ public:
         globalOffsetCents_ = offsetCents;
     }
     
-
-    
 private:
     // ***** Private Methods *****
     void initializeMappingParameters(int noteNumber, TouchkeyKeyDivisionMapping *mapping);

@@ -27,6 +27,13 @@
 #include "MidiKeyboardSegment.h"
 #include "MidiOutputController.h"
 #include "../Mappings/MappingFactory.h"
+#include "../Mappings/Vibrato/TouchkeyVibratoMappingFactory.h"
+#include "../Mappings/PitchBend/TouchkeyPitchBendMappingFactory.h"
+#include "../Mappings/Control/TouchkeyControlMappingFactory.h"
+#include "../Mappings/ReleaseAngle/TouchkeyReleaseAngleMappingFactory.h"
+#include "../Mappings/OnsetAngle/TouchkeyOnsetAngleMappingFactory.h"
+#include "../Mappings/MultiFingerTrigger/TouchkeyMultiFingerTriggerMappingFactory.h"
+#include "../Mappings/KeyDivision/TouchkeyKeyDivisionMappingFactory.h"
 #include "OscMidiConverter.h"
 #include <algorithm>
 #include <string>
@@ -531,6 +538,150 @@ void MidiKeyboardSegment::removeAllMappingFactories() {
 // Return a list of current mapping factories.
 vector<MappingFactory*> const& MidiKeyboardSegment::mappingFactories(){
     return mappingFactories_;
+}
+
+// Get an XML element describing current settings (for saving presets)
+// This element will need to be released (or added to another XML element
+// that is released) by the caller
+XmlElement* MidiKeyboardSegment::getPreset() {
+    XmlElement* segmentElement = new XmlElement("Segment");
+
+    // Add segment settings
+    PropertySet properties;
+    properties.setValue("outputPort", outputPortNumber_);
+    properties.setValue("mode", mode_);
+    properties.setValue("channelMask", (int)channelMask_);
+    properties.setValue("noteMin", noteMin_);
+    properties.setValue("noteMax", noteMax_);
+    properties.setValue("outputChannelLowest", outputChannelLowest_);
+    properties.setValue("outputTransposition", outputTransposition_);
+    properties.setValue("damperPedalEnabled", damperPedalEnabled_);
+    properties.setValue("touchkeysStandaloneMode", touchkeyStandaloneMode_);
+    properties.setValue("usesKeyboardChannelPressure", usesKeyboardChannelPressure_);
+    properties.setValue("usesKeyboardPitchWheel", usesKeyboardPitchWheel_);
+    properties.setValue("usesKeyboardModWheel", usesKeyboardModWheel_);
+    properties.setValue("usesKeyboardMidiControllers", usesKeyboardMidiControllers_);
+    properties.setValue("pitchWheelRange", pitchWheelRange_);
+    properties.setValue("retransmitMaxPolyphony", retransmitMaxPolyphony_);
+    properties.setValue("useVoiceStealing", useVoiceStealing_);
+
+    segmentElement->addChildElement(properties.createXml("Properties"));
+    
+    // Go through mapping factories and add their settings
+    vector<MappingFactory*>::iterator it;
+    for(it = mappingFactories_.begin(); it != mappingFactories_.end(); ++it) {
+        XmlElement* factoryElement = (*it)->getPreset();
+        segmentElement->addChildElement(factoryElement);
+    }
+    
+    return segmentElement;
+}
+
+// Load settings from an XML element
+bool MidiKeyboardSegment::loadPreset(XmlElement const* preset) {
+    removeAllMappingFactories();
+    
+    XmlElement *propertiesElement = preset->getChildByName("Properties");
+    if(propertiesElement == 0)
+        return false;
+    
+    // Load segment settings
+    PropertySet properties;
+    properties.restoreFromXml(*propertiesElement);
+    
+    if(!properties.containsKey("outputPort"))
+        return false;
+    outputPortNumber_ = properties.getIntValue("outputPort");
+    if(!properties.containsKey("mode"))
+        return false;
+    mode_ = properties.getIntValue("mode");
+    if(!properties.containsKey("channelMask"))
+        return false;
+    channelMask_ = properties.getIntValue("channelMask");
+    if(!properties.containsKey("noteMin"))
+        return false;
+    noteMin_ = properties.getIntValue("noteMin");
+    if(!properties.containsKey("noteMax"))
+        return false;
+    noteMax_ = properties.getIntValue("noteMax");
+    if(!properties.containsKey("outputChannelLowest"))
+        return false;
+    outputChannelLowest_ = properties.getIntValue("outputChannelLowest");
+    if(!properties.containsKey("outputTransposition"))
+        return false;
+    outputTransposition_ = properties.getIntValue("outputTransposition");
+    if(!properties.containsKey("damperPedalEnabled"))
+        return false;
+    damperPedalEnabled_ = properties.getBoolValue("damperPedalEnabled");
+    if(!properties.containsKey("touchkeysStandaloneMode"))
+        return false;
+    touchkeyStandaloneMode_ = properties.getBoolValue("touchkeysStandaloneMode");
+    if(!properties.containsKey("usesKeyboardChannelPressure"))
+        return false;
+    usesKeyboardChannelPressure_ = properties.getBoolValue("usesKeyboardChannelPressure");
+    if(!properties.containsKey("usesKeyboardPitchWheel"))
+        return false;
+    usesKeyboardPitchWheel_ = properties.getBoolValue("usesKeyboardPitchWheel");
+    if(!properties.containsKey("usesKeyboardModWheel"))
+        return false;
+    usesKeyboardModWheel_ = properties.getBoolValue("usesKeyboardModWheel");
+    if(!properties.containsKey("usesKeyboardMidiControllers"))
+        return false;
+    usesKeyboardMidiControllers_ = properties.getBoolValue("usesKeyboardMidiControllers");
+    if(!properties.containsKey("pitchWheelRange"))
+        return false;
+    pitchWheelRange_ = properties.getDoubleValue("pitchWheelRange");
+    if(!properties.containsKey("retransmitMaxPolyphony"))
+        return false;
+    retransmitMaxPolyphony_ = properties.getIntValue("retransmitMaxPolyphony");
+    if(!properties.containsKey("useVoiceStealing"))
+        return false;
+    useVoiceStealing_ = properties.getBoolValue("useVoiceStealing");
+    
+    // Load each mapping factory
+    XmlElement *element = preset->getChildByName("MappingFactory");
+    
+    while(element != 0) {
+        if(!element->hasAttribute("type"))
+            return false;
+        
+        // Create a new factory whose type depends on the XML tag
+        MappingFactory *factory;
+        String const& factoryType = element->getStringAttribute("type");
+        
+        if(factoryType == "Control")
+            factory = new TouchkeyControlMappingFactory(keyboard_, *this);
+        else if(factoryType == "Vibrato")
+            factory = new TouchkeyVibratoMappingFactory(keyboard_, *this);
+        else if(factoryType == "PitchBend")
+            factory = new TouchkeyPitchBendMappingFactory(keyboard_, *this);
+        else if(factoryType == "KeyDivision")
+            factory = new TouchkeyKeyDivisionMappingFactory(keyboard_, *this);
+        else if(factoryType == "MultiFingerTrigger")
+            factory = new TouchkeyMultiFingerTriggerMappingFactory(keyboard_, *this);
+        else if(factoryType == "OnsetAngle")
+            factory = new TouchkeyOnsetAngleMappingFactory(keyboard_, *this);
+        else if(factoryType == "ReleaseAngle")
+            factory = new TouchkeyReleaseAngleMappingFactory(keyboard_, *this);
+        else {
+            // Type unknown or unsupported; ignore and continue
+            element = element->getNextElementWithTagName("MappingFactory");
+            continue;
+        }
+        
+        // Tell factory to load its settings from this element
+        if(!factory->loadPreset(element)) {
+            delete factory;
+            return false;
+        }
+        
+        // Add factory; don't autogenerate name as it will be saved
+        addMappingFactory(factory, false);
+        
+        element = element->getNextElementWithTagName("MappingFactory");
+    }
+    
+    return true;
 }
 
 // Mode-specific MIDI handlers.  These methods handle incoming MIDI data according to the rules

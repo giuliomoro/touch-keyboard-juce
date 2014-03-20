@@ -67,6 +67,13 @@ public:
     void addFactory(MappingFactory* factory);
     void removeFactory(MappingFactory* factory);
     void removeAllFactories();
+    
+    // ****** Preset Save/Load ******
+    // These methods generate XML settings files and reload values from them
+    // The specific implementation is up to the subclass
+    
+    XmlElement* getPreset();
+    bool loadPreset(XmlElement const* preset);
 
     // ***** State Updaters *****
     

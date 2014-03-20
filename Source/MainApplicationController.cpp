@@ -462,6 +462,80 @@ bool MainApplicationController::mappingIsExperimental(int index) {
     return false;
 }
 
+// Save the current settings to an XML file
+// Returns true on success
+bool MainApplicationController::savePresetToFile(const char *filename) {
+    File outputFile(filename);
+    
+    return savePresetHelper(outputFile);
+}
+
+// Load settings from a saved XML file
+// Returns true on success
+bool MainApplicationController::loadPresetFromFile(const char *filename) {
+    File inputFile(filename);
+
+    return loadPresetHelper(inputFile);
+}
+
+#ifndef TOUCHKEYS_NO_GUI
+// Present the user with a Save dialog and then save the preset
+bool MainApplicationController::savePresetWithDialog() {
+    FileChooser myChooser ("Save preset...",
+                           File::nonexistent, // File::getSpecialLocation (File::userHomeDirectory),
+                           "*.tkpreset");
+    if(myChooser.browseForFileToSave(true)) {
+        File outputFile(myChooser.getResult());
+        return savePresetHelper(outputFile);
+    }
+    // User clicked cancel...
+    return true;
+}
+
+
+// Present the user with a Load dialog and then save the preset
+bool MainApplicationController::loadPresetWithDialog() {
+    FileChooser myChooser ("Select a preset...",
+                           File::nonexistent, // File::getSpecialLocation (File::userHomeDirectory),
+                           "*.tkpreset");
+    if(myChooser.browseForFileToOpen()) {
+        return loadPresetHelper(myChooser.getResult());
+    }
+    // User clicked cancel...
+    return true;
+}
+#endif
+
+bool MainApplicationController::loadPresetHelper(File const& inputFile) {
+    if(!inputFile.existsAsFile())
+        return false;
+    
+    // Load the XML element from the file and check that it is valid
+    XmlDocument document(inputFile);
+    ScopedPointer<XmlElement> mainElement = document.getDocumentElement();
+    
+    if(mainElement == 0)
+        return false;
+    if(mainElement->getTagName() != "TouchKeysPreset")
+        return false;
+    XmlElement *segmentsElement = mainElement->getChildByName("KeyboardSegments");
+    if(segmentsElement == 0)
+        return false;
+        
+    // Load the preset from this element
+    return midiInputController_.loadSegmentPreset(segmentsElement);
+}
+
+bool MainApplicationController::savePresetHelper(File& outputFile) {
+    XmlElement mainElement("TouchKeysPreset");
+    mainElement.setAttribute("format", "0.1");
+    
+    XmlElement* segmentsElement = midiInputController_.getSegmentPreset();
+    mainElement.addChildElement(segmentsElement);
+    
+    return mainElement.writeToFile(outputFile, "");
+}
+
 #ifdef ENABLE_TOUCHKEYS_SENSOR_TEST
 // Start testing the TouchKeys sensors. Returns true on success.
 bool MainApplicationController::touchkeySensorTestStart(const char *path, int firstKey) {

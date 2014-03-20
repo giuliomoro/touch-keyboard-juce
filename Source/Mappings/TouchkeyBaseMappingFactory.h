@@ -228,6 +228,18 @@ public:
         activeNotes_ = notes;
     }
     
+    // ****** Preset Save/Load ******
+    
+    // These generate XML settings files and reload settings from them
+    
+    virtual XmlElement* getPreset() {
+        XmlElement* presetElement = new XmlElement("MappingFactory");
+        presetElement->setAttribute("type", "Unknown");
+        return presetElement;
+    }
+    
+    virtual bool loadPreset(XmlElement const* preset) { return true; }
+    
     // ***** State Updaters *****
     
     // These are called by PianoKey whenever certain events occur that might

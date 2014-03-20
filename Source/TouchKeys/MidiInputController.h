@@ -113,6 +113,10 @@ public:
     void removeSegment(MidiKeyboardSegment* segment);
     void removeAllSegments();
     
+    // Preset save/load for keyboard segments
+    XmlElement* getSegmentPreset();
+    bool loadSegmentPreset(XmlElement const* preset);
+    
     // Juce MIDI callbacks
     void handleIncomingMidiMessage(MidiInput* source, const MidiMessage& message);
     void handlePartialSysexMessage(MidiInput* source,

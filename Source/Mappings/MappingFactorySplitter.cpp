@@ -142,6 +142,17 @@ void MappingFactorySplitter::removeAllFactories() {
     factories_.clear();
 }
 
+// Generate XML element with preset settings
+XmlElement* MappingFactorySplitter::getPreset() {
+    XmlElement *preset = new XmlElement("MappingFactory");
+    preset->setAttribute("type", "Splitter");
+    return preset;
+}
+
+bool MappingFactorySplitter::loadPreset(XmlElement const* preset) {
+    return true;
+}
+
 // Touch becomes active on a key where it wasn't previously
 void MappingFactorySplitter::touchBegan(int noteNumber, bool midiNoteIsOn, bool keyMotionActive,
                 Node<KeyTouchFrame>* touchBuffer,

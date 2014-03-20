@@ -134,6 +134,13 @@ public:
     virtual bool hasExtendedEditor() { return false; }
     virtual MappingEditorComponent* createExtendedEditor() { return nullptr; }
     
+    // ****** Preset Save/Load ******
+    // These methods generate XML settings files and reload values from them
+    // The specific implementation is up to the subclass
+    
+    virtual XmlElement* getPreset() = 0;
+    virtual bool loadPreset(XmlElement const* preset) = 0;
+    
 protected:
 	// ***** Member Variables *****
 	
