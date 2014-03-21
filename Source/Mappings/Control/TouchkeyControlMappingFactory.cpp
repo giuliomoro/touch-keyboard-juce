@@ -100,39 +100,6 @@ void TouchkeyControlMappingFactory::setController(int controller) {
     }
 }
 
-/*void TouchkeyControlMappingFactory::setRange(float inputMin, float inputMax, float inputCenter, float outputMin, float outputMax, float outputDefault) {
-    // All possible input parameters are in the range [-1, 1],
-    // and actually in the range [0, 1] if absolute values are used
-    // (though we don't check this here)
-    if(inputMin < -1.0)
-        inputRangeMin_ = -1.0;
-    else if(inputMin > 1.0)
-        inputRangeMin_ = 1.0;
-    else
-        inputRangeMin_ = inputMin;
-    if(inputMax < -1.0)
-        inputRangeMax_ = -1.0;
-    else if(inputMax > 1.0)
-        inputRangeMax_ = 1.0;
-    else
-        inputRangeMax_ = inputMax;
-    if(inputCenter < -1.0)
-        inputRangeCenter_ = -1.0;
-    else if(inputCenter > 1.0)
-        inputRangeCenter_ = 1.0;
-    else
-        inputRangeCenter_ = inputCenter;
-    outputRangeMin_ = outputMin;
-    outputRangeMax_ = outputMax;
-    outputDefault_ = outputDefault;
-    
-    // Update control
-    if(midiConverter_ == 0)
-        return;
-    midiConverter_->removeAllControls();
-    midiConverter_->addControl(controlName_.c_str(), 1, inputRangeMin_, inputRangeMax_, inputRangeCenter_, OscMidiConverter::kOutOfRangeClip);
-}*/
-
 void TouchkeyControlMappingFactory::setRangeInputMin(float inputMin) {
     if(inputMin < -1.0)
         inputRangeMin_ = -1.0;
@@ -225,12 +192,59 @@ MappingEditorComponent* TouchkeyControlMappingFactory::createBasicEditor() {
 
 // ****** Preset Save/Load ******
 XmlElement* TouchkeyControlMappingFactory::getPreset() {
-    XmlElement* preset = new XmlElement("MappingFactory");
+    PropertySet properties;
+    
+    storeCommonProperties(properties);
+    properties.setValue("inputParameter", inputParameter_);
+    properties.setValue("inputType", inputType_);
+    properties.setValue("outputRangeMin", outputRangeMin_);
+    properties.setValue("outputRangeMax", outputRangeMax_);
+    properties.setValue("outputDefault", outputDefault_);
+    properties.setValue("threshold", threshold_);
+    properties.setValue("ignoresTwoFingers", ignoresTwoFingers_);
+    properties.setValue("ignoresThreeFingers", ignoresThreeFingers_);
+    properties.setValue("direction", direction_);
+    
+    XmlElement* preset = properties.createXml("MappingFactory");
     preset->setAttribute("type", "Control");
+    
     return preset;
 }
 
 bool TouchkeyControlMappingFactory::loadPreset(XmlElement const* preset) {
+    if(preset == 0)
+        return false;
+    
+    PropertySet properties;
+    properties.restoreFromXml(*preset);
+    
+    if(!loadCommonProperties(properties))
+        return false;
+    if(!properties.containsKey("inputParameter") ||
+       !properties.containsKey("inputType") ||
+       !properties.containsKey("outputRangeMin") ||
+       !properties.containsKey("outputRangeMax") ||
+       !properties.containsKey("outputDefault") ||
+       !properties.containsKey("threshold") ||
+       !properties.containsKey("ignoresTwoFingers") ||
+       !properties.containsKey("ignoresThreeFingers") ||
+       !properties.containsKey("direction"))
+        return false;
+    
+    inputParameter_ = properties.getIntValue("inputParameter");
+    inputType_ = properties.getIntValue("inputType");
+    outputRangeMin_ = properties.getIntValue("outputRangeMin");
+    outputRangeMax_ = properties.getIntValue("outputRangeMax");
+    outputDefault_ = properties.getIntValue("outputDefault");
+    threshold_ = properties.getIntValue("threshold");
+    ignoresTwoFingers_ = properties.getIntValue("ignoresTwoFingers");
+    ignoresThreeFingers_ = properties.getIntValue("ignoresThreeFingers");
+    direction_ = properties.getIntValue("direction");
+    
+    // Update MIDI information; this doesn't actually change the controller
+    // (which is already set) but it adds a listener and updates the ranges
+    setController(midiControllerNumber_);
+    
     return true;
 }
 
