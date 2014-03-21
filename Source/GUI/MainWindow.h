@@ -97,6 +97,12 @@ public:
     // Perform a command
     bool perform (const InvocationInfo& info);
     
+    // Callback for alert box
+    static void alertBoxResultChosen(int result, MainWindow *item);
+    
+    // Clear preset (called from alert box
+    void clearPreset() { controller_.clearPreset(); }
+    
     /* Note: Be careful if you override any DocumentWindow methods - the base
      class uses a lot of them, so by overriding you might break its functionality.
      It's best to do all your work in your content component instead, but if

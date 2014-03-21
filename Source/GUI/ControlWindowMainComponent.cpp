@@ -742,15 +742,16 @@ void ControlWindowMainComponent::updateKeyboardSegments()
         return;
     // Update the identifier to say we've matched the current state of the segments
     lastSegmentUniqueIdentifier_ = controller_->midiSegmentUniqueIdentifier();
-
+    
     // Save the current selected index in case we later remove it
     int currentlySelectedIndex = keyboardZoneTabbedComponent->getCurrentTabIndex();
+    
     KeyboardZoneComponent* currentlySelectedComponent = static_cast<KeyboardZoneComponent*> (keyboardZoneTabbedComponent->getTabContentComponent(currentlySelectedIndex));
     MidiKeyboardSegment* currentlySelectedSegment = 0;
     if(currentlySelectedComponent != 0)
         currentlySelectedSegment = currentlySelectedComponent->keyboardSegment();
     bool selectedNewTab = false;
-
+    
     // First, go through the segments and create tabs as needed
     int maxNumSegments = controller_->midiSegmentsCount();
     for(int i = 0; i < maxNumSegments; i++) {
@@ -761,7 +762,7 @@ void ControlWindowMainComponent::updateKeyboardSegments()
         // Look for this segment among the tabs we already have
         for(int tab = 0; tab < keyboardZoneTabbedComponent->getNumTabs(); tab++) {
             KeyboardZoneComponent *component = static_cast<KeyboardZoneComponent*> (keyboardZoneTabbedComponent->getTabContentComponent(tab));
-            if(component->keyboardSegment() == segment) {
+            if(component->keyboardSegment() == segment && component->keyboardZone() == segment->outputPort()) {
                 // Found it...
                 matched = true;
                 break;
@@ -771,7 +772,7 @@ void ControlWindowMainComponent::updateKeyboardSegments()
         if(!matched) {
             KeyboardZoneComponent *newComponent = new KeyboardZoneComponent();
             newComponent->setMainApplicationController(controller_);
-            newComponent->setKeyboardSegment(segment);
+            newComponent->setKeyboardSegment(segment, segment->outputPort());
 
             char name[16];
 #ifdef _MSC_VER
@@ -798,24 +799,28 @@ void ControlWindowMainComponent::updateKeyboardSegments()
         bool matched = false;
 
         for(int i = 0; i < maxNumSegments; i++) {
-            if(segment == controller_->midiSegment(i)) {
+            if(segment == controller_->midiSegment(i) && component->keyboardZone() == segment->outputPort()) {
                 matched = true;
                 break;
             }
         }
         if(segment == 0 || !matched) {
-            //std::cout << "Removing tab for nonexistent segment " << segment << endl;
-
+            // This tab holds a nonexistent segment and should be removed
+            keyboardZoneTabbedComponent->removeTab(tab);
+            
             if(currentlySelectedSegment == segment) {
                 // The currently selected tab has been removed. Select the prior one.
-                if(currentlySelectedIndex > 0)
-                    keyboardZoneTabbedComponent->setCurrentTabIndex(currentlySelectedIndex - 1);
+                if(currentlySelectedIndex > 0) {
+                    int indexToSelect = currentlySelectedIndex - 1;
+                    if(indexToSelect >= keyboardZoneTabbedComponent->getNumTabs())
+                        indexToSelect = keyboardZoneTabbedComponent->getNumTabs() - 1;
+                    if(indexToSelect < 0)
+                        indexToSelect = 0;
+                    keyboardZoneTabbedComponent->setCurrentTabIndex(indexToSelect);
+                }
                 else
                     keyboardZoneTabbedComponent->setCurrentTabIndex(0);
             }
-
-            // This tab holds a nonexistent segment and should be removed
-            keyboardZoneTabbedComponent->removeTab(tab);
 
             // And we have to start over again since the tab indexing has changed
             tab = 0;

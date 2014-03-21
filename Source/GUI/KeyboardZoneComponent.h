@@ -58,8 +58,9 @@ public:
         }
     }
 
-    void setKeyboardSegment(MidiKeyboardSegment *segment) {
+    void setKeyboardSegment(MidiKeyboardSegment *segment, int zone) {
         keyboardSegment_ = segment;
+        keyboardZone_ = zone;
         mappingListComponent->setKeyboardSegment(keyboardSegment_);
         if(controller_ != 0) {
             synchronize(true);
@@ -69,6 +70,7 @@ public:
     MidiKeyboardSegment* keyboardSegment() {
         return keyboardSegment_;
     }
+    int keyboardZone() { return keyboardZone_; }
 
     // TextEditor listener methods
     void textEditorTextChanged(TextEditor &editor) {}
@@ -128,6 +130,7 @@ private:
 
     MainApplicationController *controller_; // Pointer to the main application controller
     MidiKeyboardSegment *keyboardSegment_;  // Pointer to the segment this component controls
+    int keyboardZone_;                      // Which zone this corresponds to (for UI sync purposes)
     std::vector<int> midiOutputDeviceIDs_;
     int lastSelectedMidiOutputID_;
     //[/UserVariables]

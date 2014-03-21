@@ -536,6 +536,16 @@ bool MainApplicationController::savePresetHelper(File& outputFile) {
     return mainElement.writeToFile(outputFile, "");
 }
 
+// Clear the current preset and restore default settings
+void MainApplicationController::clearPreset() {
+    midiInputController_.removeAllSegments();
+    midiOutputController_.disableAllPorts();
+    segmentCounter_ = 0;
+    
+    // Re-add a new segment, starting at 0
+    midiSegmentAdd();
+}
+
 #ifdef ENABLE_TOUCHKEYS_SENSOR_TEST
 // Start testing the TouchKeys sensors. Returns true on success.
 bool MainApplicationController::touchkeySensorTestStart(const char *path, int firstKey) {
