@@ -512,7 +512,7 @@ bool MainApplicationController::loadPresetHelper(File const& inputFile) {
     
     // Load the XML element from the file and check that it is valid
     XmlDocument document(inputFile);
-    ScopedPointer<XmlElement> mainElement = document.getDocumentElement();
+    ScopedPointer<XmlElement> mainElement(document.getDocumentElement());
     
     if(mainElement == 0)
         return false;
