@@ -101,7 +101,6 @@ private:
 
     int inputParameter_;                                // Type of input data
     int inputType_;                                     // Whether data is absolute or relative
-    //float inputRangeMin_, inputRangeMax_;               // Input ranges
     float outputRangeMin_, outputRangeMax_;             // Output ranges
     float outputDefault_;                               // Default values
     float threshold_;                                   // Detection threshold for relative motion

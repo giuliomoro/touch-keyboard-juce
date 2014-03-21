@@ -397,7 +397,7 @@ bool MidiKeyboardSegment::oscHandlerMethod(const char *path, const char *types, 
 // destroyed.
 OscMidiConverter* MidiKeyboardSegment::acquireOscMidiConverter(int controlId) {
     OscMidiConverter *converter;
-    
+
     if(oscMidiConverters_.count(controlId) == 0) {
         converter = new OscMidiConverter(keyboard_, *this, controlId);
         converter->setMidiOutputController(midiOutputController_);
