@@ -77,6 +77,10 @@ public:
     bool hasExtendedEditor() { return false; }
     MappingEditorComponent* createExtendedEditor() { return nullptr; }
     
+    // ****** Preset Save/Load ******
+    XmlElement* getPreset();
+    bool loadPreset(XmlElement const* preset);
+    
 private:
     // ***** Private Methods *****
     void initializeMappingParameters(int noteNumber, TouchkeyVibratoMapping *mapping);

@@ -233,12 +233,12 @@ bool TouchkeyControlMappingFactory::loadPreset(XmlElement const* preset) {
     
     inputParameter_ = properties.getIntValue("inputParameter");
     inputType_ = properties.getIntValue("inputType");
-    outputRangeMin_ = properties.getIntValue("outputRangeMin");
-    outputRangeMax_ = properties.getIntValue("outputRangeMax");
-    outputDefault_ = properties.getIntValue("outputDefault");
-    threshold_ = properties.getIntValue("threshold");
-    ignoresTwoFingers_ = properties.getIntValue("ignoresTwoFingers");
-    ignoresThreeFingers_ = properties.getIntValue("ignoresThreeFingers");
+    outputRangeMin_ = properties.getDoubleValue("outputRangeMin");
+    outputRangeMax_ = properties.getDoubleValue("outputRangeMax");
+    outputDefault_ = properties.getDoubleValue("outputDefault");
+    threshold_ = properties.getDoubleValue("threshold");
+    ignoresTwoFingers_ = properties.getBoolValue("ignoresTwoFingers");
+    ignoresThreeFingers_ = properties.getBoolValue("ignoresThreeFingers");
     direction_ = properties.getIntValue("direction");
     
     // Update MIDI information; this doesn't actually change the controller
