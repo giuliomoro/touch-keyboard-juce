@@ -308,8 +308,8 @@ void ControlWindowMainComponent::resized()
     //[UserResized] Add your own custom resize handling here..
     
     // Resize KeyboardZoneComponent to fit new bounds
-    Rectangle<int> const& ourBounds = getBounds();
-    Rectangle<int> keyboardZoneBounds = keyboardZoneTabbedComponent->getBounds();
+    juce::Rectangle<int> const& ourBounds = getBounds();
+    juce::Rectangle<int> keyboardZoneBounds = keyboardZoneTabbedComponent->getBounds();
     keyboardZoneBounds.setHeight(ourBounds.getHeight() - keyboardZoneBounds.getY());
     keyboardZoneTabbedComponent->setBounds(keyboardZoneBounds);
     //[/UserResized]
