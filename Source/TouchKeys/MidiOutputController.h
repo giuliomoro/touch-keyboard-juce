@@ -60,14 +60,6 @@ public:
     
     int enabledPort(int identifier);
     std::vector<std::pair<int, int> > enabledPorts();
-   
-	//bool openPort(int portNumber);
-	//bool openVirtualPort();
-	//void closePort();
-	
-	//bool isOpen() { return (midiOut_ != 0); }
-    //int activePort() { return portNumber_; }
-    //int numActivePorts() { return 1; } // TODO: implement me
 	
 	// Send MIDI messages
 	void sendNoteOn(int port, unsigned char channel, unsigned char note, unsigned char velocity);
@@ -86,9 +78,6 @@ public:
 	~MidiOutputController() { disableAllPorts(); }
 	
 private:
-	//MidiOutput *midiOut_;	// Output instance from Juce; 0 if not open
-    //int portNumber_;        // Which port is currently open
-    
     std::map<int, MidiOutputControllerRecord> activePorts_;              // Destinations for MIDI data
 };
 

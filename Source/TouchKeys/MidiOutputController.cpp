@@ -23,6 +23,7 @@
 
 #include "MidiOutputController.h"
 
+#undef DEBUG_MIDI_OUTPUT_CONTROLLER
 #undef MIDI_OUTPUT_CONTROLLER_DEBUG_RAW
 
 // Constructor
@@ -70,7 +71,9 @@ bool MidiOutputController::enablePort(int identifier, int deviceNumber) {
         return false;
     }
     
-    //cout << "Enabling MIDI output port " << deviceNumber << " for ID " << identifier << "\n";
+#ifdef DEBUG_MIDI_OUTPUT_CONTROLLER
+    cout << "Enabling MIDI output port " << deviceNumber << " for ID " << identifier << "\n";
+#endif
     
     // Save the device in the set of ports
     MidiOutputControllerRecord record;
@@ -101,6 +104,10 @@ bool MidiOutputController::enableVirtualPort(int identifier, const char *name) {
     
     activePorts_[identifier] = record;
     
+#ifdef DEBUG_MIDI_OUTPUT_CONTROLLER
+    cout << "Enabling virtual output port " << name << endl;
+#endif
+    
 	return true;
 }
 #endif
@@ -114,7 +121,9 @@ void MidiOutputController::disablePort(int identifier) {
     if(device == 0)
         return;
     
-	//cout << "Disabling MIDI output " << activePorts_[identifier].portNumber << " for ID " << identifier << "\n";
+#ifdef DEBUG_MIDI_OUTPUT_CONTROLLER
+	cout << "Disabling MIDI output " << activePorts_[identifier].portNumber << " for ID " << identifier << "\n";
+#endif
     delete device;
     
 	activePorts_.erase(identifier);
@@ -123,8 +132,10 @@ void MidiOutputController::disablePort(int identifier) {
 void MidiOutputController::disableAllPorts() {
     std::map<int, MidiOutputControllerRecord>::iterator it;
 	
-	//cout << "Disabling all MIDI output ports\n";
-	
+#ifdef DEBUG_MIDI_OUTPUT_CONTROLLER
+	cout << "Disabling all MIDI output ports\n";
+#endif
+    
 	it = activePorts_.begin();
 	
 	while(it != activePorts_.end()) {
@@ -153,54 +164,6 @@ std::vector<std::pair<int, int> > MidiOutputController::enabledPorts() {
     
     return ports;
 }
-
-/*
-// Open a new MIDI output port, given an index related to the list from
-// availableMidiDevices().  Returns true on success.
-
-bool MidiOutputController::openPort(int portNumber) {
-	// Close any previously open port
-    closePort();
-    
-    // Try to open the port
-    MidiOutput* device = MidiOutput::openDevice(portNumber);
-    if(device == 0)
-        return false;
-    
-    midiOut_ = device;
-    portNumber_ = portNumber;
-    
-    return true;
-}
-
-// Open a virtual MIDI port that other applications can connect to.
-// Returns true on success.
-
-bool MidiOutputController::openVirtualPort() {
-	// Close any previously open port
-    closePort();
-    
-    // Try to create a new port
-    MidiOutput* device = MidiOutput::createNewDevice(kMidiVirtualOutputName);
-    if(device == 0)
-        return false;
-    
-    midiOut_ = device;
-    portNumber_ = kMidiVirtualOutputPortNumber;
-    
-	return true;
-}
-
-// Close a currently open MIDI port
-void MidiOutputController::closePort() {
-    if(midiOut_ != 0) {
-        delete midiOut_;
-    }
-    
-    midiOut_ = 0;
-    portNumber_ = kMidiOutputNotOpen;
-}
- */
 
 // Send a MIDI Note On message
 void MidiOutputController::sendNoteOn(int port, unsigned char channel, unsigned char note, unsigned char velocity) {

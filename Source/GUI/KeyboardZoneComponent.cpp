@@ -190,7 +190,7 @@ KeyboardZoneComponent::KeyboardZoneComponent ()
         rangeHighComboBox->addItem(MainApplicationController::midiNoteName(note).c_str(), note);
     }
 
-    lastSelectedMidiOutputID_ = -100;
+    lastSelectedMidiOutputID_ = kInvalidMidiOutputId;
 
     //[/UserPreSize]
 
@@ -601,7 +601,7 @@ void KeyboardZoneComponent::updateOutputDeviceList()
         counter++;
     }
 
-    if(!lastSelectedDeviceExists) {
+    if(!lastSelectedDeviceExists && lastSelectedMidiOutputID_ != kInvalidMidiOutputId) {
 #ifndef JUCE_WINDOWS
         if(lastSelectedMidiOutputID_ != MidiOutputController::kMidiVirtualOutputPortNumber)
             controller_->disableMIDIOutputPort(keyboardSegment_->outputPort());

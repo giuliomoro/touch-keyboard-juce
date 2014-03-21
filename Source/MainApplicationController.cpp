@@ -523,7 +523,15 @@ bool MainApplicationController::loadPresetHelper(File const& inputFile) {
         return false;
         
     // Load the preset from this element
-    return midiInputController_.loadSegmentPreset(segmentsElement);
+    bool result = midiInputController_.loadSegmentPreset(segmentsElement);
+    
+    // Loading a preset won't set standalone mode; so re-enable it when finished
+    // if needed
+    if(touchkeyStandaloneModeEnabled_) {
+        midiTouchkeysStandaloneModeEnable();
+    }
+    
+    return result;
 }
 
 bool MainApplicationController::savePresetHelper(File& outputFile) {
@@ -539,7 +547,7 @@ bool MainApplicationController::savePresetHelper(File& outputFile) {
 // Clear the current preset and restore default settings
 void MainApplicationController::clearPreset() {
     midiInputController_.removeAllSegments();
-    midiOutputController_.disableAllPorts();
+    //midiOutputController_.disableAllPorts();
     segmentCounter_ = 0;
     
     // Re-add a new segment, starting at 0
