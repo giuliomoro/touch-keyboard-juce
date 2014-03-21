@@ -46,6 +46,10 @@ public:
     // ***** Accessors / Modifiers *****
     virtual const std::string factoryTypeName() { return "Release\nAngle"; }
     
+    // ****** Preset Save/Load ******
+    XmlElement* getPreset();
+    bool loadPreset(XmlElement const* preset);
+    
     // ***** State Updaters *****
     
     // Override the MIDI note off method to process the release angle

@@ -47,6 +47,10 @@ public:
     
     virtual const std::string factoryTypeName() { return "Onset\nAngle"; }
     
+    // ****** Preset Save/Load ******
+    XmlElement* getPreset();
+    bool loadPreset(XmlElement const* preset);
+    
     // ***** State Updaters *****
     
     // Override the MIDI note on method to process the onset angle

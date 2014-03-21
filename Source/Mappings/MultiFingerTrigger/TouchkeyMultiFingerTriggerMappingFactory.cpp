@@ -23,3 +23,32 @@
 */
 
 #include "TouchkeyMultiFingerTriggerMappingFactory.h"
+
+// ****** Preset Save/Load ******
+XmlElement* TouchkeyMultiFingerTriggerMappingFactory::getPreset() {
+    PropertySet properties;
+    
+    storeCommonProperties(properties);
+    
+    // No properties for now
+    
+    XmlElement* preset = properties.createXml("MappingFactory");
+    preset->setAttribute("type", "MultiFingerTrigger");
+    
+    return preset;
+}
+
+bool TouchkeyMultiFingerTriggerMappingFactory::loadPreset(XmlElement const* preset) {
+    if(preset == 0)
+        return false;
+    
+    PropertySet properties;
+    properties.restoreFromXml(*preset);
+    
+    if(!loadCommonProperties(properties))
+        return false;
+    
+    // Nothing specific to do for now
+    
+    return true;
+}

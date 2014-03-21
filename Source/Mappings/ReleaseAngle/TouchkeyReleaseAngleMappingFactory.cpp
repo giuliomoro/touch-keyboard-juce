@@ -31,6 +31,35 @@ const timestamp_diff_type TouchkeyReleaseAngleMappingFactory::kDefaultMaxLookbac
 TouchkeyReleaseAngleMappingFactory::TouchkeyReleaseAngleMappingFactory(PianoKeyboard &keyboard, MidiKeyboardSegment& segment)
 : TouchkeyBaseMappingFactory<TouchkeyReleaseAngleMapping>(keyboard, segment) {}
 
+// ****** Preset Save/Load ******
+XmlElement* TouchkeyReleaseAngleMappingFactory::getPreset() {
+    PropertySet properties;
+    
+    storeCommonProperties(properties);
+    
+    // No properties for now
+    
+    XmlElement* preset = properties.createXml("MappingFactory");
+    preset->setAttribute("type", "ReleaseAngle");
+    
+    return preset;
+}
+
+bool TouchkeyReleaseAngleMappingFactory::loadPreset(XmlElement const* preset) {
+    if(preset == 0)
+        return false;
+    
+    PropertySet properties;
+    properties.restoreFromXml(*preset);
+    
+    if(!loadCommonProperties(properties))
+        return false;
+    
+    // Nothing specific to do for now
+    
+    return true;
+}
+
 // MIDI note ended: see whether the mapping was suspended and if not, execute the angle calculation
 void TouchkeyReleaseAngleMappingFactory::midiNoteOff(int noteNumber, bool touchIsOn, bool keyMotionActive,
                                                      Node<KeyTouchFrame>* touchBuffer,

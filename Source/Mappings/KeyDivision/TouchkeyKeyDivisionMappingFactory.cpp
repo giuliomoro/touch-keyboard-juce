@@ -131,6 +131,38 @@ void TouchkeyKeyDivisionMappingFactory::setName(const string& name) {
     setBendParameters();
 }
 
+
+// ****** Preset Save/Load ******
+XmlElement* TouchkeyKeyDivisionMappingFactory::getPreset() {
+    PropertySet properties;
+    
+    storeCommonProperties(properties);
+    
+    // No properties for now
+    
+    XmlElement* preset = properties.createXml("MappingFactory");
+    preset->setAttribute("type", "KeyDivision");
+    
+    return preset;
+}
+
+bool TouchkeyKeyDivisionMappingFactory::loadPreset(XmlElement const* preset) {
+    if(preset == 0)
+        return false;
+    
+    PropertySet properties;
+    properties.restoreFromXml(*preset);
+    
+    if(!loadCommonProperties(properties))
+        return false;
+
+    // Nothing specific to do for now
+    
+    return true;
+}
+
+// ***** Private Methods *****
+
 // Set the initial parameters for a new mapping
 void TouchkeyKeyDivisionMappingFactory::initializeMappingParameters(int noteNumber, TouchkeyKeyDivisionMapping *mapping) {
     // KLUDGE: testing Maqam tunings. Go from absolute tunings in cents to pitch bends in semitones
