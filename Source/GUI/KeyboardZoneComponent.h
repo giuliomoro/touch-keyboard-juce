@@ -108,6 +108,10 @@ private:
     //[UserVariables]   -- You can add your own custom variables in this section.
 
     enum {
+        kInvalidMidiOutputId = -100
+    };
+    
+    enum {
         // Offsets between Juce UI IDs and positions in vector
         kMidiOutputDeviceComboBoxOffset = 3,
         kMidiOutputModeComboBoxOffset = 1

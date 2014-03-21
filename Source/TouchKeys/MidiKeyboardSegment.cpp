@@ -556,7 +556,7 @@ XmlElement* MidiKeyboardSegment::getPreset() {
     properties.setValue("outputChannelLowest", outputChannelLowest_);
     properties.setValue("outputTransposition", outputTransposition_);
     properties.setValue("damperPedalEnabled", damperPedalEnabled_);
-    properties.setValue("touchkeysStandaloneMode", touchkeyStandaloneMode_);
+    // Don't set standalone mode; that's an input parameter
     properties.setValue("usesKeyboardChannelPressure", usesKeyboardChannelPressure_);
     properties.setValue("usesKeyboardPitchWheel", usesKeyboardPitchWheel_);
     properties.setValue("usesKeyboardModWheel", usesKeyboardModWheel_);
@@ -613,9 +613,6 @@ bool MidiKeyboardSegment::loadPreset(XmlElement const* preset) {
     if(!properties.containsKey("damperPedalEnabled"))
         return false;
     damperPedalEnabled_ = properties.getBoolValue("damperPedalEnabled");
-    if(!properties.containsKey("touchkeysStandaloneMode"))
-        return false;
-    touchkeyStandaloneMode_ = properties.getBoolValue("touchkeysStandaloneMode");
     if(!properties.containsKey("usesKeyboardChannelPressure"))
         return false;
     usesKeyboardChannelPressure_ = properties.getBoolValue("usesKeyboardChannelPressure");
