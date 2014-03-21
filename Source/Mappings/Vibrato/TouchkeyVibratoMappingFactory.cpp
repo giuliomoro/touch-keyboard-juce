@@ -161,6 +161,63 @@ MappingEditorComponent* TouchkeyVibratoMappingFactory::createBasicEditor() {
     return new TouchkeyVibratoMappingShortEditor(*this);
 }
 
+
+// ****** Preset Save/Load ******
+XmlElement* TouchkeyVibratoMappingFactory::getPreset() {
+    PropertySet properties;
+    
+    storeCommonProperties(properties);
+    properties.setValue("vibratoControl", vibratoControl_);
+    properties.setValue("vibratoRange", vibratoRange_);
+    properties.setValue("vibratoPrescaler", vibratoPrescaler_);
+    properties.setValue("vibratoTimeout", vibratoTimeout_);
+    properties.setValue("vibratoOnsetThresholdX", vibratoOnsetThresholdX_);
+    properties.setValue("vibratoOnsetThresholdY", vibratoOnsetThresholdY_);
+    properties.setValue("vibratoOnsetRatioX", vibratoOnsetRatioX_);
+    properties.setValue("vibratoOnsetRatioY", vibratoOnsetRatioY_);
+
+    XmlElement* preset = properties.createXml("MappingFactory");
+    preset->setAttribute("type", "Vibrato");
+    
+    return preset;
+}
+
+bool TouchkeyVibratoMappingFactory::loadPreset(XmlElement const* preset) {
+    if(preset == 0)
+        return false;
+    
+    PropertySet properties;
+    properties.restoreFromXml(*preset);
+    
+    if(!loadCommonProperties(properties))
+        return false;
+    if(!properties.containsKey("vibratoControl") ||
+       !properties.containsKey("vibratoRange") ||
+       !properties.containsKey("vibratoPrescaler") ||
+       !properties.containsKey("vibratoTimeout") ||
+       !properties.containsKey("vibratoOnsetThresholdX") ||
+       !properties.containsKey("vibratoOnsetThresholdY") ||
+       !properties.containsKey("vibratoOnsetRatioX") ||
+       !properties.containsKey("vibratoOnsetRatioY"))
+        return false;
+    
+    vibratoControl_ = properties.getDoubleValue("vibratoControl");
+    vibratoRange_ = properties.getDoubleValue("vibratoRange");
+    vibratoPrescaler_ = properties.getDoubleValue("vibratoPrescaler");
+    vibratoTimeout_ = properties.getDoubleValue("vibratoTimeout");
+    vibratoOnsetThresholdX_ = properties.getDoubleValue("vibratoOnsetThresholdX");
+    vibratoOnsetThresholdY_ = properties.getDoubleValue("vibratoOnsetThresholdY");
+    vibratoOnsetRatioX_ = properties.getDoubleValue("vibratoOnsetRatioX");
+    vibratoOnsetRatioY_ = properties.getDoubleValue("vibratoOnsetRatioY");
+    
+    // Update MIDI information; this doesn't actually change the controller
+    // (which is already set) but it adds a listener and updates the ranges
+    setVibratoControl(vibratoControl_);
+    
+    return true;
+}
+
+
 // ***** Private Methods *****
 
 // Set the initial parameters for a new mapping
