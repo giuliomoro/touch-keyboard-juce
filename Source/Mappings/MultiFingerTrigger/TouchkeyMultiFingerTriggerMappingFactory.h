@@ -46,6 +46,10 @@ public:
     // ***** Accessors / Modifiers *****
     
     virtual const std::string factoryTypeName() { return "Multi-Finger\nTrigger"; }
+    
+    // ****** Preset Save/Load ******
+    XmlElement* getPreset();
+    bool loadPreset(XmlElement const* preset);
 };
 
 #endif /* defined(__TouchKeys__TouchkeyMultiFingerTriggerMappingFactory__) */
