@@ -280,8 +280,8 @@ void KeyboardZoneComponent::resized()
     //[UserResized] Add your own custom resize handling here..
     
     // Resize the mapping list to fit the bottom of the window
-    Rectangle<int> const& ourBounds = getBounds();
-    Rectangle<int> mappingBounds = mappingListComponent->getBounds();
+    juce::Rectangle<int> const& ourBounds = getBounds();
+    juce::Rectangle<int> mappingBounds = mappingListComponent->getBounds();
     mappingBounds.setHeight(ourBounds.getHeight() - mappingBounds.getY());
     mappingListComponent->setBounds(mappingBounds);
     
