@@ -341,6 +341,9 @@ public:
     bool loadPresetWithDialog();
 #endif
     
+    // Clears the current preset and restores default settings to zones/mappings
+    void clearPreset();
+    
 #ifdef ENABLE_TOUCHKEYS_SENSOR_TEST
     // *** TouchKeys sensor testing methods ***
     // Start testing the TouchKeys sensors

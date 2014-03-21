@@ -192,7 +192,7 @@ void MainWindow::getCommandInfo(CommandID commandID, ApplicationCommandInfo& res
         case kCommandClearPreset:
             result.setInfo("Clear Settings", "Clears the current settings", presetsCategory, 0);
             result.setTicked(false);
-            result.setActive(false);
+            result.setActive(true);
             break;
         case kCommandOpenPreset:
             result.setInfo("Open Preset...", "Opens an existing preset", presetsCategory, 0);
@@ -301,6 +301,14 @@ bool MainWindow::perform(const InvocationInfo& info) {
     switch (info.commandID)
     {
         case kCommandClearPreset:
+            // Display an alert to confirm the user wants to delete this mapping
+            AlertWindow::showOkCancelBox (AlertWindow::QuestionIcon,
+                                          "Clear settings",
+                                          "Are you sure you want to clear all zones and mappings?",
+                                          String::empty,
+                                          String::empty,
+                                          0,
+                                          ModalCallbackFunction::forComponent(alertBoxResultChosen, this));
             break;
         case kCommandOpenPreset:
             controller_.loadPresetWithDialog();
@@ -343,4 +351,11 @@ bool MainWindow::perform(const InvocationInfo& info) {
     };
     
     return true;
+}
+
+// Called when user clicks a result in the alert box to confirm deletion
+void MainWindow::alertBoxResultChosen(int result, MainWindow *item) {
+    if(result != 0) {
+        item->clearPreset();
+    }
 }
