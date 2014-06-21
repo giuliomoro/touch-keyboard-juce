@@ -225,9 +225,14 @@ public:
     
     // Return a list of current mapping factories.
     vector<MappingFactory*> const& mappingFactories();
+
+    // Return the specific index of this mapping factory
+    int indexOfMappingFactory(MappingFactory *factory);
     
     // Return a unique identifier of the mapping state, so we know when something has changed
     int mappingFactoryUniqueIdentifier() { return mappingFactoryUniqueIdentifier_; }
+    
+
     
     // **** Preset methods ****
     

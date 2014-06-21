@@ -56,6 +56,7 @@ public:
       controlName_(""),
       inputRangeMin_(0.0), inputRangeMax_(1.0), inputRangeCenter_(0.0),
       outOfRangeBehavior_(OscMidiConverter::kOutOfRangeClip),
+      use14BitControl_(false),
       midiControllerNumber_(-1), bypassed_(false), activeNotes_(0x0FFF) {}
     
     // ***** Destructor *****
@@ -185,6 +186,7 @@ public:
         inputRangeMax_ = inputMaxValue;
         inputRangeCenter_ = inputCenterValue;
         outOfRangeBehavior_ = outOfRangeBehavior;
+        use14BitControl_ = use14BitControl;
         
         // Remove listener on previous name (if any)
         //midiConverter_.removeAllControls();
@@ -448,6 +450,7 @@ protected:
     float inputRangeMin_, inputRangeMax_;               // Input ranges
     float inputRangeCenter_;      
     int outOfRangeBehavior_;                            // What happens to out of range inputs
+    bool use14BitControl_;                              // Whether to use a 14-bit control
 
     int midiControllerNumber_;                          // Which controller to use
     bool bypassed_;                                     // Whether the mapping has been bypassed by UI

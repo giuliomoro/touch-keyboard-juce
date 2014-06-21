@@ -68,7 +68,9 @@ public:
     float getThreshold() { return threshold_; }
     bool getIgnoresTwoFingers() { return ignoresTwoFingers_; }
     bool getIgnoresThreeFingers() { return ignoresThreeFingers_; }
-    int getDirection() { return direction_; }
+    int getDirection();
+    int getOutOfRangeBehavior() { return outOfRangeBehavior_; }
+    bool getUses14BitControl() { return use14BitControl_; }
     
     void setInputParameter(int inputParameter);
     void setInputType(int inputType);
@@ -84,12 +86,14 @@ public:
     void setIgnoresTwoFingers(bool ignoresTwo);
     void setIgnoresThreeFingers(bool ignoresThree);
     void setDirection(int direction);
+    void setOutOfRangeBehavior(int behavior);
+    void setUses14BitControl(bool use);
     
     // ***** GUI Support *****
     bool hasBasicEditor() { return true; }
     MappingEditorComponent* createBasicEditor();
-    bool hasExtendedEditor() { return false; }
-    MappingEditorComponent* createExtendedEditor() { return nullptr; }
+    bool hasExtendedEditor() { return true; }
+    MappingEditorComponent* createExtendedEditor();
     
     // ****** Preset Save/Load ******
     XmlElement* getPreset();

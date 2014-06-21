@@ -127,6 +127,8 @@ PopupMenu MainWindow::getMenuForIndex(int menuIndex, const String& menuName) {
 #ifdef ENABLE_TOUCHKEYS_SENSOR_TEST
         menu.addCommandItem(&commandManager_, kCommandTestTouchkeySensors);
 #endif
+        menu.addSeparator();
+        menu.addCommandItem(&commandManager_, kCommandPreferences);
     }
     else if(menuIndex == 3) { // Window
         menu.addCommandItem(&commandManager_, kCommandShowControlWindow);
@@ -170,6 +172,8 @@ void MainWindow::getAllCommands(Array <CommandID>& commands) {
 #ifdef ENABLE_TOUCHKEYS_SENSOR_TEST
         kCommandTestTouchkeySensors,
 #endif
+        kCommandPreferences,
+        
         // Window
         kCommandShowControlWindow,
         kCommandShowKeyboardWindow
@@ -279,6 +283,11 @@ void MainWindow::getCommandInfo(CommandID commandID, ApplicationCommandInfo& res
             result.setTicked(controller_.touchkeySensorTestIsRunning());
             break;
 #endif
+        case kCommandPreferences:
+            result.setInfo("Preferences...", "General application preferences", controlCategory, 0);
+            result.setTicked(false);
+            result.setActive(true);
+            break;
             
         // *** Window Menu ***
         case kCommandShowControlWindow:
@@ -339,6 +348,9 @@ bool MainWindow::perform(const InvocationInfo& info) {
                 controller_.touchkeySensorTestStop();
             break;
 #endif
+        case kCommandPreferences:
+            controller_.showPreferencesWindow();
+            break;
         case kCommandShowControlWindow:
             toFront(true);
             break;

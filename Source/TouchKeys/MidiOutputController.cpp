@@ -165,6 +165,26 @@ std::vector<std::pair<int, int> > MidiOutputController::enabledPorts() {
     return ports;
 }
 
+// Get the name of a particular MIDI input port
+String MidiOutputController::deviceName(int portNumber) {
+    StringArray const& deviceStrings = MidiOutput::getDevices();
+    if(portNumber < 0 || portNumber >= deviceStrings.size())
+        return "";
+    return deviceStrings[portNumber];
+}
+
+// Find the index of a device with a given name; return -1 if not found
+int MidiOutputController::indexOfDeviceNamed(String const& name) {
+    StringArray const& deviceStrings = MidiOutput::getDevices();
+    
+    for(int i = 0; i < deviceStrings.size(); i++) {
+        if(name == deviceStrings[i])
+            return i;
+    }
+    
+    return -1;
+}
+
 // Send a MIDI Note On message
 void MidiOutputController::sendNoteOn(int port, unsigned char channel, unsigned char note, unsigned char velocity) {
 	sendMessage(port,

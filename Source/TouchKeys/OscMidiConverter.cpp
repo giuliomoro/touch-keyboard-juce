@@ -189,11 +189,18 @@ int OscMidiConverter::currentControllerValue(int channel) {
 #endif
     }
     
+    // For 14-bit CC messages, multiply by 128 first to keep the same apparent range as
+    // the 7-bit version but adding extra resolution on the second CC number. This should
+    // not be done for pitch wheel where the values are already normalised to 14 bits.
+    if(controllerIs14Bit_ && controller_ != MidiKeyboardSegment::kControlPitchWheel)
+        controlValue *= 128.0;
+    
     int roundedControlValue = (int)floorf(controlValue + 0.5f);
-    if(roundedControlValue > controlMaxValue_)
-        roundedControlValue = controlMaxValue_;
-    if(roundedControlValue < controlMinValue_)
-        roundedControlValue = controlMinValue_;
+    int maxValue = controllerIs14Bit_ ? 16383 : 127;
+    if(roundedControlValue > maxValue)
+        roundedControlValue = maxValue;
+    if(roundedControlValue < 0)
+        roundedControlValue = 0;
     
     return roundedControlValue;
 }

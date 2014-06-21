@@ -42,7 +42,7 @@ class OscMidiConverter : public OscHandler {
 public:
     // Behavior for out-of-range inputs.
     enum {
-        kOutOfRangeIgnore = 0,
+        kOutOfRangeIgnore = 1,
         kOutOfRangeClip,
         kOutOfRangeExtrapolate
     };

@@ -24,6 +24,7 @@
 
 #include "TouchkeyControlMappingFactory.h"
 #include "TouchkeyControlMappingShortEditor.h"
+#include "TouchkeyControlMappingExtendedEditor.h"
 
 const int TouchkeyControlMappingFactory::kDefaultController = 1;
 const float TouchkeyControlMappingFactory::kDefaultOutputRangeMin = 0.0;
@@ -50,6 +51,13 @@ TouchkeyControlMappingFactory::~TouchkeyControlMappingFactory() {
 }
 
 // ***** Accessors / Modifiers *****
+
+int TouchkeyControlMappingFactory::getDirection() {
+    // Get the direction of motion. This is always positive for
+    if(inputType_ == TouchkeyControlMapping::kTypeAbsolute)
+        return TouchkeyControlMapping::kDirectionPositive;
+    return direction_;
+}
 
 void TouchkeyControlMappingFactory::setInputParameter(int inputParameter) {
     inputParameter_ = inputParameter;
@@ -91,7 +99,8 @@ void TouchkeyControlMappingFactory::setController(int controller) {
     }
 
     setMidiParameters(controller, inputRangeMin_, inputRangeMax_, inputRangeCenter_,
-                      outputDefault_, outputRangeMin_, outputRangeMax_);
+                      outputDefault_, outputRangeMin_, outputRangeMax_,
+                      -1, use14BitControl_, outOfRangeBehavior_);
     
     // Listen to incoming controls from the keyboard too, if this is enabled
     // in MidiKeyboardSegment
@@ -113,7 +122,8 @@ void TouchkeyControlMappingFactory::setRangeInputMin(float inputMin) {
     //    return;
     //midiConverter_->setControlMinValue(controlName_.c_str(), inputRangeMin_);
     setMidiParameters(midiControllerNumber_, inputRangeMin_, inputRangeMax_, inputRangeCenter_,
-                      outputDefault_, outputRangeMin_, outputRangeMax_);
+                      outputDefault_, outputRangeMin_, outputRangeMax_,
+                      -1, use14BitControl_, outOfRangeBehavior_);
 }
 
 void TouchkeyControlMappingFactory::setRangeInputMax(float inputMax) {
@@ -129,7 +139,8 @@ void TouchkeyControlMappingFactory::setRangeInputMax(float inputMax) {
     //    return;
     //midiConverter_->setControlMaxValue(controlName_.c_str(), inputRangeMax_);
     setMidiParameters(midiControllerNumber_, inputRangeMin_, inputRangeMax_, inputRangeCenter_,
-                      outputDefault_, outputRangeMin_, outputRangeMax_);
+                      outputDefault_, outputRangeMin_, outputRangeMax_,
+                      -1, use14BitControl_, outOfRangeBehavior_);
 }
 
 void TouchkeyControlMappingFactory::setRangeInputCenter(float inputCenter) {
@@ -145,28 +156,32 @@ void TouchkeyControlMappingFactory::setRangeInputCenter(float inputCenter) {
     //    return;
     //midiConverter_->setControlCenterValue(controlName_.c_str(), inputRangeCenter_);
     setMidiParameters(midiControllerNumber_, inputRangeMin_, inputRangeMax_, inputRangeCenter_,
-                      outputDefault_, outputRangeMin_, outputRangeMax_);
+                      outputDefault_, outputRangeMin_, outputRangeMax_,
+                      -1, use14BitControl_, outOfRangeBehavior_);
 }
 
 void TouchkeyControlMappingFactory::setRangeOutputMin(float outputMin) {
     outputRangeMin_ = outputMin;
     
     setMidiParameters(midiControllerNumber_, inputRangeMin_, inputRangeMax_, inputRangeCenter_,
-                      outputDefault_, outputRangeMin_, outputRangeMax_);
+                      outputDefault_, outputRangeMin_, outputRangeMax_,
+                      -1, use14BitControl_, outOfRangeBehavior_);
 }
 
 void TouchkeyControlMappingFactory::setRangeOutputMax(float outputMax) {
     outputRangeMax_ = outputMax;
     
     setMidiParameters(midiControllerNumber_, inputRangeMin_, inputRangeMax_, inputRangeCenter_,
-                      outputDefault_, outputRangeMin_, outputRangeMax_);
+                      outputDefault_, outputRangeMin_, outputRangeMax_,
+                      -1, use14BitControl_, outOfRangeBehavior_);
 }
 
 void TouchkeyControlMappingFactory::setRangeOutputDefault(float outputDefault) {
     outputDefault_ = outputDefault;
     
     setMidiParameters(midiControllerNumber_, inputRangeMin_, inputRangeMax_, inputRangeCenter_,
-                      outputDefault_, outputRangeMin_, outputRangeMax_);
+                      outputDefault_, outputRangeMin_, outputRangeMax_,
+                      -1, use14BitControl_, outOfRangeBehavior_);
 }
 
 void TouchkeyControlMappingFactory::setThreshold(float threshold) {
@@ -185,10 +200,31 @@ void TouchkeyControlMappingFactory::setDirection(int direction) {
     direction_ = direction;
 }
 
+void TouchkeyControlMappingFactory::setOutOfRangeBehavior(int behavior) {
+    outOfRangeBehavior_ = behavior;
+    
+    setMidiParameters(midiControllerNumber_, inputRangeMin_, inputRangeMax_, inputRangeCenter_,
+                      outputDefault_, outputRangeMin_, outputRangeMax_,
+                      -1, use14BitControl_, outOfRangeBehavior_);
+}
+
+void TouchkeyControlMappingFactory::setUses14BitControl(bool use) {
+    use14BitControl_ = use;
+
+    setMidiParameters(midiControllerNumber_, inputRangeMin_, inputRangeMax_, inputRangeCenter_,
+                      outputDefault_, outputRangeMin_, outputRangeMax_,
+                      -1, use14BitControl_, outOfRangeBehavior_);
+}
+
 // ***** GUI Support *****
 MappingEditorComponent* TouchkeyControlMappingFactory::createBasicEditor() {
     return new TouchkeyControlMappingShortEditor(*this);
 }
+
+MappingEditorComponent* TouchkeyControlMappingFactory::createExtendedEditor() {
+    return new TouchkeyControlMappingExtendedEditor(*this);
+}
+
 
 // ****** Preset Save/Load ******
 XmlElement* TouchkeyControlMappingFactory::getPreset() {

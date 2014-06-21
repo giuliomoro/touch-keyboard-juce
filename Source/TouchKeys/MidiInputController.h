@@ -80,6 +80,10 @@ public:
 	void disableAllPorts(bool auxiliaryOnly);
     int primaryActivePort();
 	vector<int> auxiliaryActivePorts();
+    
+    // Get the name of a particular port index
+    String deviceName(int portNumber);
+    int indexOfDeviceNamed(String const& name);
 
 	// Set/query the output controller
 	MidiOutputController* midiOutputController() { return midiOutputController_; }

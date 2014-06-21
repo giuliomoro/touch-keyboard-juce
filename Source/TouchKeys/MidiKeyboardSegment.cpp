@@ -540,6 +540,20 @@ vector<MappingFactory*> const& MidiKeyboardSegment::mappingFactories(){
     return mappingFactories_;
 }
 
+// Return the specific index of a mapping factory for this segment
+int MidiKeyboardSegment::indexOfMappingFactory(MappingFactory *factory) {
+    vector<MappingFactory*>::iterator it;
+    int i = 0;
+    
+    for(it = mappingFactories_.begin(); it != mappingFactories_.end(); ++it) {
+        if(*it == factory)
+            return i;
+        i++;
+    }
+    
+    return -1;
+}
+
 // Get an XML element describing current settings (for saving presets)
 // This element will need to be released (or added to another XML element
 // that is released) by the caller

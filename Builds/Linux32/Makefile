@@ -49,6 +49,7 @@ ifeq ($(CONFIG),Release)
 endif
 
 OBJECTS := \
+  $(OBJDIR)/PreferencesComponent_8c094f62.o \
   $(OBJDIR)/MainWindow_ca618186.o \
   $(OBJDIR)/KeyboardZoneComponent_fd0d7a77.o \
   $(OBJDIR)/ControlWindowMainComponent_c67f9014.o \
@@ -68,6 +69,7 @@ OBJECTS := \
   $(OBJDIR)/TouchkeyMultiFingerTriggerMappingFactory_e811112a.o \
   $(OBJDIR)/TouchkeyKeyDivisionMapping_cea38eb0.o \
   $(OBJDIR)/TouchkeyKeyDivisionMappingFactory_33b42a44.o \
+  $(OBJDIR)/TouchkeyControlMappingExtendedEditor_bb11f4.o \
   $(OBJDIR)/TouchkeyControlMappingShortEditor_993f27a5.o \
   $(OBJDIR)/TouchkeyControlMapping_1e638c8e.o \
   $(OBJDIR)/TouchkeyControlMappingFactory_1db276a6.o \
@@ -133,6 +135,11 @@ clean:
 strip:
 	@echo Stripping TouchKeys
 	-@strip --strip-unneeded $(OUTDIR)/$(TARGET)
+
+$(OBJDIR)/PreferencesComponent_8c094f62.o: ../../Source/GUI/PreferencesComponent.cpp
+	-@mkdir -p $(OBJDIR)
+	@echo "Compiling PreferencesComponent.cpp"
+	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 
 $(OBJDIR)/MainWindow_ca618186.o: ../../Source/GUI/MainWindow.cpp
 	-@mkdir -p $(OBJDIR)
@@ -227,6 +234,11 @@ $(OBJDIR)/TouchkeyKeyDivisionMapping_cea38eb0.o: ../../Source/Mappings/KeyDivisi
 $(OBJDIR)/TouchkeyKeyDivisionMappingFactory_33b42a44.o: ../../Source/Mappings/KeyDivision/TouchkeyKeyDivisionMappingFactory.cpp
 	-@mkdir -p $(OBJDIR)
 	@echo "Compiling TouchkeyKeyDivisionMappingFactory.cpp"
+	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
+
+$(OBJDIR)/TouchkeyControlMappingExtendedEditor_bb11f4.o: ../../Source/Mappings/Control/TouchkeyControlMappingExtendedEditor.cpp
+	-@mkdir -p $(OBJDIR)
+	@echo "Compiling TouchkeyControlMappingExtendedEditor.cpp"
 	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 
 $(OBJDIR)/TouchkeyControlMappingShortEditor_993f27a5.o: ../../Source/Mappings/Control/TouchkeyControlMappingShortEditor.cpp

@@ -25,6 +25,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "MappingListComponent.h"
+#include "MappingExtendedEditorWindow.h"
 
 //==============================================================================
 MappingListComponent::MappingListComponent() : controller_(0), keyboardSegment_(0),
@@ -38,28 +39,9 @@ MappingListComponent::MappingListComponent() : controller_(0), keyboardSegment_(
     listBox_.setRowHeight(72);
 }
 
-MappingListComponent::~MappingListComponent() {}
-
-#if 0
-void MappingListComponent::paint (Graphics& g) {
-    /* This demo code just fills the component's background and
-       draws some placeholder text to get you started.
-
-       You should replace everything in this method with your own
-       drawing code..
-    */
-
-    g.fillAll (Colours::white);   // clear the background
-
-    g.setColour (Colours::grey);
-    g.drawRect (getLocalBounds(), 1);   // draw an outline around the component
-
-    g.setColour (Colours::lightblue);
-    g.setFont (14.0f);
-    g.drawText ("MappingListComponent", getLocalBounds(),
-                Justification::centred, true);   // draw some placeholder text
+MappingListComponent::~MappingListComponent() {
+    clearExtendedEditorWindows();
 }
-#endif
 
 void MappingListComponent::resized() {
     // This method is where you should set the bounds of any child
@@ -126,12 +108,12 @@ bool MappingListComponent::isComponentSelected(Component *component) {
 }
 
 
-void MappingListComponent::synchronize()
-{
+void MappingListComponent::synchronize() {
     if(keyboardSegment_ != 0) {
         if(lastMappingFactoryIdentifier_ != keyboardSegment_->mappingFactoryUniqueIdentifier()) {
             lastMappingFactoryIdentifier_ = keyboardSegment_->mappingFactoryUniqueIdentifier();
             listBox_.updateContent();
+            updateExtendedEditorWindows();
         }
     }
     
@@ -140,6 +122,106 @@ void MappingListComponent::synchronize()
         if(listItem != 0)
             listItem->synchronize();
     }
+    
+    synchronizeExtendedEditorWindows();
+}
+
+// Open an extended editor window for the given component
+// Store the new window in the list; it is deleted when it is closed
+void MappingListComponent::openExtendedEditorWindow(MappingFactory *factory) {
+    if(factory == 0)
+        return;
+    
+    ScopedLock sl(extendedEditorWindowsMutex_);
+    
+    MappingExtendedEditorWindow *window = new MappingExtendedEditorWindow(*this,
+                                                                          *keyboardSegment_, *factory);
+    extendedEditorWindows_.push_back(window);
+}
+
+// Close an extended editor window and remove it from the list
+void MappingListComponent::closeExtendedEditorWindow(MappingExtendedEditorWindow *window) {
+    ScopedLock sl(extendedEditorWindowsMutex_);
+
+    closeExtendedEditorWindowHelper(window);
+}
+
+MappingExtendedEditorWindow* MappingListComponent::extendedEditorWindowForFactory(MappingFactory *factory) {
+    ScopedLock sl(extendedEditorWindowsMutex_);
+    
+    list<MappingExtendedEditorWindow*>::iterator it;
+    for(it = extendedEditorWindows_.begin(); it != extendedEditorWindows_.end(); ++it) {
+        if((*it)->factory() == factory)
+            return *it;
+    }
+    
+    return 0;
+}
+
+// Update extended editor windows
+void MappingListComponent::synchronizeExtendedEditorWindows() {
+    // Update extended editor windows
+    ScopedLock sl(extendedEditorWindowsMutex_);
+    
+    list<MappingExtendedEditorWindow*>::iterator it;
+    for(it = extendedEditorWindows_.begin(); it != extendedEditorWindows_.end(); ++it) {
+        (*it)->synchronize();
+    }
+}
+
+// Close an extended editor window and remove it from the list (interval version without lock)
+void MappingListComponent::closeExtendedEditorWindowHelper(MappingExtendedEditorWindow *window) {
+    window->setVisible(false);
+    
+    list<MappingExtendedEditorWindow*>::iterator it;
+    bool found = true;
+    
+    // Remove this window from the list (handling multiple entries just in case)
+    while(found) {
+        found = false;
+        for(it = extendedEditorWindows_.begin(); it != extendedEditorWindows_.end(); ++it) {
+            if(*it == window) {
+                extendedEditorWindows_.erase(it);
+                found = true;
+                break;
+            }
+        }
+    }
+    
+    // Delete the window which in turn deletes the editor component
+    delete window;
+}
+
+// Find the invalid extended editor windows and close them
+void MappingListComponent::updateExtendedEditorWindows() {
+    ScopedLock sl(extendedEditorWindowsMutex_);
+    
+    list<MappingExtendedEditorWindow*>::iterator it;
+    bool found = true;
+    
+    // Remove the window from the list if it is invalid
+    while(found) {
+        found = false;
+        for(it = extendedEditorWindows_.begin(); it != extendedEditorWindows_.end(); ++it) {
+            if(!(*it)->isValid()) {
+                closeExtendedEditorWindowHelper(*it);
+                found = true;
+                break;
+            }
+        }
+    }
+}
+
+// Remove all extend editor windows
+void MappingListComponent::clearExtendedEditorWindows() {
+    ScopedLock sl(extendedEditorWindowsMutex_);
+    
+    list<MappingExtendedEditorWindow*>::iterator it;
+    for(it = extendedEditorWindows_.begin(); it != extendedEditorWindows_.end(); ++it) {
+        delete *it;
+    }
+    
+    extendedEditorWindows_.clear();
 }
 
 #endif  // TOUCHKEYS_NO_GUI
