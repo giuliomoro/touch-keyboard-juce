@@ -52,6 +52,7 @@ private:
         kCommandLoggingPlay,
         kCommandEnableExperimentalMappings,
         kCommandTestTouchkeySensors,
+        kCommandPreferences,
         
         // Window menu
         kCommandShowControlWindow = 0x2030,

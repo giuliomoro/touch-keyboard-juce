@@ -286,6 +286,26 @@ vector<int> MidiInputController::auxiliaryActivePorts() {
     return ports;
 }
 
+// Get the name of a particular MIDI input port
+String MidiInputController::deviceName(int portNumber) {
+    StringArray const& deviceStrings = MidiInput::getDevices();
+    if(portNumber < 0 || portNumber >= deviceStrings.size())
+        return "";
+    return deviceStrings[portNumber];
+}
+
+// Find the index of a device with a given name; return -1 if not found
+int MidiInputController::indexOfDeviceNamed(String const& name) {
+    StringArray const& deviceStrings = MidiInput::getDevices();
+    
+    for(int i = 0; i < deviceStrings.size(); i++) {
+        if(name == deviceStrings[i])
+            return i;
+    }
+    
+    return -1;
+}
+
 // Add a new keyboard segment. Returns a pointer to the newly created segment
 MidiKeyboardSegment* MidiInputController::addSegment(int outputPortNumber,
                                                           int noteMin, int noteMax,

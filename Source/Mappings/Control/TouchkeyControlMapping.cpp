@@ -366,12 +366,12 @@ timestamp_type TouchkeyControlMapping::performMapping() {
                     if(latestValue > 0)
                         latestValue = 0;
                 }
+                
+                if(direction_ == kDirectionNegative)
+                    latestValue = -latestValue;
+                else if((direction_ == kDirectionBoth) && latestValue < 0)
+                    latestValue = -latestValue;
             }
-
-            if(direction_ == kDirectionNegative)
-                latestValue = -latestValue;
-            else if((direction_ == kDirectionBoth) && latestValue < 0)
-                latestValue = -latestValue;
             
             sendControlMessage(latestValue);
             lastControlValue_ = latestValue;

@@ -27,11 +27,14 @@
 #define __MAPPINGLISTCOMPONENT_H_51502151__
 
 #include <vector>
+#include <list>
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "../MainApplicationController.h"
 #include "../TouchKeys/MidiKeyboardSegment.h"
 #include "MappingListItem.h"
 #include "../Mappings/MappingFactory.h"
+
+class MappingExtendedEditorWindow;
 
 //==============================================================================
 /*
@@ -62,6 +65,13 @@ public:
     // Add or delete a mapping based on a Factory class created elsewhere
     void addMapping(MappingFactory* factory);
     void deleteMapping(MappingFactory* factory);
+    
+    // Return which segment this component refers to
+    int segmentNumber() {
+        if(keyboardSegment_ == 0)
+            return -1;
+        return keyboardSegment_->outputPort();
+    }
 
     // *** ListBox methods ***
     int getNumRows();
@@ -78,10 +88,35 @@ public:
     // Update UI state to reflect underlying system state
     void synchronize();
     
+    // *** Extended editor window methods ***
+    // Open an extended editor window for the given component
+    void openExtendedEditorWindow(MappingFactory *factory);
+    
+    // Close an extended editor window and remove it from the list
+    void closeExtendedEditorWindow(MappingExtendedEditorWindow *window);
+    
+    // Find an extended editor window for a given factory, if it exists
+    MappingExtendedEditorWindow *extendedEditorWindowForFactory(MappingFactory *factory);
+    
 private:
+    // Sync the UI for the extended editor windows
+    void synchronizeExtendedEditorWindows();
+    
+    // Internal helper function for closing window
+    void closeExtendedEditorWindowHelper(MappingExtendedEditorWindow *window);
+    
+    // Find the invalid editor windows and clsoe them
+    void updateExtendedEditorWindows();
+    
+    // Close all extended editor windows
+    void clearExtendedEditorWindows();
+    
     ListBox listBox_;
     MainApplicationController *controller_;
     MidiKeyboardSegment *keyboardSegment_;
+    
+    CriticalSection extendedEditorWindowsMutex_;
+    list<MappingExtendedEditorWindow*> extendedEditorWindows_;
     
     int lastMappingFactoryIdentifier_;
     

@@ -51,8 +51,8 @@ public:
         getConstrainer()->setFixedAspectRatio(display_.keyboardAspectRatio());
         setBoundsConstrained(getBounds());
         
-        // Show window
-        setVisible(true);
+        // Don't show window yet
+        setVisible(false);
     }
 
     ~GraphicsDisplayWindow()

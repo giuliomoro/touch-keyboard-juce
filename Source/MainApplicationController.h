@@ -54,6 +54,7 @@
 
 #ifndef TOUCHKEYS_NO_GUI
 #include "GUI/GraphicsDisplayWindow.h"
+#include "GUI/PReferencesWindow.h"
 class KeyboardTesterDisplay;
 #endif
 
@@ -72,6 +73,9 @@ public:
     // *** Destructor ***
     ~MainApplicationController();
     
+    // *** Startup actions ***
+    void initialise();
+    
     // *** TouchKeys device methods ***
     
     // Return the path prefix of the TouchKeys device
@@ -84,58 +88,45 @@ public:
     // start data collection, all in one method. Returns true if successful.
     // Will set the error message string if not
     bool touchkeyDeviceStartupSequence(const char * path);
-    void touchkeyDeviceClearErrorMessage() {
-        touchkeyErrorMessage_ = "";
-        touchkeyErrorOccurred_ = false;
-    }
+    void touchkeyDeviceClearErrorMessage();
+    
+    // Check whether a given touchkey device exists
+    bool touchkeyDeviceExists(const char * path);
     
     // Select a particular touchkey device
-    bool openTouchkeyDevice(const char * path) {
-        return touchkeyController_.openDevice(path);
-    }
+    bool openTouchkeyDevice(const char * path);
+    
     void closeTouchkeyDevice();
     
     // Check for device present
     bool touchkeyDeviceCheckForPresence(int waitMilliseconds = 250, int tries = 10);
     
     // Start/stop the TouchKeys data collection
-    bool startTouchkeyDevice() {
-        return touchkeyController_.startAutoGathering();
-    }
-    void stopTouchkeyDevice() {
-        touchkeyController_.stopAutoGathering();
-    }
+    bool startTouchkeyDevice();
+    void stopTouchkeyDevice();
     
     // Status queries on TouchKeys
     // Returns true if device has been opened
-    bool touchkeyDeviceIsOpen() {
-        return touchkeyController_.isOpen();
-    }
+    bool touchkeyDeviceIsOpen();
+    
     // Return true if device is collecting data
     bool touchkeyDeviceIsRunning();
     
     // Returns true if an error has occurred
-    bool touchkeyDeviceErrorOccurred() {
-        return touchkeyErrorOccurred_;
-    }
+    bool touchkeyDeviceErrorOccurred();
+    
     // Return the error message if one occurred
-    std::string touchkeyDeviceErrorMessage() {
-        return touchkeyErrorMessage_;
-    }
+    std::string touchkeyDeviceErrorMessage();
+    
     // How many octaves on the current device
-    int touchkeyDeviceNumberOfOctaves() {
-        return touchkeyController_.numberOfOctaves();
-    }
+    int touchkeyDeviceNumberOfOctaves();
+    
     // Return the lowest MIDI note
-    int touchkeyDeviceLowestMidiNote() {
-        return touchkeyController_.lowestMidiNote();
-    }
+    int touchkeyDeviceLowestMidiNote();
+    
     // Set the lowest MIDI note for the TouchKeys
-    void touchkeyDeviceSetLowestMidiNote(int note) {
-        keyboardDisplay_.clearAllTouches();
-        touchkeyEmulator_.setLowestMidiNote(note);
-        touchkeyController_.setLowestMidiNote(note);
-    }
+    void touchkeyDeviceSetLowestMidiNote(int note);
+    
     // Attempt to autodetect the correct TouchKey octave from MIDI data
     void touchkeyDeviceAutodetectLowestMidiNote();
     void touchkeyDeviceStopAutodetecting();
@@ -172,35 +163,17 @@ public:
     void midiSegmentRemove(MidiKeyboardSegment *segment);
 
     // Select MIDI input/output devices
-    void enableMIDIInputPort(int portNumber, bool isPrimary) {
-        midiInputController_.enablePort(portNumber, isPrimary);
-    }
-    void enableAllMIDIInputPorts(int primaryPortNumber) {
-        midiInputController_.enableAllPorts(primaryPortNumber);
-    }
-    void disableMIDIInputPort(int portNumber) {
-        midiInputController_.disablePort(portNumber);
-    }
-    void disablePrimaryMIDIInputPort() {
-        midiInputController_.disablePrimaryPort();
-    }
-    void disableAllMIDIInputPorts(bool auxiliaryOnly) {
-        midiInputController_.disableAllPorts(auxiliaryOnly);
-    }
-    void enableMIDIOutputPort(int identifier, int deviceNumber) {
-        midiOutputController_.enablePort(identifier, deviceNumber);
-	}
+    void enableMIDIInputPort(int portNumber, bool isPrimary);
+    void enableAllMIDIInputPorts(int primaryPortNumber);
+    void disableMIDIInputPort(int portNumber);
+    void disablePrimaryMIDIInputPort();
+    void disableAllMIDIInputPorts(bool auxiliaryOnly);
+    void enableMIDIOutputPort(int identifier, int deviceNumber);
 #ifndef JUCE_WINDOWS
-    void enableMIDIOutputVirtualPort(int identifier, const char *name) {
-        midiOutputController_.enableVirtualPort(identifier, name);
-	}
+    void enableMIDIOutputVirtualPort(int identifier, const char *name);
 #endif
-    void disableMIDIOutputPort(int identifier) {
-        midiOutputController_.disablePort(identifier);
-    }
-    void disableAllMIDIOutputPorts() {
-        midiOutputController_.disableAllPorts();
-    }
+    void disableMIDIOutputPort(int identifier);
+    void disableAllMIDIOutputPorts();
     
     // Get selected MIDI input/output devices by ID
     int selectedMIDIPrimaryInputPort() {
@@ -226,64 +199,31 @@ public:
     
     // *** OSC device methods ***
     
-    bool oscTransmitEnabled() {
-        return oscTransmitter_.enabled();
-    }
-    void oscTransmitSetEnabled(bool enable) {
-        oscTransmitter_.setEnabled(enable);
-    }
-    bool oscTransmitRawDataEnabled() {
-        return touchkeyController_.transmitRawDataEnabled();
-    }
-    void oscTransmitSetRawDataEnabled(bool enable) {
-        touchkeyController_.setTransmitRawData(enable);
-    }
-    std::vector<lo_address> oscTransmitAddresses() {
-        return oscTransmitter_.addresses();
-    }
-    int oscTransmitAddAddress(const char * host, const char * port, int proto = LO_UDP) {
-        return oscTransmitter_.addAddress(host, port, proto);
-    }
-	void oscTransmitRemoveAddress(int index) {
-        return oscTransmitter_.removeAddress(index);
-    }
-	void oscTransmitClearAddresses() {
-        return oscTransmitter_.clearAddresses();
-    }
+    bool oscTransmitEnabled();
+    void oscTransmitSetEnabled(bool enable);
+    bool oscTransmitRawDataEnabled();
+    void oscTransmitSetRawDataEnabled(bool enable);
+    std::vector<lo_address> oscTransmitAddresses();
+    int oscTransmitAddAddress(const char * host, const char * port, int proto = LO_UDP);
+	void oscTransmitRemoveAddress(int index);
+	void oscTransmitClearAddresses();
     
     // OSC Input (receiver) methods
     // Enable or disable on the OSC receive, and report is status
-    bool oscReceiveEnabled() {
-        return oscReceiveEnabled_;
-    }
+    bool oscReceiveEnabled();
+    
     // Enable method returns true on success (false only if it was
     // unable to set the port)
-    bool oscReceiveSetEnabled(bool enable) {
-        if(enable && !oscReceiveEnabled_) {
-            oscReceiveEnabled_ = true;
-            return oscReceiver_.setPort(oscReceivePort_);
-        }
-        else if(!enable && oscReceiveEnabled_) {
-            oscReceiveEnabled_ = false;
-            return oscReceiver_.setPort(0);
-        }
-        return true;
-    }
+    bool oscReceiveSetEnabled(bool enable);
     
     // Whether the OSC server is running (false means couldn't open port)
-    bool oscReceiveRunning() {
-        return oscReceiver_.running();
-    }
-    // Get the current OSC receive port
-    int oscReceivePort() {
-        return oscReceivePort_;
-    }
-    // Set the current OSC receive port (returns true on success)
-    bool oscReceiveSetPort(int port) {
-        oscReceivePort_ = port;
-        return oscReceiver_.setPort(port);
-    }
+    bool oscReceiveRunning();
     
+    // Get the current OSC receive port
+    int oscReceivePort();
+    
+    // Set the current OSC receive port (returns true on success)
+    bool oscReceiveSetPort(int port);
     
     // *** Display methods ***
     
@@ -294,6 +234,13 @@ public:
         if(keyboardDisplayWindow_ != 0) {
             keyboardDisplayWindow_->setVisible(true);
             keyboardDisplayWindow_->toFront(true);
+        }
+    }
+    void setPreferencesWindow(PreferencesWindow *window) { preferencesWindow_ = window; }
+    void showPreferencesWindow() {
+        if(preferencesWindow_ != 0) {
+            preferencesWindow_->setVisible(true);
+            preferencesWindow_->toFront(true);
         }
     }
 #endif
@@ -310,7 +257,6 @@ public:
     // *** OSC handler method (different from OSC device selection) ***
     
 	bool oscHandlerMethod(const char *path, const char *types, int numValues, lo_arg **values, void *data);
-    
     
     // *** Mapping methods ***
     // Return the number of mapping factory types available
@@ -344,6 +290,38 @@ public:
     // Clears the current preset and restores default settings to zones/mappings
     void clearPreset();
     
+    // *** Preferences ***
+    
+    // Whether to automatically start the TouchKeys on startup
+    bool getPrefsAutoStartTouchKeys();
+    void setPrefsAutoStartTouchKeys(bool autoStart);
+    
+    // Whether to automatically detect the TouchKeys octave when they start
+    bool getPrefsAutodetectOctave();
+    void setPrefsAutodetectOctave(bool autoDetect);
+    
+    // Which preset (if any) to load at startup
+    void setPrefsStartupPresetNone();
+    bool getPrefsStartupPresetNone();
+    
+    void setPrefsStartupPresetLastSaved();
+    bool getPrefsStartupPresetLastSaved();
+    
+    void setPrefsStartupPresetVibratoPitchBend();
+    bool getPrefsStartupPresetVibratoPitchBend();
+    
+    void setPrefsStartupPreset(String const& path);
+    String getPrefsStartupPreset();
+    
+    // Reset all preferences
+    void resetPreferences();
+    
+    // Load global preferences from file
+    void loadApplicationPreferences();
+    
+    // Load a MIDI output device from preexisting application preferences
+    void loadMIDIOutputFromApplicationPreferences(int zone);
+    
 #ifdef ENABLE_TOUCHKEYS_SENSOR_TEST
     // *** TouchKeys sensor testing methods ***
     // Start testing the TouchKeys sensors
@@ -369,6 +347,9 @@ public:
 private:
     bool savePresetHelper(File& outputFile);
     bool loadPresetHelper(File const& inputFile);
+    
+    // Application properties: for managing preferences
+    ApplicationProperties applicationProperties_;
     
     // TouchKeys objects
     PianoKeyboard keyboardController_;
@@ -403,6 +384,7 @@ private:
     DocumentWindow *keyboardDisplayWindow_;
     KeyboardTesterDisplay *keyboardTesterDisplay_;
     GraphicsDisplayWindow *keyboardTesterWindow_;
+    PreferencesWindow *preferencesWindow_;
 #endif
     
     // Segment info

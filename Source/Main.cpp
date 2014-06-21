@@ -26,6 +26,8 @@
 #ifndef TOUCHKEYS_NO_GUI
 #include "GUI/MainWindow.h"
 #include "GUI/GraphicsDisplayWindow.h"
+#include "GUI/PreferencesWindow.h"
+#include "GUI/PreferencesComponent.h"
 #include "Display/OpenGLJuceCanvas.h"
 
 //==============================================================================
@@ -45,8 +47,11 @@ public:
 
         mainWindow_ = new MainWindow(controller_);
         keyboardDisplayWindow_ = new GraphicsDisplayWindow("TouchKeys Display", controller_.keyboardDisplay());
+        preferencesWindow_ = new PreferencesWindow(controller_);
         
         controller_.setKeyboardDisplayWindow(keyboardDisplayWindow_);
+        controller_.setPreferencesWindow(preferencesWindow_);
+        controller_.initialise();
     }
 
     void shutdown() {
@@ -57,7 +62,9 @@ public:
         mainWindow_ = nullptr; // (deletes our window)
         
         controller_.setKeyboardDisplayWindow(0);    // Delete display window and disconnect from controller
+        controller_.setPreferencesWindow(0);
         keyboardDisplayWindow_ = nullptr;
+        preferencesWindow_ = nullptr;
     }
 
     //==============================================================================
@@ -76,6 +83,7 @@ public:
 private:
     ScopedPointer<MainWindow> mainWindow_;
     ScopedPointer<GraphicsDisplayWindow> keyboardDisplayWindow_;
+    ScopedPointer<PreferencesWindow> preferencesWindow_;
     MainApplicationController controller_;
 };
 

@@ -88,8 +88,6 @@ void KeyboardTesterDisplay::render() {
 	
 	// Restore to the original location we used when drawing the keys
 	glPopMatrix();
-    
-	needsUpdate_ = false;    
 	glFlush();
 }
 
@@ -119,7 +117,7 @@ void KeyboardTesterDisplay::setSensorState(int key, int sensor, bool active) {
     else
         keySensorActive_[key] &= ~(1 << sensor);
     currentlyActiveKey_ = key;
-    needsUpdate_ = true;
+    tellCanvasToRepaint();
     
     if(allSensorsGood(currentlyActiveKey_)) {
         controller_.touchkeySensorTestSetKey(key + 1);

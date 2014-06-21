@@ -554,9 +554,9 @@ void ControlWindowMainComponent::updateInputDeviceList()
         counter++;
     }
 
-    if(!lastSelectedDeviceExists)
+    if(!lastSelectedDeviceExists && lastSelectedMidiInputID_ >= 0)
         controller_->disablePrimaryMIDIInputPort();
-    if(!lastSelectedAuxDeviceExists)
+    if(!lastSelectedAuxDeviceExists && lastSelectedMidiAuxInputID_ >= 0)
         controller_->disableAllMIDIInputPorts(true);
 }
 

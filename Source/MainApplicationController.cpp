@@ -56,6 +56,7 @@ MainApplicationController::MainApplicationController()
   keyboardDisplayWindow_(0),
   keyboardTesterDisplay_(0),
   keyboardTesterWindow_(0),
+  preferencesWindow_(0),
 #endif
   segmentCounter_(0),
   loggingActive_(false)
@@ -70,18 +71,30 @@ MainApplicationController::MainApplicationController()
     keyboardController_.setMidiOutputController(&midiOutputController_);
     keyboardController_.setGUI(&keyboardDisplay_);
 	midiInputController_.setMidiOutputController(&midiOutputController_);
-    
-    // Set up an initial OSC transmit host/port
-    oscTransmitter_.addAddress(kDefaultOscTransmitHost, kDefaultOscTransmitPort);
 
     // Set up default logging directory
     loggingDirectory_ = (File::getSpecialLocation(File::userHomeDirectory).getFullPathName() + "/Desktop").toUTF8();
+    
+    // Configure application properties
+    PropertiesFile::Options options;
+    options.applicationName = "TouchKeys";
+    options.folderName = "TouchKeys";
+    options.filenameSuffix = ".properties";
+    options.osxLibrarySubFolder = "Application Support";
+    applicationProperties_.setStorageParameters(options);
     
     // Defaults for display, until we get other information
     keyboardDisplay_.setKeyboardRange(36, 72);
     
     // Add one keyboard segment at the beginning
     midiSegmentAdd();
+    
+    // Load the current preferences
+    loadApplicationPreferences();
+    
+    // Set up an initial OSC transmit host/port if none has been loaded
+    if(oscTransmitter_.addresses().size() == 0)
+        oscTransmitter_.addAddress(kDefaultOscTransmitHost, kDefaultOscTransmitPort);
 }
 
 MainApplicationController::~MainApplicationController() {
@@ -89,6 +102,46 @@ MainApplicationController::~MainApplicationController() {
     if(touchkeySensorTestIsRunning())
         touchkeySensorTestStop();
 #endif
+}
+
+// Actions here run in the JUCE initialise() method once the application is loaded
+void MainApplicationController::initialise() {
+    // Load a preset if enabled
+    if(getPrefsStartupPresetLastSaved()) {
+        if(applicationProperties_.getUserSettings()->containsKey("LastSavedPreset")) {
+            String presetFile = applicationProperties_.getUserSettings()->getValue("LastSavedPreset");
+            if(presetFile != "") {
+                loadPresetFromFile(presetFile.toUTF8());
+            }
+        }
+    }
+    else if(getPrefsStartupPresetVibratoPitchBend()) {
+        if(midiInputController_.numSegments() > 0) {
+            MidiKeyboardSegment *segment = midiInputController_.segment(0);
+            
+            MappingFactory *factory = new TouchkeyVibratoMappingFactory(keyboardController_, *segment);
+            if(factory != 0)
+                segment->addMappingFactory(factory);
+            factory = new TouchkeyPitchBendMappingFactory(keyboardController_, *segment);
+            if(factory != 0)
+                segment->addMappingFactory(factory);
+        }
+    }
+    else if(!getPrefsStartupPresetNone()) {
+        String presetFile = getPrefsStartupPreset();
+        if(presetFile != "") {
+            loadPresetFromFile(presetFile.toUTF8());
+        }
+    }
+    
+    // Automatically start the TouchKeys if the preferences are enabled
+    if(getPrefsAutoStartTouchKeys() && applicationProperties_.getUserSettings()->containsKey("TouchKeysDevice")) {
+        String tkDevicePath = applicationProperties_.getUserSettings()->getValue("TouchKeysDevice");
+        if(touchkeyDeviceExists(tkDevicePath.toUTF8())) {
+            // Exists: try to open and run
+            touchkeyDeviceStartupSequence(tkDevicePath.toUTF8());
+        }
+    }
 }
 
 bool MainApplicationController::touchkeyDeviceStartupSequence(const char * path) {
@@ -137,6 +190,13 @@ bool MainApplicationController::touchkeyDeviceStartupSequence(const char * path)
     // Success!
     touchkeyErrorMessage_ = "";
     touchkeyErrorOccurred_ = false;
+    
+    showKeyboardDisplayWindow();
+    
+    // Automatically detect the lowest octave if set
+    if(getPrefsAutodetectOctave())
+        touchkeyDeviceAutodetectLowestMidiNote();
+    
     return true;
 }
 
@@ -212,6 +272,27 @@ std::vector<std::string> MainApplicationController::availableTouchkeyDevices() {
     return devices;
 }
 
+void MainApplicationController::touchkeyDeviceClearErrorMessage() {
+    touchkeyErrorMessage_ = "";
+    touchkeyErrorOccurred_ = false;
+}
+
+// Check whether a given touchkey device exists
+bool MainApplicationController::touchkeyDeviceExists(const char * path) {
+    String pathString(path);
+    File tkDeviceFile(pathString);
+    return tkDeviceFile.existsAsFile();
+}
+
+// Select a particular touchkey device
+bool MainApplicationController::openTouchkeyDevice(const char * path) {
+    bool success = touchkeyController_.openDevice(path);
+    
+    if(success)
+        applicationProperties_.getUserSettings()->setValue("TouchKeysDevice", String(path));
+    return success;
+}
+
 // Close the currently open TouchKeys device
 void MainApplicationController::closeTouchkeyDevice() {
 #ifdef TOUCHKEY_ENTROPY_GENERATOR_ENABLE
@@ -239,6 +320,21 @@ bool MainApplicationController::touchkeyDeviceCheckForPresence(int waitMilliseco
     return true;
 }
 
+// Start/stop the TouchKeys data collection
+bool MainApplicationController::startTouchkeyDevice() {
+    return touchkeyController_.startAutoGathering();
+}
+
+void MainApplicationController::stopTouchkeyDevice() {
+    touchkeyController_.stopAutoGathering();
+}
+
+// Status queries on TouchKeys
+// Returns true if device has been opened
+bool MainApplicationController::touchkeyDeviceIsOpen() {
+    return touchkeyController_.isOpen();
+}
+
 // Return true if device is collecting data
 bool MainApplicationController::touchkeyDeviceIsRunning() {
 #ifdef TOUCHKEY_ENTROPY_GENERATOR_ENABLE
@@ -249,6 +345,35 @@ bool MainApplicationController::touchkeyDeviceIsRunning() {
 #else
     return touchkeyController_.isAutoGathering();
 #endif
+}
+
+// Returns true if an error has occurred
+bool MainApplicationController::touchkeyDeviceErrorOccurred() {
+    return touchkeyErrorOccurred_;
+}
+
+// Return the error message if one occurred
+std::string MainApplicationController::touchkeyDeviceErrorMessage() {
+    return touchkeyErrorMessage_;
+}
+
+// How many octaves on the current device
+int MainApplicationController::touchkeyDeviceNumberOfOctaves() {
+    return touchkeyController_.numberOfOctaves();
+}
+
+// Return the lowest MIDI note
+int MainApplicationController::touchkeyDeviceLowestMidiNote() {
+    return touchkeyController_.lowestMidiNote();
+}
+
+// Set the lowest MIDI note for the TouchKeys
+void MainApplicationController::touchkeyDeviceSetLowestMidiNote(int note) {
+    keyboardDisplay_.clearAllTouches();
+    touchkeyEmulator_.setLowestMidiNote(note);
+    touchkeyController_.setLowestMidiNote(note);
+    
+    applicationProperties_.getUserSettings()->setValue("TouchKeysLowestMIDINote", note);
 }
 
 // Start an autodetection routine to match touch data to MIDI
@@ -325,7 +450,7 @@ MidiKeyboardSegment* MainApplicationController::midiSegmentAdd() {
     // consider renumbering every time a segment is removed so that we always have an index
     // 0-N which corresponds to the indexes within MidiInputController (and also the layout
     // of the tabs).
-    MidiKeyboardSegment *newSegment = midiInputController_.addSegment(segmentCounter_++, 12, 127);
+    MidiKeyboardSegment *newSegment = midiInputController_.addSegment(segmentCounter_, 12, 127);
     
     // Set up defaults
     newSegment->setModePassThrough();
@@ -335,9 +460,14 @@ MidiKeyboardSegment* MainApplicationController::midiSegmentAdd() {
     newSegment->setOutputTransposition(0);
     newSegment->setUsesKeyboardPitchWheel(true);
     
+    // Enable the MIDI output for this segment if it exists in the preferences
+    loadMIDIOutputFromApplicationPreferences(segmentCounter_);
+    
     // Enable standalone mode on the new segment if generally enabled
     if(touchkeyStandaloneModeEnabled_)
         newSegment->enableTouchkeyStandaloneMode();
+    
+    segmentCounter_++;
     
     return newSegment;
 }
@@ -354,6 +484,90 @@ void MainApplicationController::midiSegmentRemove(MidiKeyboardSegment *segment) 
     midiInputController_.removeSegment(segment);
 }
 
+// Enable one MIDI input port either as primary or auxiliary
+void MainApplicationController::enableMIDIInputPort(int portNumber, bool isPrimary) {
+    midiInputController_.enablePort(portNumber, isPrimary);
+    if(isPrimary)
+        applicationProperties_.getUserSettings()->setValue("MIDIInputPrimary",
+                                                           midiInputController_.deviceName(portNumber));
+    else
+        applicationProperties_.getUserSettings()->setValue("MIDIInputAuxiliary",
+                                                           midiInputController_.deviceName(portNumber));
+}
+
+// Enable all available MIDI input ports, with one in particular selected as primary
+void MainApplicationController::enableAllMIDIInputPorts(int primaryPortNumber) {
+    midiInputController_.enableAllPorts(primaryPortNumber);
+    applicationProperties_.getUserSettings()->setValue("MIDIInputPrimary",
+                                                       midiInputController_.deviceName(primaryPortNumber));
+    applicationProperties_.getUserSettings()->setValue("MIDIInputAuxiliary", "__all__");
+}
+
+// Disable a particular MIDI input port number
+// For now, the preferences for auxiliary ports don't update; could add a complete list of enabled aux ports
+void MainApplicationController::disableMIDIInputPort(int portNumber) {
+    if(portNumber == selectedMIDIPrimaryInputPort())
+        applicationProperties_.getUserSettings()->setValue("MIDIInputPrimary", "");
+    midiInputController_.disablePort(portNumber);
+}
+
+// Disable the current primary MIDI input port
+void MainApplicationController::disablePrimaryMIDIInputPort() {
+    applicationProperties_.getUserSettings()->setValue("MIDIInputPrimary", "");
+    midiInputController_.disablePrimaryPort();
+}
+
+// Disable either all MIDI input ports or all auxiliary inputs
+void MainApplicationController::disableAllMIDIInputPorts(bool auxiliaryOnly) {
+    applicationProperties_.getUserSettings()->setValue("MIDIInputAuxiliary", "");
+    if(!auxiliaryOnly)
+        applicationProperties_.getUserSettings()->setValue("MIDIInputPrimary", "");
+    midiInputController_.disableAllPorts(auxiliaryOnly);
+}
+
+// Enable a particular MIDI output port, associating it with a segment
+void MainApplicationController::enableMIDIOutputPort(int identifier, int deviceNumber) {
+    midiOutputController_.enablePort(identifier, deviceNumber);
+    
+    String zoneName = "MIDIOutputZone";
+    zoneName += identifier;
+    applicationProperties_.getUserSettings()->setValue(zoneName, midiOutputController_.deviceName(deviceNumber));
+}
+
+#ifndef JUCE_WINDOWS
+// Create a virtual (inter-application) MIDI output port
+void MainApplicationController::enableMIDIOutputVirtualPort(int identifier, const char *name) {
+    midiOutputController_.enableVirtualPort(identifier, name);
+    
+    String zoneName = "MIDIOutputZone";
+    zoneName += identifier;
+    String zoneValue = "__virtual__";
+    zoneValue += String(name);
+    applicationProperties_.getUserSettings()->setValue(zoneName, zoneValue);
+}
+#endif
+
+// Disable a particular MIDI output port
+void MainApplicationController::disableMIDIOutputPort(int identifier) {
+    String zoneName = "MIDIOutputZone";
+    zoneName += identifier;
+    applicationProperties_.getUserSettings()->setValue(zoneName, "");
+    
+    midiOutputController_.disablePort(identifier);
+}
+
+// Disable all MIDI output ports
+void MainApplicationController::disableAllMIDIOutputPorts() {
+    std::vector<std::pair<int, int> > enabledPorts = midiOutputController_.enabledPorts();
+    for(int i = 0; i < enabledPorts.size(); i++) {
+        // For each active zone, set output port to disabled in preferences
+        String zoneName = "MIDIOutputZone";
+        zoneName += enabledPorts[i].first;
+        applicationProperties_.getUserSettings()->setValue(zoneName, "");
+    }
+    
+    midiOutputController_.disableAllPorts();
+}
 
 // Enable TouchKeys standalone mode
 void MainApplicationController::midiTouchkeysStandaloneModeEnable() {
@@ -362,6 +576,8 @@ void MainApplicationController::midiTouchkeysStandaloneModeEnable() {
     for(int i = 0; i < midiInputController_.numSegments(); i++) {
         midiInputController_.segment(i)->enableTouchkeyStandaloneMode();
     }
+    
+    applicationProperties_.getUserSettings()->setValue("MIDIInputPrimary", "__standalone__");
 }
 
 void MainApplicationController::midiTouchkeysStandaloneModeDisable() {
@@ -370,6 +586,147 @@ void MainApplicationController::midiTouchkeysStandaloneModeDisable() {
     for(int i = 0; i < midiInputController_.numSegments(); i++) {
         midiInputController_.segment(i)->disableTouchkeyStandaloneMode();
     }
+    
+    if(applicationProperties_.getUserSettings()->getValue("MIDIInputPrimary") == "__standalone__")
+        applicationProperties_.getUserSettings()->setValue("MIDIInputPrimary", "");
+}
+
+// *** OSC device methods ***
+
+// Return whether OSC transmission is enabled
+bool MainApplicationController::oscTransmitEnabled() {
+    return oscTransmitter_.enabled();
+}
+
+// Set whether OSC transmission is enabled
+void MainApplicationController::oscTransmitSetEnabled(bool enable) {
+    oscTransmitter_.setEnabled(enable);
+    applicationProperties_.getUserSettings()->setValue("OSCTransmitEnabled", enable);
+}
+
+// Return whether raw frame transmission is enabled
+bool MainApplicationController::oscTransmitRawDataEnabled() {
+    return touchkeyController_.transmitRawDataEnabled();
+}
+
+// Set whether raw frame transmission is enabled
+void MainApplicationController::oscTransmitSetRawDataEnabled(bool enable) {
+    touchkeyController_.setTransmitRawData(enable);
+    applicationProperties_.getUserSettings()->setValue("OSCTransmitRawDataEnabled", enable);
+}
+
+// Return the addresses to which OSC messages are sent
+std::vector<lo_address> MainApplicationController::oscTransmitAddresses() {
+    return oscTransmitter_.addresses();
+}
+
+// Add a new address for sending OSC messages to
+int MainApplicationController::oscTransmitAddAddress(const char * host, const char * port, int proto) {
+    int indexOfNewAddress = oscTransmitter_.addAddress(host, port, proto);
+    
+    if(indexOfNewAddress >= 0) {
+        // Successfully added; update preferences
+        String keyName = "OSCTransmitHost";
+        keyName += indexOfNewAddress;
+        applicationProperties_.getUserSettings()->setValue(keyName, String(host));
+        
+        keyName = "OSCTransmitPort";
+        keyName += indexOfNewAddress;
+        applicationProperties_.getUserSettings()->setValue(keyName, String(port));
+
+        keyName = "OSCTransmitProtocol";
+        keyName += indexOfNewAddress;
+        applicationProperties_.getUserSettings()->setValue(keyName, proto);
+    }
+    
+    return indexOfNewAddress;
+}
+
+// Remove a particular OSC address from the send list
+void MainApplicationController::oscTransmitRemoveAddress(int index) {
+    oscTransmitter_.removeAddress(index);
+    
+    // Remove this destination from the preferences, if it exists
+    String keyName = "OSCTransmitHost";
+    keyName += index;
+    
+    if(applicationProperties_.getUserSettings()->containsKey(keyName)) {
+        applicationProperties_.getUserSettings()->setValue(keyName, "");
+        
+        keyName = "OSCTransmitPort";
+        keyName += index;
+        applicationProperties_.getUserSettings()->setValue(keyName, "");
+        
+        keyName = "OSCTransmitProtocol";
+        keyName += index;
+        applicationProperties_.getUserSettings()->setValue(keyName, (int)0);
+    }
+}
+
+// Remove all OSC addresses from the send list
+void MainApplicationController::oscTransmitClearAddresses() {
+    oscTransmitter_.clearAddresses();
+    
+    for(int index = 0; index < 16; index++) {
+        // Go through and clear preferences for recent OSC hosts;
+        // 16 hosts is a sanity check
+        
+        String keyName = "OSCTransmitHost";
+        keyName += index;
+        
+        if(applicationProperties_.getUserSettings()->containsKey(keyName)) {
+            applicationProperties_.getUserSettings()->setValue(keyName, "");
+            
+            keyName = "OSCTransmitPort";
+            keyName += index;
+            applicationProperties_.getUserSettings()->setValue(keyName, "");
+            
+            keyName = "OSCTransmitProtocol";
+            keyName += index;
+            applicationProperties_.getUserSettings()->setValue(keyName, (int)0);
+        }
+    }
+
+}
+
+// OSC Input (receiver) methods
+// Enable or disable on the OSC receive, and report is status
+bool MainApplicationController::oscReceiveEnabled() {
+    return oscReceiveEnabled_;
+}
+
+// Enable method returns true on success (false only if it was
+// unable to set the port)
+bool MainApplicationController::oscReceiveSetEnabled(bool enable) {
+    applicationProperties_.getUserSettings()->setValue("OSCReceiveEnabled", enable);
+    
+    if(enable && !oscReceiveEnabled_) {
+        oscReceiveEnabled_ = true;
+        return oscReceiver_.setPort(oscReceivePort_);
+    }
+    else if(!enable && oscReceiveEnabled_) {
+        oscReceiveEnabled_ = false;
+        return oscReceiver_.setPort(0);
+    }
+    return true;
+}
+
+// Whether the OSC server is running (false means couldn't open port)
+bool MainApplicationController::oscReceiveRunning() {
+    return oscReceiver_.running();
+}
+
+// Get the current OSC receive port
+int MainApplicationController::oscReceivePort() {
+    return oscReceivePort_;
+}
+
+// Set the current OSC receive port (returns true on success)
+bool MainApplicationController::oscReceiveSetPort(int port) {
+    applicationProperties_.getUserSettings()->setValue("OSCReceivePort", port);
+    
+    oscReceivePort_ = port;
+    return oscReceiver_.setPort(port);
 }
 
 // OSC handler method
@@ -406,8 +763,10 @@ bool MainApplicationController::oscHandlerMethod(const char *path, const char *t
             // std::cout << "Found difference of " << noteDifference << std::endl;
 
             currentMinNote -= noteDifference;
-            if(currentMinNote >= 0 && currentMinNote <= 127)
+            if(currentMinNote >= 0 && currentMinNote <= 127) {
                 touchkeyController_.setLowestMidiNote(currentMinNote);
+                applicationProperties_.getUserSettings()->setValue("TouchKeysLowestMIDINote", currentMinNote);
+            }
             
             touchkeyDeviceStopAutodetecting();
         }
@@ -541,7 +900,13 @@ bool MainApplicationController::savePresetHelper(File& outputFile) {
     XmlElement* segmentsElement = midiInputController_.getSegmentPreset();
     mainElement.addChildElement(segmentsElement);
     
-    return mainElement.writeToFile(outputFile, "");
+    bool result = mainElement.writeToFile(outputFile, "");
+    
+    if(result) {
+        applicationProperties_.getUserSettings()->setValue("LastSavedPreset", outputFile.getFullPathName());
+    }
+    
+    return result;
 }
 
 // Clear the current preset and restore default settings
@@ -552,6 +917,207 @@ void MainApplicationController::clearPreset() {
     
     // Re-add a new segment, starting at 0
     midiSegmentAdd();
+}
+
+// Whether to automatically start the TouchKeys on startup
+bool MainApplicationController::getPrefsAutoStartTouchKeys() {
+    if(!applicationProperties_.getUserSettings()->containsKey("StartupStartTouchKeys"))
+        return false;
+    return applicationProperties_.getUserSettings()->getBoolValue("StartupStartTouchKeys");
+}
+
+void MainApplicationController::setPrefsAutoStartTouchKeys(bool autoStart) {
+    applicationProperties_.getUserSettings()->setValue("StartupStartTouchKeys", autoStart);
+}
+
+// Whether to automatically detect the TouchKeys octave when they start
+bool MainApplicationController::getPrefsAutodetectOctave() {
+    if(!applicationProperties_.getUserSettings()->containsKey("StartupAutodetectTouchKeysOctave"))
+        return false;
+    return applicationProperties_.getUserSettings()->getBoolValue("StartupAutodetectTouchKeysOctave");
+}
+
+void MainApplicationController::setPrefsAutodetectOctave(bool autoDetect) {
+    applicationProperties_.getUserSettings()->setValue("StartupAutodetectTouchKeysOctave", autoDetect);
+}
+
+// Which preset (if any) to load at startup
+void MainApplicationController::setPrefsStartupPresetNone() {
+    applicationProperties_.getUserSettings()->setValue("StartupPreset", "__none__");
+}
+bool MainApplicationController::getPrefsStartupPresetNone() {
+    // By default, no prefs means no preset
+    if(!applicationProperties_.getUserSettings()->containsKey("StartupPreset"))
+        return true;
+    if(applicationProperties_.getUserSettings()->getValue("StartupPreset") == "__none__")
+        return true;
+    return false;
+}
+
+void MainApplicationController::setPrefsStartupPresetVibratoPitchBend() {
+    applicationProperties_.getUserSettings()->setValue("StartupPreset", "__vib_pb__");
+}
+bool MainApplicationController::getPrefsStartupPresetVibratoPitchBend() {
+    if(!applicationProperties_.getUserSettings()->containsKey("StartupPreset"))
+        return false;
+    if(applicationProperties_.getUserSettings()->getValue("StartupPreset") == "__vib_pb__")
+        return true;
+    return false;
+}
+
+void MainApplicationController::setPrefsStartupPresetLastSaved() {
+    applicationProperties_.getUserSettings()->setValue("StartupPreset", "__last__");
+}
+bool MainApplicationController::getPrefsStartupPresetLastSaved() {
+    if(!applicationProperties_.getUserSettings()->containsKey("StartupPreset"))
+        return false;
+    if(applicationProperties_.getUserSettings()->getValue("StartupPreset") == "__last__")
+        return true;
+    return false;
+}
+
+void MainApplicationController::setPrefsStartupPreset(String const& path) {
+    applicationProperties_.getUserSettings()->setValue("StartupPreset", path);
+}
+String MainApplicationController::getPrefsStartupPreset() {
+    if(!applicationProperties_.getUserSettings()->containsKey("StartupPreset"))
+        return "";
+    return applicationProperties_.getUserSettings()->getValue("StartupPreset");
+}
+
+// Reset application preferences to defaults
+void MainApplicationController::resetPreferences() {
+    // TODO: reset settings now, not after restart
+    applicationProperties_.getUserSettings()->clear();
+    
+    setPrefsStartupPresetVibratoPitchBend();
+    setPrefsAutodetectOctave(true);
+}
+
+// Load the current devices from a global preferences file
+void MainApplicationController::loadApplicationPreferences(){
+    PropertiesFile *props = applicationProperties_.getUserSettings();
+    
+    if(props == 0)
+        return;
+    
+    // A few first-time defaults if the properties file is missing
+    if(props->getAllProperties().size() == 0) {
+        resetPreferences();
+    }
+    
+    // Load TouchKeys settings
+    if(props->containsKey("TouchKeysDevice")) {
+        // TODO
+    }
+    if(props->containsKey("TouchKeysLowestMIDINote")) {
+        int note = props->getIntValue("TouchKeysLowestMIDINote");
+        if(note >= 0 && note <= 127)
+            touchkeyDeviceSetLowestMidiNote(note);
+    }
+    
+    // Load MIDI input settings
+    if(props->containsKey("MIDIInputPrimary")) {
+        String deviceName = props->getValue("MIDIInputPrimary");
+        if(deviceName == "__standalone__") {
+            midiTouchkeysStandaloneModeEnable();
+        }
+        else {
+            int index = midiInputController_.indexOfDeviceNamed(deviceName);
+            // cout << "primary input id " << index << " name " << deviceName << endl;
+            if(index >= 0)
+                enableMIDIInputPort(index, true);
+        }
+    }
+    if(props->containsKey("MIDIInputAuxiliary")) {
+        String deviceName = props->getValue("MIDIInputAuxiliary");
+        int index = midiInputController_.indexOfDeviceNamed(deviceName);
+        // cout << "aux input id " << index << " name " << deviceName << endl;
+        if(index >= 0)
+            enableMIDIInputPort(index, false);
+    }
+    
+    // MIDI output settings are loaded when segments are created
+    
+    // OSC settings
+    if(props->containsKey("OSCTransmitEnabled")) {
+        bool enable = props->getBoolValue("OSCTransmitEnabled");
+        oscTransmitSetEnabled(enable);
+    }
+    if(props->containsKey("OSCTransmitRawDataEnabled")) {
+        bool enable = props->getBoolValue("OSCTransmitRawDataEnabled");
+        oscTransmitSetRawDataEnabled(enable);
+    }
+    
+    for(int i = 0; i < 16; i++) {
+        String keyName = "OSCTransmitHost";
+        String host, port;
+        int protocol = LO_UDP;
+        
+        keyName += i;
+        if(props->containsKey(keyName)) {
+            host = props->getValue(keyName);
+        }
+        else
+            continue;
+           
+        keyName = "OSCTransmitPort";
+        keyName += i;
+        if(props->containsKey(keyName)) {
+            port = props->getValue(keyName);
+        }
+        else
+            continue;
+        
+        keyName = "OSCTransmitProtocol";
+        keyName += i;
+        if(props->containsKey(keyName)) {
+            protocol = props->getIntValue(keyName);
+        }
+        // okay to go ahead without protocol; use default
+        
+        // Check for validity
+        if(host != "" && port != "" && (protocol == LO_UDP || protocol == LO_TCP)) {
+            oscTransmitter_.addAddress(host.toUTF8(), port.toUTF8(), protocol);
+        }
+    }
+    
+    if(props->containsKey("OSCReceiveEnabled")) {
+        bool enable = props->getBoolValue("OSCReceiveEnabled");
+        oscReceiveSetEnabled(enable);
+    }
+    if(props->containsKey("OSCReceivePort")) {
+        int port = props->getIntValue("OSCReceivePort");
+        if(port >= 1 && port <= 65535)
+            oscReceiveSetPort(port);
+    }
+    
+}
+
+// Load the MIDI output device for a given zone
+void MainApplicationController::loadMIDIOutputFromApplicationPreferences(int zone) {
+    PropertiesFile *props = applicationProperties_.getUserSettings();
+    
+    String keyName = "MIDIOutputZone";
+    keyName += zone;
+    
+    if(props->containsKey(keyName)) {
+        String output = props->getValue(keyName);
+        if(output.startsWith("__virtual__")) {
+#ifndef JUCE_WINDOWS
+            // Open virtual port with the name that follows
+            String virtualPortName = output.substring(11); // length of "__virtual__"
+            midiOutputController_.enableVirtualPort(zone, virtualPortName.toUTF8());
+#endif
+        }
+        else {
+            String deviceName = props->getValue(keyName);
+            int index = midiOutputController_.indexOfDeviceNamed(deviceName);
+            // cout << "zone " << zone << " id " << index << " name " << deviceName << endl;
+            if(index >= 0)
+                enableMIDIOutputPort(zone, index);
+        }
+    }
 }
 
 #ifdef ENABLE_TOUCHKEYS_SENSOR_TEST

@@ -61,6 +61,12 @@ public:
     int enabledPort(int identifier);
     std::vector<std::pair<int, int> > enabledPorts();
 	
+    // Get the name of a particular port index
+    String deviceName(int portNumber);
+    
+    // Find the index of a device with a given name; return -1 if not found
+    int indexOfDeviceNamed(String const& name);
+    
 	// Send MIDI messages
 	void sendNoteOn(int port, unsigned char channel, unsigned char note, unsigned char velocity);
     void sendNoteOff(int port, unsigned char channel, unsigned char note, unsigned char velocity = 64);

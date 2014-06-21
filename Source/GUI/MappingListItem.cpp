@@ -20,6 +20,7 @@
 //[Headers] You can add your own extra header files here...
 #ifndef TOUCHKEYS_NO_GUI
 #include "MappingListComponent.h"
+#include "MappingExtendedEditorWindow.h"
 //[/Headers]
 
 #include "MappingListItem.h"
@@ -157,6 +158,14 @@ void MappingListItem::buttonClicked (Button* buttonThatWasClicked)
     else if (buttonThatWasClicked == showDetailsButton)
     {
         //[UserButtonCode_showDetailsButton] -- add your button handler code here..
+        // Create an extended editor window
+        MappingExtendedEditorWindow *window = listComponent_.extendedEditorWindowForFactory(factory_);
+        if(window != 0) {
+            window->setVisible(true);
+            window->toFront(true);
+        }
+        else if(factory_->hasExtendedEditor())
+            listComponent_.openExtendedEditorWindow(factory_);
         //[/UserButtonCode_showDetailsButton]
     }
     else if (buttonThatWasClicked == deleteButton)
@@ -215,12 +224,9 @@ void MappingListItem::setMappingFactory(MappingFactory *factory)
     }
 
     if(factory_->hasExtendedEditor()) {
-        // Has an extended editor: make one and keep it around for adding to a new window
-        mappingLongEditorComponent = factory_->createExtendedEditor();
         showDetailsButton->setEnabled(true);
     }
     else {
-        mappingLongEditorComponent = nullptr;
         showDetailsButton->setEnabled(false);
     }
 
@@ -242,8 +248,6 @@ void MappingListItem::synchronize()
     // Update the short and long components if present
     if(mappingShortEditorComponent != 0)
         mappingShortEditorComponent->synchronize();
-    if(mappingLongEditorComponent != 0)
-        mappingLongEditorComponent->synchronize();
 }
 //[/MiscUserCode]
 

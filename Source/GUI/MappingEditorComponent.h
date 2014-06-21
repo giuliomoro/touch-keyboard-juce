@@ -47,6 +47,11 @@ public:
     // Method to synchronize the GUI state to the underlying
     // state of the mapping. Implemented in the subclass.
     virtual void synchronize() {}
+    
+    // Get a human-readable name for the mapping
+    // Generally, extended editors should implement this but short editors
+    // don't need to
+    virtual String getDescription() { return "Mapping"; }
 
     virtual void paint (Graphics& g)
     {

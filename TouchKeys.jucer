@@ -9,6 +9,12 @@
     <FILE id="TLhblr" name="tk-icon-512.png" compile="0" resource="1" file="Resources/tk-icon-512.png"/>
     <GROUP id="{76BA3848-7941-BF85-9F61-26651AA83B29}" name="Source">
       <GROUP id="{A75C239F-4C55-DB1F-52C8-665A12DD86F8}" name="GUI">
+        <FILE id="MNTGnN" name="PreferencesWindow.h" compile="0" resource="0"
+              file="Source/GUI/PreferencesWindow.h"/>
+        <FILE id="pQJbuq" name="PreferencesComponent.cpp" compile="1" resource="0"
+              file="Source/GUI/PreferencesComponent.cpp"/>
+        <FILE id="NJXJef" name="PreferencesComponent.h" compile="0" resource="0"
+              file="Source/GUI/PreferencesComponent.h"/>
         <FILE id="EqmxWo" name="MainWindow.cpp" compile="1" resource="0" file="Source/GUI/MainWindow.cpp"/>
         <FILE id="dCLyAi" name="MainWindow.h" compile="0" resource="0" file="Source/GUI/MainWindow.h"/>
         <FILE id="AJnPIz" name="KeyboardZoneComponent.cpp" compile="1" resource="0"
@@ -31,6 +37,8 @@
               file="Source/GUI/MappingListItem.h"/>
         <FILE id="xrkguc" name="MappingEditorComponent.h" compile="0" resource="0"
               file="Source/GUI/MappingEditorComponent.h"/>
+        <FILE id="E9Won5" name="MappingExtendedEditorWindow.h" compile="0"
+              resource="0" file="Source/GUI/MappingExtendedEditorWindow.h"/>
       </GROUP>
       <GROUP id="{C6DAB7D2-B0E8-B89F-2891-B0D8BD8F53F7}" name="Mappings">
         <GROUP id="{555624D9-7465-1F1E-FFBD-8A4D46B28C27}" name="Vibrato">
@@ -102,6 +110,10 @@
                 resource="0" file="Source/Mappings/KeyDivision/TouchkeyKeyDivisionMappingFactory.h"/>
         </GROUP>
         <GROUP id="{F18CE313-6599-FF00-12CD-4CDA50007E1C}" name="Control">
+          <FILE id="Fh9cxx" name="TouchkeyControlMappingExtendedEditor.cpp" compile="1"
+                resource="0" file="Source/Mappings/Control/TouchkeyControlMappingExtendedEditor.cpp"/>
+          <FILE id="FfUw61" name="TouchkeyControlMappingExtendedEditor.h" compile="0"
+                resource="0" file="Source/Mappings/Control/TouchkeyControlMappingExtendedEditor.h"/>
           <FILE id="sTWDBG" name="TouchkeyControlMappingShortEditor.cpp" compile="1"
                 resource="0" file="Source/Mappings/Control/TouchkeyControlMappingShortEditor.cpp"/>
           <FILE id="j4D4dO" name="TouchkeyControlMappingShortEditor.h" compile="0"
@@ -260,9 +272,9 @@
                bigIcon="b3DhPc">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" osxSDK="default" osxCompatibility="default" osxArchitecture="64BitIntel"
-                       isDebug="1" optimisation="1" targetName="TouchKeys"/>
+                       isDebug="1" optimisation="1" targetName="TouchKeys" headerPath="/usr/local/include"/>
         <CONFIGURATION name="Release" osxSDK="default" osxCompatibility="10.6 SDK" osxArchitecture="64BitUniversal"
-                       isDebug="0" optimisation="2" targetName="TouchKeys"/>
+                       isDebug="0" optimisation="2" targetName="TouchKeys" headerPath="/usr/local/include"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_opengl" path="../juce/modules"/>
