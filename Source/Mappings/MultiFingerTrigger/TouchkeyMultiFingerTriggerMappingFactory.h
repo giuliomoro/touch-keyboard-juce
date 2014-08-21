@@ -36,8 +36,7 @@ public:
     // ***** Constructor *****
     
 	// Default constructor, containing a reference to the PianoKeyboard class.
-    TouchkeyMultiFingerTriggerMappingFactory(PianoKeyboard &keyboard, MidiKeyboardSegment& segment)
-    : TouchkeyBaseMappingFactory<TouchkeyMultiFingerTriggerMapping>(keyboard, segment) {}
+    TouchkeyMultiFingerTriggerMappingFactory(PianoKeyboard &keyboard, MidiKeyboardSegment& segment);
 	
     // ***** Destructor *****
     
@@ -47,9 +46,56 @@ public:
     
     virtual const std::string factoryTypeName() { return "Multi-Finger\nTrigger"; }
     
+    // ***** Class-Specific Methods *****
+    
+    // Parameters for multi-finger trigger
+    int getTouchesForTrigger() { return numTouchesForTrigger_; }
+    int getFramesForTrigger() { return numFramesForTrigger_; }
+    int getConsecutiveTapsForTrigger() { return numConsecutiveTapsForTrigger_; }
+    timestamp_diff_type getMaxTimeBetweenTapsForTrigger() { return maxTapSpacing_; }
+    bool getNeedsMidiNoteOn() { return needsMidiNoteOn_; }
+    int getTriggerOnAction() { return triggerOnAction_; }
+    int getTriggerOffAction()  { return triggerOffAction_; }
+    int getTriggerOnNoteNumber() { return triggerOnNoteNum_; }
+    int getTriggerOffNoteNumber()  { return triggerOffNoteNum_; }
+    int getTriggerOnNoteVelocity()  { return triggerOnNoteVel_; }
+    int getTriggerOffNoteVelocity() { return triggerOffNoteVel_; }
+    
+    void setTouchesForTrigger(int touches);
+    void setFramesForTrigger(int frames);
+    void setConsecutiveTapsForTrigger(int taps);
+    void setMaxTimeBetweenTapsForTrigger(timestamp_diff_type timeDiff);
+    void setNeedsMidiNoteOn(bool needsMidi);
+    void setTriggerOnAction(int action);
+    void setTriggerOffAction(int action);
+    void setTriggerOnNoteNumber(int note);
+    void setTriggerOffNoteNumber(int note);
+    void setTriggerOnNoteVelocity(int velocity);
+    void setTriggerOffNoteVelocity(int velocity);
+    
+    // ***** GUI Support *****
+    bool hasBasicEditor() { return true; }
+    MappingEditorComponent* createBasicEditor();
+    bool hasExtendedEditor() { return false; }
+    MappingEditorComponent* createExtendedEditor() { return nullptr; }
+    
     // ****** Preset Save/Load ******
     XmlElement* getPreset();
     bool loadPreset(XmlElement const* preset);
+    
+private:
+    // ***** Private Methods *****
+    void initializeMappingParameters(int noteNumber, TouchkeyMultiFingerTriggerMapping *mapping);
+
+    // Parameters
+    int numTouchesForTrigger_;                  // How many touches are needed for a trigger
+    int numFramesForTrigger_;                   // How many consecutive frames with these touches are needed to trigger
+    int numConsecutiveTapsForTrigger_;          // How many taps with this number of touches are needed to trigger
+    timestamp_diff_type maxTapSpacing_;         // How far apart the taps can come and be considered a multi-tap gesture
+    bool needsMidiNoteOn_;                      // Whether the MIDI note has to be on for this gesture to trigger
+    int triggerOnAction_, triggerOffAction_;    // Actions to take on trigger on/off
+    int triggerOnNoteNum_, triggerOffNoteNum_;  // Which notes to send if a note is being sent
+    int triggerOnNoteVel_, triggerOffNoteVel_;  // Velocity to send if a note is being sent
 };
 
 #endif /* defined(__TouchKeys__TouchkeyMultiFingerTriggerMappingFactory__) */

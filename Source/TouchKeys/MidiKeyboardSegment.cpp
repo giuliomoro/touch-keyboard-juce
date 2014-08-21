@@ -608,7 +608,17 @@ bool MidiKeyboardSegment::loadPreset(XmlElement const* preset) {
     outputPortNumber_ = properties.getIntValue("outputPort");
     if(!properties.containsKey("mode"))
         return false;
-    mode_ = properties.getIntValue("mode");
+    int mode = properties.getIntValue("mode");
+    // Setting the mode affects a few other variables so use the
+    // functions rather than setting mode_ directly
+    if(mode == ModePassThrough)
+        setModePassThrough();
+    else if(mode == ModeMonophonic)
+        setModeMonophonic();
+    else if(mode == ModePolyphonic)
+        setModePolyphonic();
+    else // Off or unknown
+        setModeOff();
     if(!properties.containsKey("channelMask"))
         return false;
     channelMask_ = properties.getIntValue("channelMask");

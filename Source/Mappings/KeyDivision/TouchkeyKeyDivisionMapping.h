@@ -35,7 +35,7 @@ class TouchkeyKeyDivisionMapping : public TouchkeyBaseMapping {
     friend class TouchkeyKeyDivisionMappingFactory;
 public:
     enum {
-        kDetectionParameterYPosition,
+        kDetectionParameterYPosition = 1,
         kDetectionParameterNumberOfTouches,
         kDetectionParameterYPositionAndNumberOfTouches
     };
