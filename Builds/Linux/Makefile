@@ -65,6 +65,7 @@ OBJECTS := \
   $(OBJDIR)/TouchkeyPitchBendMappingFactory_9fc4ef9e.o \
   $(OBJDIR)/TouchkeyOnsetAngleMapping_a77ca3ca.o \
   $(OBJDIR)/TouchkeyOnsetAngleMappingFactory_6a4803ea.o \
+  $(OBJDIR)/TouchkeyMultiFingerTriggerMappingShortEditor_8604e029.o \
   $(OBJDIR)/TouchkeyMultiFingerTriggerMapping_f7bfe8a.o \
   $(OBJDIR)/TouchkeyMultiFingerTriggerMappingFactory_e811112a.o \
   $(OBJDIR)/TouchkeyKeyDivisionMapping_cea38eb0.o \
@@ -214,6 +215,11 @@ $(OBJDIR)/TouchkeyOnsetAngleMapping_a77ca3ca.o: ../../Source/Mappings/OnsetAngle
 $(OBJDIR)/TouchkeyOnsetAngleMappingFactory_6a4803ea.o: ../../Source/Mappings/OnsetAngle/TouchkeyOnsetAngleMappingFactory.cpp
 	-@mkdir -p $(OBJDIR)
 	@echo "Compiling TouchkeyOnsetAngleMappingFactory.cpp"
+	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
+
+$(OBJDIR)/TouchkeyMultiFingerTriggerMappingShortEditor_8604e029.o: ../../Source/Mappings/MultiFingerTrigger/TouchkeyMultiFingerTriggerMappingShortEditor.cpp
+	-@mkdir -p $(OBJDIR)
+	@echo "Compiling TouchkeyMultiFingerTriggerMappingShortEditor.cpp"
 	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 
 $(OBJDIR)/TouchkeyMultiFingerTriggerMapping_f7bfe8a.o: ../../Source/Mappings/MultiFingerTrigger/TouchkeyMultiFingerTriggerMapping.cpp

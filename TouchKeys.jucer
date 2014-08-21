@@ -90,6 +90,10 @@
                 resource="0" file="Source/Mappings/OnsetAngle/TouchkeyOnsetAngleMappingFactory.h"/>
         </GROUP>
         <GROUP id="{03E557AC-E333-5406-F3E0-F4A2F6D0E90B}" name="MultiFingerTrigger">
+          <FILE id="eBw76c" name="TouchkeyMultiFingerTriggerMappingShortEditor.cpp"
+                compile="1" resource="0" file="Source/Mappings/MultiFingerTrigger/TouchkeyMultiFingerTriggerMappingShortEditor.cpp"/>
+          <FILE id="otOw9f" name="TouchkeyMultiFingerTriggerMappingShortEditor.h"
+                compile="0" resource="0" file="Source/Mappings/MultiFingerTrigger/TouchkeyMultiFingerTriggerMappingShortEditor.h"/>
           <FILE id="DKcOhm" name="TouchkeyMultiFingerTriggerMapping.cpp" compile="1"
                 resource="0" file="Source/Mappings/MultiFingerTrigger/TouchkeyMultiFingerTriggerMapping.cpp"/>
           <FILE id="rYM1Os" name="TouchkeyMultiFingerTriggerMapping.h" compile="0"

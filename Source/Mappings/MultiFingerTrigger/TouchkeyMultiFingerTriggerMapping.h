@@ -26,11 +26,23 @@
 #define __TouchKeys__TouchkeyMultiFingerTriggerMapping__
 
 #include "../TouchkeyBaseMapping.h"
+#include <set>
+
+class TouchkeyMultiFingerTriggerMappingFactory;
 
 // This class handles the detection of finger motion specifically at
 // note release, which can be used to trigger specific release effects.
 
 class TouchkeyMultiFingerTriggerMapping : public TouchkeyBaseMapping {
+    friend class TouchkeyMultiFingerTriggerMappingFactory;
+public:
+    enum {
+        kActionNone = 1,
+        kActionNoteOn,
+        kActionNoteOff,
+        kActionMax
+    };
+    
 private:
     // Default values
     /*constexpr static const int kDefaultFilterBufferLength = 30;
@@ -43,7 +55,13 @@ private:
     static const int kDefaultNumFramesForTrigger;
     static const int kDefaultNumConsecutiveTapsForTrigger;
     static const timestamp_diff_type kDefaultMaxTapSpacing;
-
+    static const int kDefaultTriggerOnAction;
+    static const int kDefaultTriggerOffAction;
+    static const int kDefaultTriggerOnNoteNum;
+    static const int kDefaultTriggerOffNoteNum;
+    static const int kDefaultTriggerOnNoteVel;
+    static const int kDefaultTriggerOffNoteVel;
+    
 public:
 	// ***** Constructors *****
 	
@@ -53,11 +71,27 @@ public:
 	
     // ***** Modifiers *****
     
+    // Disable mappings from being sent
+    void disengage(bool shouldDelete = false);
+    
     // Reset the state back initial values
     void reset();
     
     // Resend the current state of all parameters
     void resend();
+    
+    // Parameters for multi-finger trigger
+    void setTouchesForTrigger(int touches);
+    void setFramesForTrigger(int frames);
+    void setConsecutiveTapsForTrigger(int taps);
+    void setMaxTimeBetweenTapsForTrigger(timestamp_diff_type timeDiff);
+    void setNeedsMidiNoteOn(bool needsMidi);
+    void setTriggerOnAction(int action);
+    void setTriggerOffAction(int action);
+    void setTriggerOnNoteNumber(int note);
+    void setTriggerOffNoteNumber(int note);
+    void setTriggerOnNoteVelocity(int velocity);
+    void setTriggerOffNoteVelocity(int velocity);
     
 	// ***** Evaluators *****
     
@@ -89,6 +123,9 @@ private:
     int numConsecutiveTapsForTrigger_;          // How many taps with this number of touches are needed to trigger
     timestamp_diff_type maxTapSpacing_;         // How far apart the taps can come and be considered a multi-tap gesture
     bool needsMidiNoteOn_;                      // Whether the MIDI note has to be on for this gesture to trigger
+    int triggerOnAction_, triggerOffAction_;    // Actions to take on trigger on/off
+    int triggerOnNoteNum_, triggerOffNoteNum_;  // Which notes to send if a note is being sent
+    int triggerOnNoteVel_, triggerOffNoteVel_;  // Velocity to send if a note is being sent
     
     int lastNumActiveTouches_;                  // How many touches were active before
     float lastActiveTouchLocations_[3];         // Where (Y coord.) the active touches were last frame
@@ -97,6 +134,8 @@ private:
     bool hasGeneratedTap_;                      // Whether we've generated a tap with this number of touches yet
     timestamp_type lastTapStartTimestamp_;      // When the last tap ended
     bool hasTriggered_;                         // Whether we've generated a trigger
+    
+    std::set<std::pair<int, int> > otherNotesOn_; // Which other notes are on as a result of triggers?
     
     Node<KeyTouchFrame> pastSamples_;           // Locations of touch
     CriticalSection sampleBufferMutex_;         // Mutex to protect threaded access to sample buffer

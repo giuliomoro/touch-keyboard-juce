@@ -23,6 +23,7 @@
 */
 
 #include "TouchkeyMultiFingerTriggerMapping.h"
+#include "TouchkeyMultiFingerTriggerMappingFactory.h"
 #include "../../TouchKeys/MidiOutputController.h"
 
 // Class constants
@@ -30,7 +31,13 @@ const int TouchkeyMultiFingerTriggerMapping::kDefaultFilterBufferLength = 30;
 const int TouchkeyMultiFingerTriggerMapping::kDefaultNumTouchesForTrigger = 2;
 const int TouchkeyMultiFingerTriggerMapping::kDefaultNumFramesForTrigger = 2;
 const int TouchkeyMultiFingerTriggerMapping::kDefaultNumConsecutiveTapsForTrigger = 1;
-const timestamp_diff_type TouchkeyMultiFingerTriggerMapping::kDefaultMaxTapSpacing = milliseconds_to_timestamp(500.0);
+const timestamp_diff_type TouchkeyMultiFingerTriggerMapping::kDefaultMaxTapSpacing = milliseconds_to_timestamp(300.0);
+const int TouchkeyMultiFingerTriggerMapping::kDefaultTriggerOnAction = TouchkeyMultiFingerTriggerMapping::kActionNoteOn;
+const int TouchkeyMultiFingerTriggerMapping::kDefaultTriggerOffAction = TouchkeyMultiFingerTriggerMapping::kActionNone;
+const int TouchkeyMultiFingerTriggerMapping::kDefaultTriggerOnNoteNum = -1;
+const int TouchkeyMultiFingerTriggerMapping::kDefaultTriggerOffNoteNum = -1;
+const int TouchkeyMultiFingerTriggerMapping::kDefaultTriggerOnNoteVel =  -1;
+const int TouchkeyMultiFingerTriggerMapping::kDefaultTriggerOffNoteVel = -1;
 
 // Main constructor takes references/pointers from objects which keep track
 // of touch location, continuous key position and the state detected from that
@@ -42,9 +49,29 @@ TouchkeyMultiFingerTriggerMapping::TouchkeyMultiFingerTriggerMapping(PianoKeyboa
 : TouchkeyBaseMapping(keyboard, factory, noteNumber, touchBuffer, positionBuffer, positionTracker),
 numTouchesForTrigger_(kDefaultNumTouchesForTrigger), numFramesForTrigger_(kDefaultNumFramesForTrigger),
 numConsecutiveTapsForTrigger_(kDefaultNumConsecutiveTapsForTrigger), maxTapSpacing_(kDefaultMaxTapSpacing),
-needsMidiNoteOn_(true), pastSamples_(kDefaultFilterBufferLength)
+needsMidiNoteOn_(true), triggerOnAction_(kDefaultTriggerOnAction), triggerOffAction_(kDefaultTriggerOffAction),
+triggerOnNoteNum_(kDefaultTriggerOnNoteNum), triggerOffNoteNum_(kDefaultTriggerOffNoteNum),
+triggerOnNoteVel_(kDefaultTriggerOnNoteVel), triggerOffNoteVel_(kDefaultTriggerOffNoteVel),
+pastSamples_(kDefaultFilterBufferLength)
 {
     reset();
+}
+
+// Turn off mapping of data.
+void TouchkeyMultiFingerTriggerMapping::disengage(bool shouldDelete) {
+    // Send note off messages for anything currently on
+    std::set<std::pair<int, int> >::iterator it;
+    int port = static_cast<TouchkeyMultiFingerTriggerMappingFactory*>(factory_)->segment().outputPort();
+    
+    for(it = otherNotesOn_.begin(); it != otherNotesOn_.end(); ++it) {
+        int ch = it->first;
+        int note = it->second;
+        
+        keyboard_.midiOutputController()->sendNoteOn(port, ch, note, 0);
+    }
+    
+    otherNotesOn_.clear();
+    TouchkeyBaseMapping::disengage(shouldDelete);
 }
 
 // Reset state back to defaults
@@ -66,6 +93,50 @@ void TouchkeyMultiFingerTriggerMapping::reset() {
 // Resend all current parameters
 void TouchkeyMultiFingerTriggerMapping::resend() {
     // Message is only sent at release; resend may not apply here.
+}
+
+void TouchkeyMultiFingerTriggerMapping::setTouchesForTrigger(int touches) {
+    numTouchesForTrigger_ = touches;
+}
+
+void TouchkeyMultiFingerTriggerMapping::setFramesForTrigger(int frames) {
+    numFramesForTrigger_ = frames;
+}
+
+void TouchkeyMultiFingerTriggerMapping::setConsecutiveTapsForTrigger(int taps) {
+    numConsecutiveTapsForTrigger_ = taps;
+}
+
+void TouchkeyMultiFingerTriggerMapping::setMaxTimeBetweenTapsForTrigger(timestamp_diff_type timeDiff) {
+    maxTapSpacing_ = timeDiff;
+}
+
+void TouchkeyMultiFingerTriggerMapping::setNeedsMidiNoteOn(bool needsMidi) {
+    needsMidiNoteOn_ = needsMidi;
+}
+
+void TouchkeyMultiFingerTriggerMapping::setTriggerOnAction(int action) {
+    triggerOnAction_ = action;
+}
+
+void TouchkeyMultiFingerTriggerMapping::setTriggerOffAction(int action) {
+    triggerOffAction_ = action;
+}
+
+void TouchkeyMultiFingerTriggerMapping::setTriggerOnNoteNumber(int note) {
+    triggerOnNoteNum_ = note;
+}
+
+void TouchkeyMultiFingerTriggerMapping::setTriggerOffNoteNumber(int note) {
+    triggerOffNoteNum_ = note;
+}
+
+void TouchkeyMultiFingerTriggerMapping::setTriggerOnNoteVelocity(int velocity) {
+    triggerOnNoteVel_ = velocity;
+}
+
+void TouchkeyMultiFingerTriggerMapping::setTriggerOffNoteVelocity(int velocity) {
+    triggerOffNoteVel_ = velocity;
 }
 
 // This method receives data from the touch buffer or possibly the continuous key angle (not used here)
@@ -105,8 +176,6 @@ void TouchkeyMultiFingerTriggerMapping::triggerReceived(TriggerSource* who, time
                     }
                     else
                         tapsCount_ = 1;
-                    
-                    std::cout << "Tap " << tapsCount_ << std::endl;
                     
                     // Check if the right number of taps has elapsed
                     if(tapsCount_ >= numConsecutiveTapsForTrigger_ && !hasTriggered_) {
@@ -173,54 +242,87 @@ timestamp_type TouchkeyMultiFingerTriggerMapping::performMapping() {
 }
 
 void TouchkeyMultiFingerTriggerMapping::generateTriggerOn(timestamp_type timestamp, timestamp_diff_type timeBetweenTaps, float distanceBetweenPoints) {
-    std::cout << "Trigger distance = " << distanceBetweenPoints << " timing = " << timeBetweenTaps << std::endl;
-    // KLUDGE
     if(!suspended_) {
-#if 0
-        if(distanceBetweenPoints > 0.35) {
-            //keyboard_.sendMessage("/touchkeys/pitchbend", "if", noteNumber_, 2.0, LO_ARGS_END);
+        if(triggerOnAction_ == kActionNoteOn ||
+           triggerOnAction_ == kActionNoteOff) {
+            // Send a MIDI note on message with given note number and velocity
+            int port = static_cast<TouchkeyMultiFingerTriggerMappingFactory*>(factory_)->segment().outputPort();
             int ch = keyboard_.key(noteNumber_)->midiChannel();
-            int vel = keyboard_.key(noteNumber_)->midiVelocity();
-            keyboard_.midiOutputController()->sendNoteOn(0, ch, noteNumber_ + 14, vel);
-            //keyboard_.midiOutputController()->sendNoteOff(0, ch, noteNumber_ + 12, vel);
+            int vel = triggerOnNoteVel_;
+            int note = triggerOnNoteNum_;
+            if(note < 0)    // note < 0 means current note
+                note = noteNumber_;
+            if(note < 128) {
+                if(triggerOnAction_ == kActionNoteOn) {
+                    // Can't send notes above 127...
+                    if(vel < 0)     // vel < 0 means same as current
+                        vel = keyboard_.key(noteNumber_)->midiVelocity();
+                    if(vel > 127)
+                        vel = 127;
+                    
+                    // Register that this note has been turned on
+                    if(note != noteNumber_)
+                        otherNotesOn_.insert(std::pair<int,int>(ch, note));
+                }
+                else {
+                    // Note off
+                    vel = 0;
+                    if(note != noteNumber_) {
+                        // Unregister this note if we are turning it off
+                        if(otherNotesOn_.count(std::pair<int,int>(ch, note)) > 0) {
+                            otherNotesOn_.erase(std::pair<int,int>(ch, note));
+                        }
+                    }
+                }
+                
+                keyboard_.midiOutputController()->sendNoteOn(port, ch, note, vel);
+            }
         }
-        else {
-            //keyboard_.sendMessage("/touchkeys/pitchbend", "if", noteNumber_, 1.0, LO_ARGS_END);
-            int ch = keyboard_.key(noteNumber_)->midiChannel();
-            int vel = keyboard_.key(noteNumber_)->midiVelocity();
-            keyboard_.midiOutputController()->sendNoteOn(0, ch, noteNumber_ + 13, vel);
-            //keyboard_.midiOutputController()->sendNoteOff(0, ch, noteNumber_ + 12, vel);
-        }
-#elif 0
-        int ch = keyboard_.key(noteNumber_)->midiChannel();
-        keyboard_.midiOutputController()->sendControlChange(0, ch, 73, 127);
-#else
-        keyboard_.midiOutputController()->sendNoteOn(0, keyboard_.key(noteNumber_)->midiChannel(), noteNumber_, 127);
-#endif
     }
 }
 
 void TouchkeyMultiFingerTriggerMapping::generateTriggerOff(timestamp_type timestamp) {
-    std::cout << "Trigger off\n";
     if(!suspended_) {
-#if 0
-        //eyboard_.sendMessage("/touchkeys/pitchbend", "if", noteNumber_, 0.0, LO_ARGS_END);
-        int ch = keyboard_.key(noteNumber_)->midiChannel();
-        int vel = keyboard_.key(noteNumber_)->midiVelocity();
-        keyboard_.midiOutputController()->sendNoteOn(0, ch, noteNumber_ + 12, vel);
-        //keyboard_.midiOutputController()->sendNoteOff(0, ch, noteNumber_ + 13, vel);
-        //keyboard_.midiOutputController()->sendNoteOff(0, ch, noteNumber_ + 14, vel);
-#elif 0
-        int ch = keyboard_.key(noteNumber_)->midiChannel();
-        keyboard_.midiOutputController()->sendControlChange(0, ch, 73, 0);
-#else
-        keyboard_.midiOutputController()->sendNoteOn(0, keyboard_.key(noteNumber_)->midiChannel(), noteNumber_, 127);
-#endif
+        if(triggerOffAction_ == kActionNoteOn ||
+           triggerOffAction_ == kActionNoteOff) {
+            // Send a MIDI note on message with given note number and velocity
+            int port = static_cast<TouchkeyMultiFingerTriggerMappingFactory*>(factory_)->segment().outputPort();
+            int ch = keyboard_.key(noteNumber_)->midiChannel();
+            int vel = triggerOffNoteVel_;
+            int note = triggerOffNoteNum_;
+            if(note < 0)    // note < 0 means current note
+                note = noteNumber_;
+            if(note < 128) {
+                if(triggerOffAction_ == kActionNoteOn) {
+                    // Can't send notes above 127...
+                    if(vel < 0)     // vel < 0 means same as current
+                        vel = keyboard_.key(noteNumber_)->midiVelocity();
+                    if(vel > 127)
+                        vel = 127;
+                    
+                    // Register that this note has been turned on
+                    if(note != noteNumber_)
+                        otherNotesOn_.insert(std::pair<int,int>(ch, note));
+                }
+                else {
+                    // Note off
+                    vel = 0;
+                    if(note != noteNumber_) {
+                        // Unregister this note if we are turning it off
+                        if(otherNotesOn_.count(std::pair<int,int>(ch, note)) > 0) {
+                            otherNotesOn_.erase(std::pair<int,int>(ch, note));
+                        }
+                    }
+                }
+                
+                keyboard_.midiOutputController()->sendNoteOn(port, ch, note, vel);
+            }
+        }
     }
 }
 
 // MIDI note-off message received
 void TouchkeyMultiFingerTriggerMapping::midiNoteOffReceived(int channel) {
-    int ch = keyboard_.key(noteNumber_)->midiChannel();
-    keyboard_.midiOutputController()->sendControlChange(0, ch, 73, 0);
+    // int ch = keyboard_.key(noteNumber_)->midiChannel();
+    // keyboard_.midiOutputController()->sendControlChange(0, ch, 73, 0);
 }

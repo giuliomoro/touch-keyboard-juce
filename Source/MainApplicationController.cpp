@@ -102,6 +102,7 @@ MainApplicationController::~MainApplicationController() {
     if(touchkeySensorTestIsRunning())
         touchkeySensorTestStop();
 #endif
+    removeAllOscListeners();
 }
 
 // Actions here run in the JUCE initialise() method once the application is loaded
@@ -121,10 +122,10 @@ void MainApplicationController::initialise() {
             
             MappingFactory *factory = new TouchkeyVibratoMappingFactory(keyboardController_, *segment);
             if(factory != 0)
-                segment->addMappingFactory(factory);
+                segment->addMappingFactory(factory, true);
             factory = new TouchkeyPitchBendMappingFactory(keyboardController_, *segment);
             if(factory != 0)
-                segment->addMappingFactory(factory);
+                segment->addMappingFactory(factory, true);
         }
     }
     else if(!getPrefsStartupPresetNone()) {
@@ -816,7 +817,7 @@ MappingFactory* MainApplicationController::createMappingFactoryForIndex(int inde
 
 // Return whethera  given mapping is experimental or not
 bool MainApplicationController::mappingIsExperimental(int index) {
-    if(index > 2)
+    if(index > 2 && index != 4)
         return true;
     return false;
 }
@@ -1162,6 +1163,8 @@ bool MainApplicationController::touchkeySensorTestStart(const char *path, int fi
         touchkeyErrorOccurred_ = true;
         return false;
     }
+    
+    keyboardTesterWindow_->setVisible(true);
     
     touchkeyErrorMessage_ = "";
     touchkeyErrorOccurred_ = false;
