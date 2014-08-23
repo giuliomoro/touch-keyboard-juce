@@ -66,7 +66,7 @@ void KeyboardTesterDisplay::render() {
 		if(keyShape(key) >= 0) {
 			// White keys: draw and move the frame over for the next key
 			drawWhiteKey(0, 0, keyShape(key), key == lowestMidiNote_,
-                         key == highestMidiNote_, (key == currentlyActiveKey_) || (key == currentHighlightedKey_));
+                         key == highestMidiNote_, (key == currentlyActiveKey_) || (key == currentHighlightedKey_), 1);
             // Draw sensor state for this key
             drawSensorState(key, 0, 0, kWhiteKeyBackWidths[keyShape(key)], kWhiteKeyFrontLength + kWhiteKeyBackLength,
                             true, kWhiteKeyBackOffsets[keyShape(key)]);
@@ -79,7 +79,7 @@ void KeyboardTesterDisplay::render() {
 			float offsetV = kWhiteKeyFrontLength + kWhiteKeyBackLength - kBlackKeyLength;
             
 			glTranslatef(offsetH, offsetV, 0.0);
-			drawBlackKey(0, 0, (key == currentlyActiveKey_) || (key == currentHighlightedKey_));
+			drawBlackKey(0, 0, (key == currentlyActiveKey_) || (key == currentHighlightedKey_), 1);
             // Draw sensor state for this key
             drawSensorState(key, 0, 0, kBlackKeyWidth, kBlackKeyLength, false, 0);
 			glTranslatef(-offsetH, -offsetV, 0.0);

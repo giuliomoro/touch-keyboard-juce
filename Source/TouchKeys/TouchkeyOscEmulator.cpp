@@ -22,6 +22,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <sstream>
 #include "TouchkeyOscEmulator.h"
 
 // Main constructor
@@ -54,67 +55,76 @@ void TouchkeyOscEmulator::allTouchesOff(bool send) {
 // OSC handler method, called when a registered message is received
 bool TouchkeyOscEmulator::oscHandlerMethod(const char *path, const char *types,
                                            int numValues, lo_arg **values, void *data) {
-    // Parse the OSC path looking for particular emulation messages
-    if(!strncmp(path, "/emulation0/note", 16) && strlen(path) > 16) {
-        // Emulation0 messages are of this form:
-        //   noteN/M
-        //   noteN/M/z
-        // Here, N specifies the number of the note (with 0 being the lowest on the controller)
-        // and M specifies the touch number (starting at 1 for the first touch). The messages ending
-        // in /z indicate a touch on-off event for that particular touch.
-        std::string subpath(&path[16]);
-        int separatorLoc = subpath.find_first_of('/');
-        if(separatorLoc == std::string::npos || separatorLoc == subpath.length() - 1) {
-            // Malformed input (no slash or it's the last character): ignore
-            return false;
-        }
-        const char *noteNumberStr = subpath.substr(0, separatorLoc).c_str();
-        if(noteNumberStr == 0)  // Malformed input
-            return false;
-        int noteNumber = atoi(noteNumberStr);
-        if(noteNumber < 0)  // Unknown note number
-            return false;
-        // Now we have a note number from the OSC path
-        // Figure out the touch number, starting after the separator
-        subpath = subpath.substr(separatorLoc + 1);
-        separatorLoc = subpath.find_first_of("/z");
-        bool isZ = false;
-        if(separatorLoc != std::string::npos) {
-            // This is a z message; drop the last part
-            isZ = true;
-            subpath = subpath.substr(0, separatorLoc);
-        }
-        int touchNumber = atoi(subpath.c_str());
-        
-        // We only care about touch numbers 1-3, since we're emulating the capabilities
-        // of the TouchKeys
-        if(touchNumber < 1 || touchNumber > 3)
-            return false;
-        
-        if(isZ) {
-            // Z messages indicate touch on/off. We only respond specifically
-            // to the off message: the on message is implicit in receiving XY data
-            if(numValues >= 1) {
-                if(types[0] == 'i') {
-                    if(values[0]->i == 0)
-                        touchOffReceived(noteNumber, touchNumber);
-                }
-                else if(types[0] == 'f') {
-                    if(values[0]->f == 0)
-                        touchOffReceived(noteNumber, touchNumber);
+    try {
+        // Parse the OSC path looking for particular emulation messages
+        if(!strncmp(path, "/emulation0/note", 16) && strlen(path) > 16) {
+            // Emulation0 messages are of this form:
+            //   noteN/M
+            //   noteN/M/z
+            // Here, N specifies the number of the note (with 0 being the lowest on the controller)
+            // and M specifies the touch number (starting at 1 for the first touch). The messages ending
+            // in /z indicate a touch on-off event for that particular touch.
+            std::string subpath(&path[16]);
+            int separatorLoc = subpath.find_first_of('/');
+            if(separatorLoc == std::string::npos || separatorLoc == subpath.length() - 1) {
+                // Malformed input (no slash or it's the last character): ignore
+                return false;
+            }
+            std::stringstream noteNumberSStream(subpath.substr(0, separatorLoc));
+            
+            int noteNumber = 0;
+            noteNumberSStream >> noteNumber;
+            
+            if(noteNumber < 0)  // Unknown note number
+                return false;
+            // Now we have a note number from the OSC path
+            // Figure out the touch number, starting after the separator
+            subpath = subpath.substr(separatorLoc + 1);
+            separatorLoc = subpath.find_first_of("/z");
+            bool isZ = false;
+            if(separatorLoc != std::string::npos) {
+                // This is a z message; drop the last part
+                isZ = true;
+                subpath = subpath.substr(0, separatorLoc);
+            }
+            
+            std::stringstream touchNumberSStream(subpath);
+            int touchNumber = 0;
+            touchNumberSStream >> touchNumber;
+            
+            // We only care about touch numbers 1-3, since we're emulating the capabilities
+            // of the TouchKeys
+            if(touchNumber < 1 || touchNumber > 3)
+                return false;
+            
+            if(isZ) {
+                // Z messages indicate touch on/off. We only respond specifically
+                // to the off message: the on message is implicit in receiving XY data
+                if(numValues >= 1) {
+                    if(types[0] == 'i') {
+                        if(values[0]->i == 0)
+                            touchOffReceived(noteNumber, touchNumber);
+                    }
+                    else if(types[0] == 'f') {
+                        if(values[0]->f == 0)
+                            touchOffReceived(noteNumber, touchNumber);
+                    }
                 }
             }
-        }
-        else {
-            // Other messages contain XY data for the given touch, but with Y first as
-            // the layout is turned sideways (landscape)
-            if(numValues >= 2) {
-                if(types[0] == 'f' && types[1] == 'f')
-                    touchReceived(noteNumber, touchNumber, values[1]->f, values[0]->f);
+            else {
+                // Other messages contain XY data for the given touch, but with Y first as
+                // the layout is turned sideways (landscape)
+                if(numValues >= 2) {
+                    if(types[0] == 'f' && types[1] == 'f')
+                        touchReceived(noteNumber, touchNumber, values[1]->f, values[0]->f);
+                }
             }
         }
     }
-    
+    catch(...) {
+        return false;
+    }
+        
     return true;
 }
 

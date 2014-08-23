@@ -23,7 +23,7 @@
 #include "OscMidiConverter.h"
 #include "MidiKeyboardSegment.h"
 
-#define DEBUG_OSC_MIDI_CONVERTER
+#undef DEBUG_OSC_MIDI_CONVERTER
 
 // Main constructor: set up OSC reception from the keyboard
 OscMidiConverter::OscMidiConverter(PianoKeyboard& keyboard, MidiKeyboardSegment& segment, int controllerId) :

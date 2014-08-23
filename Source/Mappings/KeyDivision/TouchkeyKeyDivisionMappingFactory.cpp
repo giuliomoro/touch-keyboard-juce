@@ -23,6 +23,7 @@
 */
 
 #include "TouchkeyKeyDivisionMappingFactory.h"
+#include "../../Display/KeyboardDisplay.h"
 
 // Yarman-24 Turkish microtonal tuning:
 /*      1/1	RAST		C
@@ -124,6 +125,18 @@ TouchkeyKeyDivisionMappingFactory::TouchkeyKeyDivisionMappingFactory(PianoKeyboa
 {
     //setName("/touchkeys/segmentpitch");
     setBendParameters();
+    
+    KeyboardDisplay *display = keyboard_.gui();
+    if(display != 0) { 
+        display->addKeyDivision(this, segment.noteRange().first, segment.noteRange().second, numSegmentsPerKey_);
+    }
+}
+
+TouchkeyKeyDivisionMappingFactory::~TouchkeyKeyDivisionMappingFactory() {
+    // Remove the divisions from the keys, if this mapping has added them
+    KeyboardDisplay *display = keyboard_.gui();
+    if(display != 0)
+        display->removeKeyDivision(this);
 }
 
 void TouchkeyKeyDivisionMappingFactory::setName(const string& name) {
