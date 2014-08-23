@@ -23,7 +23,7 @@
 #include "OscMidiConverter.h"
 #include "MidiKeyboardSegment.h"
 
-#undef DEBUG_OSC_MIDI_CONVERTER
+#define DEBUG_OSC_MIDI_CONVERTER
 
 // Main constructor: set up OSC reception from the keyboard
 OscMidiConverter::OscMidiConverter(PianoKeyboard& keyboard, MidiKeyboardSegment& segment, int controllerId) :
@@ -73,8 +73,13 @@ void OscMidiConverter::setMidiMessageType(int defaultValue, int minValue,
     
     if(centerValue >= 0)
         controlCenterValue_ = centerValue;
-    else
-        controlCenterValue_ = controlDefaultValue_;
+    else {
+        // Set center value with same procedure as default value
+        if(controller_ == MidiKeyboardSegment::kControlPitchWheel)
+            controlCenterValue_ = 8192;
+        else
+            controlCenterValue_ = 0;
+    }
     
     // Pitch wheel is always 14 bit. Aftertouch is always 7 bit.
     // Other CCs are selectable (though according to MIDI spec not every

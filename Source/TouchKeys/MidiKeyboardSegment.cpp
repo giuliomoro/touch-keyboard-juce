@@ -39,7 +39,7 @@
 #include <string>
 #include <sstream>
 
-#define DEBUG_MIDI_KEYBOARD_SEGMENT
+#undef DEBUG_MIDI_KEYBOARD_SEGMENT
 
 const int MidiKeyboardSegment::kMidiControllerDamperPedal = 64;
 const int MidiKeyboardSegment::kPedalActiveValue = 64;

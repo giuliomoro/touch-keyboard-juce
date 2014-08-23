@@ -240,6 +240,7 @@ XmlElement* TouchkeyControlMappingFactory::getPreset() {
     properties.setValue("ignoresTwoFingers", ignoresTwoFingers_);
     properties.setValue("ignoresThreeFingers", ignoresThreeFingers_);
     properties.setValue("direction", direction_);
+    properties.setValue("use14Bit", use14BitControl_);
     
     XmlElement* preset = properties.createXml("MappingFactory");
     preset->setAttribute("type", "Control");
@@ -276,6 +277,11 @@ bool TouchkeyControlMappingFactory::loadPreset(XmlElement const* preset) {
     ignoresTwoFingers_ = properties.getBoolValue("ignoresTwoFingers");
     ignoresThreeFingers_ = properties.getBoolValue("ignoresThreeFingers");
     direction_ = properties.getIntValue("direction");
+    
+    // These values added to later versions of the presets so check
+    // whether they actually exist or not
+    if(properties.containsKey("use14Bit"))
+        use14BitControl_ = properties.getBoolValue("use14Bit");
     
     // Update MIDI information; this doesn't actually change the controller
     // (which is already set) but it adds a listener and updates the ranges
