@@ -74,6 +74,8 @@ currentHighlightedKey_(-1), touchSensingEnabled_(false), analogSensorsPresent_(f
     clearAllTouches();
     for(int i = 0; i < 128; i++)
         midiActiveForKey_[i] = false;
+    
+    recalculateKeyDivisions();
 }
 
 // Tell the underlying canvas to repaint itself
@@ -159,7 +161,7 @@ void KeyboardDisplay::render() {
 		if(keyShape(key) >= 0) {
 			// White keys: draw and move the frame over for the next key
 			drawWhiteKey(0, 0, keyShape(key), key == lowestMidiNote_, key == highestMidiNote_,
-						 /*(key == currentHighlightedKey_) ||*/ midiActiveForKey_[key]);
+						 /*(key == currentHighlightedKey_) ||*/ midiActiveForKey_[key], keyDivisionsForNote_[key]);
             // Analog slider should be centered with respect to the back of the white key
             if(analogSensorsPresent_ && keyShape(key) >= 0) {
                 float sliderOffset = kWhiteKeyBackOffsets[keyShape(key)] + (kWhiteKeyBackWidths[keyShape(key)] - kAnalogSliderWidth) * 0.5;
@@ -175,7 +177,7 @@ void KeyboardDisplay::render() {
 			float offsetV = kWhiteKeyFrontLength + kWhiteKeyBackLength - kBlackKeyLength;
 
 			glTranslatef(offsetH, offsetV, 0.0);
-			drawBlackKey(0, 0, /*(key == currentHighlightedKey_) ||*/ midiActiveForKey_[key]);
+			drawBlackKey(0, 0, /*(key == currentHighlightedKey_) ||*/ midiActiveForKey_[key], keyDivisionsForNote_[key]);
             if(analogSensorsPresent_) {
                 drawAnalogSlider((kBlackKeyWidth - kAnalogSliderWidth) * 0.5, kBlackKeyLength + kAnalogSliderVerticalSpacing,
                                  analogValueIsCalibratedForKey_[key], false, analogValueForKey_[key]);
@@ -406,10 +408,35 @@ void KeyboardDisplay::setTouchSensingEnabled(bool enabled) {
 		touchSensingPresentOnKey_[i] = false;
 }
 
+// Key division methods: indicate that certain keys are divided into more than
+// one segment on the display. Useful for certain mappings.
+
+void KeyboardDisplay::addKeyDivision(void *who, int noteLow, int noteHigh, int divisions) {
+    KeyDivision div;
+    
+    div.noteLow = noteLow;
+    div.noteHigh = noteHigh;
+    div.divisions = divisions;
+    
+    keyDivisions_[who] = div;
+    
+    recalculateKeyDivisions();
+    tellCanvasToRepaint();
+}
+
+void KeyboardDisplay::removeKeyDivision(void *who) {
+    if(keyDivisions_.count(who) == 0)
+        return;
+    keyDivisions_.erase(who);
+    
+    recalculateKeyDivisions();
+    tellCanvasToRepaint();
+}
+
 // Draw the outline of a white key.  Shape ranges from 0-7, giving the type of white key to draw
 // Coordinates give the lower-left corner of the key
 
-void KeyboardDisplay::drawWhiteKey(float x, float y, int shape, bool first, bool last, bool highlighted) {
+void KeyboardDisplay::drawWhiteKey(float x, float y, int shape, bool first, bool last, bool highlighted, int divisions) {
 	// First and last keys will have special geometry since there is no black key below
 	// Figure out the precise geometry in this case...
 	
@@ -463,11 +490,31 @@ void KeyboardDisplay::drawWhiteKey(float x, float y, int shape, bool first, bool
     glVertex2f(x + kWhiteKeyFrontWidth, y);
 
 	glEnd();
+    
+    if(divisions > 1) {
+        glColor3f(0.0, 0.0, 0.0);
+        
+        for(int i = 1; i < divisions; i++) {
+            float ratio = (float)i / (float)divisions;
+            if(ratio > kWhiteFrontBackCutoff) {
+                glBegin(GL_LINES);
+                glVertex2d(x + backOffset, y + (kWhiteKeyFrontLength + kWhiteKeyBackLength) * ratio);
+                glVertex2d(x + backOffset + backWidth, y + (kWhiteKeyFrontLength + kWhiteKeyBackLength) * ratio);
+                glEnd();
+            }
+            else {
+                glBegin(GL_LINES);
+                glVertex2d(x, y + (kWhiteKeyFrontLength + kWhiteKeyBackLength) * ratio);
+                glVertex2d(x + kWhiteKeyFrontWidth, y + (kWhiteKeyFrontLength + kWhiteKeyBackLength) * ratio);
+                glEnd();
+            }
+        }
+    }
 }
 
 // Draw the outline of a black key, given its lower-left corner
 
-void KeyboardDisplay::drawBlackKey(float x, float y, bool highlighted) {
+void KeyboardDisplay::drawBlackKey(float x, float y, bool highlighted, int divisions) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	if(highlighted)
 		glColor3f(0.7, 0.0, 0.0);
@@ -481,6 +528,16 @@ void KeyboardDisplay::drawBlackKey(float x, float y, bool highlighted) {
 	glVertex2f(x + kBlackKeyWidth, y);
 	
 	glEnd();
+
+    if(divisions > 1) {
+        glColor3f(1.0, 1.0, 1.0);
+        for(int i = 1; i < divisions; i++) {
+            glBegin(GL_LINES);
+            glVertex2d(x, y + kBlackKeyLength * (float)i / (float)divisions);
+            glVertex2d(x + kBlackKeyWidth, y + kBlackKeyLength * (float)i / (float)divisions);
+            glEnd();
+        }
+    }
 }
 
 // Draw a circle indicating a touch on the white key surface
@@ -710,4 +767,30 @@ int KeyboardDisplay::keyForLocation(Point& internalPoint) {
 
 	// If all else fails, assume we're not on any key
 	return -1;
+}
+
+// Convert the map of keyboard segments with divisions into an array ordered by
+// note number, to save time during display
+
+void KeyboardDisplay::recalculateKeyDivisions() {
+    // By default, 1 division per key
+    for(int i = 0; i < 128; i++)
+        keyDivisionsForNote_[i] = 1;
+    
+    // Increase divisions wherever we find a relevant mapping
+    std::map<void*, KeyDivision>::iterator it;
+    for(it = keyDivisions_.begin(); it != keyDivisions_.end(); ++it) {
+        int start = it->second.noteLow;
+        int end = it->second.noteHigh;
+        int div = it->second.divisions;
+        
+        if(start < 0)
+            start = 0;
+        if(end > 127)
+            end = 127;
+        for(int i = start; i <= end; i++) {
+            if(div > keyDivisionsForNote_[i])
+                keyDivisionsForNote_[i] = div;
+        }
+    }
 }

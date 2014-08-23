@@ -91,6 +91,12 @@ protected:
 		float x;
 		float y;
 	} Point;
+    
+    typedef struct {
+        int noteLow;
+        int noteHigh;
+        int divisions;
+    } KeyDivision;
 	
 public:
 	KeyboardDisplay();
@@ -134,10 +140,14 @@ public:
     void setAnalogSensorsPresent(bool present) { analogSensorsPresent_ = present; }
 	void setTouchSensorPresentForKey(int key, bool present);
 	void setTouchSensingEnabled(bool enabled);
+    
+    // Key division methods
+    void addKeyDivision(void *who, int noteLow, int noteHigh, int divisions);
+    void removeKeyDivision(void *who);
 	
 protected:
-	void drawWhiteKey(float x, float y, int shape, bool first, bool last, bool highlighted);
-	void drawBlackKey(float x, float y, bool highlighted);
+	void drawWhiteKey(float x, float y, int shape, bool first, bool last, bool highlighted, int divisions);
+	void drawBlackKey(float x, float y, bool highlighted, int divisions);
 	
 	void drawWhiteTouch(float x, float y, int shape, float touchLocH, float touchLocV, float touchSize);
 	void drawBlackTouch(float x, float y, float touchLocH, float touchLocV, float touchSize);
@@ -160,6 +170,9 @@ protected:
 	
 	// Figure out which key (if any) the current point corresponds to
 	int keyForLocation(Point& internalPoint);
+    
+    // Convert key division map into a number of divisions for each key
+    void recalculateKeyDivisions();
 		
 protected:
 	OpenGLJuceCanvas *canvas_;                      // Reference to object which handles rendering
@@ -178,7 +191,8 @@ protected:
 	
     TouchInfo currentTouches_[128];                 // Touch data for each key
     TouchInfo currentTouchesMirror_[128];           // Mirror of the above, used for active display
-	//std::map<int, TouchInfo> currentTouches_;		// Collection of current touch data
+    std::map<void*, KeyDivision> keyDivisions_;     // Division of keys into more than one segment, for certain mappings
+    int keyDivisionsForNote_[128];                  // Number of key divisions per note
 	CriticalSection displayMutex_;					// Synchronize access between data and display threads
 };
 

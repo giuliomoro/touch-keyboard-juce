@@ -40,7 +40,7 @@ public:
 	
     // ***** Destructor *****
     
-    ~TouchkeyKeyDivisionMappingFactory() {}
+    ~TouchkeyKeyDivisionMappingFactory();
 
     // ***** Accessors / Modifiers *****
     
