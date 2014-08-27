@@ -34,6 +34,7 @@ public:
         setResizable(false, false);
         
         // Don't show window yet
+        setTopLeftPosition(60,60);
         setVisible(false);
         
         // Start a timer that will keep the interface in sync with the application

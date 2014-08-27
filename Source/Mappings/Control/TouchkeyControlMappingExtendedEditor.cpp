@@ -28,7 +28,7 @@
 
 //==============================================================================
 TouchkeyControlMappingExtendedEditor::TouchkeyControlMappingExtendedEditor (TouchkeyControlMappingFactory& factory)
-    : factory_(factory)
+    : factory_(factory), typeWasAbsolute_(false)
 {
     addAndMakeVisible (inputRangeLowEditor = new TextEditor ("range low text editor"));
     inputRangeLowEditor->setMultiLine (false);
