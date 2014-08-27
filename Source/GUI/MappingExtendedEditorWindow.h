@@ -41,6 +41,7 @@ public:
         }
         
         // Show window
+        setTopLeftPosition(60,60);
         setVisible(true);
     }
 
