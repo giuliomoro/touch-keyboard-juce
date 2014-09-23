@@ -27,10 +27,14 @@
 
 #include "../TouchkeyBaseMapping.h"
 
+#define RELEASE_ANGLE_MAX_SEQUENCE_LENGTH 16
+
 // This class handles the detection of finger motion specifically at
 // note release, which can be used to trigger specific release effects.
 
 class TouchkeyReleaseAngleMapping : public TouchkeyBaseMapping {
+    friend class TouchkeyReleaseAngleMappingFactory;
+    
 private:
     // Default values
     /*constexpr static const int kDefaultFilterBufferLength = 30;
@@ -38,6 +42,9 @@ private:
     
     static const int kDefaultFilterBufferLength;
     static const timestamp_diff_type kDefaultMaxLookbackTime;
+    
+    static const float kDefaultUpMinimumAngle;
+    static const float kDefaultDownMinimumAngle;
     
 public:
 	// ***** Constructors *****
@@ -57,6 +64,17 @@ public:
     // Resend the current state of all parameters
     void resend();
     
+    // Parameters for release angle algorithm
+    void setWindowSize(float windowSize);
+    void setUpMessagesEnabled(bool enable);
+    void setDownMessagesEnabled(bool enable);
+    void setUpMinimumAngle(float minAngle);
+    void setUpNote(int sequence, int note);
+    void setUpVelocity(int sequence, int velocity);
+    void setDownMinimumAngle(float minAngle);
+    void setDownNote(int sequence, int note);
+    void setDownVelocity(int sequence, int velocity);
+    
 	// ***** Evaluators *****
     
     // This method receives triggers whenever events occur in the touch data or the
@@ -67,10 +85,13 @@ public:
     // This method handles the OSC message transmission. It should be run in the Scheduler
     // thread provided by PianoKeyboard.
     timestamp_type performMapping();
+    
+    // Called when MIDI note release happens
+    void midiNoteOffReceived(int channel);
 
     // ***** Specific Methods *****
     // Process the release by calculating the angle
-    void processRelease(timestamp_type timestamp);
+    void processRelease(/*timestamp_type timestamp*/);
     
     timestamp_type releaseKeySwitch();
     
@@ -80,6 +101,14 @@ private:
     void sendReleaseAngleMessage(float releaseAngle, bool force = false);
     
 	// ***** Member Variables *****
+    
+    bool upEnabled_, downEnabled_;          // Whether messages are enabled for upward and downward releases
+    float upMinimumAngle_;                  // Minimum release angle for trigger for up...
+    float downMinimumAngle_;                // ...and down cases
+    int upNotes_[RELEASE_ANGLE_MAX_SEQUENCE_LENGTH];       // Notes and velocities to send on upward
+    int upVelocities_[RELEASE_ANGLE_MAX_SEQUENCE_LENGTH];  // and downward release
+    int downNotes_[RELEASE_ANGLE_MAX_SEQUENCE_LENGTH];
+    int downVelocities_[RELEASE_ANGLE_MAX_SEQUENCE_LENGTH];
     
     Node<KeyTouchFrame> pastSamples_;           // Locations of touch
     timestamp_diff_type maxLookbackTime_;       // How long to look backwards to find release velocity

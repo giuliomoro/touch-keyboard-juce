@@ -159,14 +159,27 @@ void KeyboardDisplay::render() {
 	// Draw the keys themselves first, with analog values if present, then draw the touches
 	for(int key = lowestMidiNote_; key <= highestMidiNote_; key++) {
 		if(keyShape(key) >= 0) {
-			// White keys: draw and move the frame over for the next key
-			drawWhiteKey(0, 0, keyShape(key), key == lowestMidiNote_, key == highestMidiNote_,
-						 /*(key == currentHighlightedKey_) ||*/ midiActiveForKey_[key], keyDivisionsForNote_[key]);
-            // Analog slider should be centered with respect to the back of the white key
-            if(analogSensorsPresent_ && keyShape(key) >= 0) {
-                float sliderOffset = kWhiteKeyBackOffsets[keyShape(key)] + (kWhiteKeyBackWidths[keyShape(key)] - kAnalogSliderWidth) * 0.5;
-                drawAnalogSlider(sliderOffset, kWhiteKeyFrontLength + kWhiteKeyBackLength + kAnalogSliderVerticalSpacing,
-                                 analogValueIsCalibratedForKey_[key], true, analogValueForKey_[key]);
+            if(key < 0 || key > 127) {
+                // Safety check
+                drawWhiteKey(0, 0, keyShape(key), key == lowestMidiNote_, key == highestMidiNote_,
+                             false, 1);
+                // Analog slider should be centered with respect to the back of the white key
+                if(analogSensorsPresent_ && keyShape(key) >= 0) {
+                    float sliderOffset = kWhiteKeyBackOffsets[keyShape(key)] + (kWhiteKeyBackWidths[keyShape(key)] - kAnalogSliderWidth) * 0.5;
+                    drawAnalogSlider(sliderOffset, kWhiteKeyFrontLength + kWhiteKeyBackLength + kAnalogSliderVerticalSpacing,
+                                     false, true, 0);
+                }
+            }
+            else {
+                // White keys: draw and move the frame over for the next key
+                drawWhiteKey(0, 0, keyShape(key), key == lowestMidiNote_, key == highestMidiNote_,
+                             /*(key == currentHighlightedKey_) ||*/ midiActiveForKey_[key], keyDivisionsForNote_[key]);
+                // Analog slider should be centered with respect to the back of the white key
+                if(analogSensorsPresent_ && keyShape(key) >= 0) {
+                    float sliderOffset = kWhiteKeyBackOffsets[keyShape(key)] + (kWhiteKeyBackWidths[keyShape(key)] - kAnalogSliderWidth) * 0.5;
+                    drawAnalogSlider(sliderOffset, kWhiteKeyFrontLength + kWhiteKeyBackLength + kAnalogSliderVerticalSpacing,
+                                     analogValueIsCalibratedForKey_[key], true, analogValueForKey_[key]);
+                }
             }
 			glTranslatef(kWhiteKeyFrontWidth + kInterKeySpacing, 0, 0);
 		}
@@ -177,10 +190,21 @@ void KeyboardDisplay::render() {
 			float offsetV = kWhiteKeyFrontLength + kWhiteKeyBackLength - kBlackKeyLength;
 
 			glTranslatef(offsetH, offsetV, 0.0);
-			drawBlackKey(0, 0, /*(key == currentHighlightedKey_) ||*/ midiActiveForKey_[key], keyDivisionsForNote_[key]);
-            if(analogSensorsPresent_) {
-                drawAnalogSlider((kBlackKeyWidth - kAnalogSliderWidth) * 0.5, kBlackKeyLength + kAnalogSliderVerticalSpacing,
-                                 analogValueIsCalibratedForKey_[key], false, analogValueForKey_[key]);
+            
+            if(key < 0 || key > 127) {
+                // Safety check
+                drawBlackKey(0, 0, false, 1);
+                if(analogSensorsPresent_) {
+                    drawAnalogSlider((kBlackKeyWidth - kAnalogSliderWidth) * 0.5, kBlackKeyLength + kAnalogSliderVerticalSpacing,
+                                     false, false, 0);
+                }
+            }
+            else {
+                drawBlackKey(0, 0, /*(key == currentHighlightedKey_) ||*/ midiActiveForKey_[key], keyDivisionsForNote_[key]);
+                if(analogSensorsPresent_) {
+                    drawAnalogSlider((kBlackKeyWidth - kAnalogSliderWidth) * 0.5, kBlackKeyLength + kAnalogSliderVerticalSpacing,
+                                     analogValueIsCalibratedForKey_[key], false, analogValueForKey_[key]);
+                }
             }
 			glTranslatef(-offsetH, -offsetV, 0.0);
 		}

@@ -22,7 +22,7 @@ class PreferencesWindow : public DocumentWindow, public Timer
 {
 public:
     PreferencesWindow(MainApplicationController& controller)
-    : DocumentWindow("Preferences", Colours::lightgrey, DocumentWindow::allButtons)
+    : DocumentWindow("Preferences", Colours::lightgrey, DocumentWindow::allButtons, false)
     {
         // Make a new preferences component
         preferencesComponent_ = new PreferencesComponent();
