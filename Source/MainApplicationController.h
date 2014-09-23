@@ -54,7 +54,7 @@
 
 #ifndef TOUCHKEYS_NO_GUI
 #include "GUI/GraphicsDisplayWindow.h"
-#include "GUI/PReferencesWindow.h"
+#include "GUI/PreferencesWindow.h"
 class KeyboardTesterDisplay;
 #endif
 
@@ -232,6 +232,8 @@ public:
     void setKeyboardDisplayWindow(DocumentWindow *window) { keyboardDisplayWindow_ = window; }
     void showKeyboardDisplayWindow() {
         if(keyboardDisplayWindow_ != 0) {
+            keyboardDisplayWindow_->addToDesktop(keyboardDisplayWindow_->getDesktopWindowStyleFlags() 
+						 | ComponentPeer::windowHasCloseButton);
             keyboardDisplayWindow_->setVisible(true);
             keyboardDisplayWindow_->toFront(true);
         }
@@ -239,6 +241,8 @@ public:
     void setPreferencesWindow(PreferencesWindow *window) { preferencesWindow_ = window; }
     void showPreferencesWindow() {
         if(preferencesWindow_ != 0) {
+            preferencesWindow_->addToDesktop(preferencesWindow_->getDesktopWindowStyleFlags() 
+					     | ComponentPeer::windowHasCloseButton);
             preferencesWindow_->setVisible(true);
             preferencesWindow_->toFront(true);
         }

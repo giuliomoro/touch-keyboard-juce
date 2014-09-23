@@ -56,6 +56,10 @@
                 resource="0" file="Source/Mappings/Vibrato/TouchkeyVibratoMappingFactory.h"/>
         </GROUP>
         <GROUP id="{E8E7436B-8FBA-DCC3-A9A3-B7FA7AF31483}" name="ReleaseAngle">
+          <FILE id="kQ9zEZ" name="TouchkeyReleaseAngleMappingExtendedEditor.cpp"
+                compile="1" resource="0" file="Source/Mappings/ReleaseAngle/TouchkeyReleaseAngleMappingExtendedEditor.cpp"/>
+          <FILE id="vyYFkY" name="TouchkeyReleaseAngleMappingExtendedEditor.h"
+                compile="0" resource="0" file="Source/Mappings/ReleaseAngle/TouchkeyReleaseAngleMappingExtendedEditor.h"/>
           <FILE id="JOJw40" name="TouchkeyReleaseAngleMapping.cpp" compile="1"
                 resource="0" file="Source/Mappings/ReleaseAngle/TouchkeyReleaseAngleMapping.cpp"/>
           <FILE id="Au4RmN" name="TouchkeyReleaseAngleMapping.h" compile="0"
@@ -275,7 +279,7 @@
                extraLinkerFlags="/usr/local/lib/liblo.a" smallIcon="mbX6Jp"
                bigIcon="b3DhPc">
       <CONFIGURATIONS>
-        <CONFIGURATION name="Debug" osxSDK="default" osxCompatibility="default" osxArchitecture="64BitIntel"
+        <CONFIGURATION name="Debug" osxSDK="default" osxCompatibility="10.6 SDK" osxArchitecture="64BitIntel"
                        isDebug="1" optimisation="1" targetName="TouchKeys" headerPath="/usr/local/include"/>
         <CONFIGURATION name="Release" osxSDK="default" osxCompatibility="10.6 SDK" osxArchitecture="64BitUniversal"
                        isDebug="0" optimisation="2" targetName="TouchKeys" headerPath="/usr/local/include"/>

@@ -29,7 +29,7 @@
 
 const int TouchkeyKeyDivisionMapping::kDefaultNumberOfSegments = 2;
 const timestamp_diff_type TouchkeyKeyDivisionMapping::kDefaultDetectionTimeout = milliseconds_to_timestamp(25.0);
-const int TouchkeyKeyDivisionMapping::kDefaultDetectionParameter = kDetectionParameterYPosition;
+const int TouchkeyKeyDivisionMapping::kDefaultDetectionParameter = kDetectionParameterYPositionAndNumberOfTouches;
 const int TouchkeyKeyDivisionMapping::kDefaultRetriggerNumFrames = 2;
 
 // Main constructor takes references/pointers from objects which keep track
@@ -41,7 +41,7 @@ TouchkeyKeyDivisionMapping::TouchkeyKeyDivisionMapping(PianoKeyboard &keyboard, 
                                                      Node<key_position>* positionBuffer, KeyPositionTracker* positionTracker)
 : TouchkeyBaseMapping(keyboard, factory, noteNumber, touchBuffer, positionBuffer, positionTracker),
 numberOfSegments_(kDefaultNumberOfSegments), candidateSegment_(-1), detectedSegment_(-1), defaultSegment_(0),
-detectionParameter_(kDefaultDetectionParameter), retriggerable_(false), retriggerNumFrames_(kDefaultRetriggerNumFrames),
+detectionParameter_(kDefaultDetectionParameter), retriggerable_(true), retriggerNumFrames_(kDefaultRetriggerNumFrames),
 retriggerKeepsVelocity_(true),
 midiNoteOnTimestamp_(missing_value<timestamp_type>::missing()), timeout_(kDefaultDetectionTimeout),
 lastNumActiveTouches_(-1)

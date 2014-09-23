@@ -33,6 +33,9 @@ private:
     //constexpr static const timestamp_diff_type kDefaultMaxLookbackTime = milliseconds_to_timestamp(100);
     static const timestamp_diff_type kDefaultMaxLookbackTime;
     
+    static const int kNumConfigurations;
+    static const std::string kConfigurationNames[];
+    
 public:
     // ***** Constructor *****
     
@@ -46,6 +49,50 @@ public:
     // ***** Accessors / Modifiers *****
     virtual const std::string factoryTypeName() { return "Release\nAngle"; }
     
+    // ***** Specific Parameter Methods *****
+    
+    float getWindowSize() { return windowSizeMilliseconds_; }
+    bool getUpMessagesEnabled() { return upEnabled_; }
+    bool getDownMessageEnabled() { return downEnabled_; }
+    float getUpMinimumAngle() { return upMinimumAngle_; }
+    int getUpNote(int sequence);
+    int getUpVelocity(int sequence);
+    float getDownMinimumAngle() { return downMinimumAngle_; }
+    int getDownNote(int sequence);
+    int getDownVelocity(int sequence);
+    
+    void setWindowSize(float windowSize);
+    void setUpMessagesEnabled(bool enable);
+    void setDownMessagesEnabled(bool enable);
+    void setUpMinimumAngle(float minAngle);
+    void setUpNote(int sequence, int note);
+    void setUpVelocity(int sequence, int velocity);
+    void setDownMinimumAngle(float minAngle);
+    void setDownNote(int sequence, int note);
+    void setDownVelocity(int sequence, int velocity);
+    
+    // Methods for loading release-angle specific preset settings (different from the
+    // global preset methdos which are for save/load of files)
+    
+    int getNumConfigurations() { return kNumConfigurations; }
+    std::string getConfigurationName(int index) {
+        if(index < 0 || index >= kNumConfigurations)
+            return "";
+        return kConfigurationNames[index];
+    }
+    
+    // Returns current configuration or -1 if not a default setting
+    int getCurrentConfiguration() {
+        return currentConfiguration_;
+    }
+    void setCurrentConfiguration(int index);
+    
+    // ***** GUI Support *****
+    bool hasBasicEditor() { return false; }
+    MappingEditorComponent* createBasicEditor() { return nullptr; }
+    bool hasExtendedEditor() { return true; }
+    MappingEditorComponent* createExtendedEditor();
+    
     // ****** Preset Save/Load ******
     XmlElement* getPreset();
     bool loadPreset(XmlElement const* preset);
@@ -53,11 +100,27 @@ public:
     // ***** State Updaters *****
     
     // Override the MIDI note off method to process the release angle
-    void midiNoteOff(int noteNumber, bool touchIsOn, bool keyMotionActive,
+    /*void midiNoteOff(int noteNumber, bool touchIsOn, bool keyMotionActive,
                      Node<KeyTouchFrame>* touchBuffer,
                      Node<key_position>* positionBuffer,
-                     KeyPositionTracker* positionTracker);
+                     KeyPositionTracker* positionTracker);*/
     
+    //void midiNoteOffReceived(int channel);
+    
+private:
+    // ***** Private Methods *****
+    void initializeMappingParameters(int noteNumber, TouchkeyReleaseAngleMapping *mapping);
+    void clearNotes();
+    
+    int currentConfiguration_;              // What configuration we're currently in
+    float windowSizeMilliseconds_;          // How long before release to consider touch data
+    bool upEnabled_, downEnabled_;          // Whether messages are enabled for upward and downward releases
+    float upMinimumAngle_;                  // Minimum release angle for trigger for up...
+    float downMinimumAngle_;                // ...and down cases
+    int upNotes_[RELEASE_ANGLE_MAX_SEQUENCE_LENGTH];       // Notes and velocities to send on upward
+    int upVelocities_[RELEASE_ANGLE_MAX_SEQUENCE_LENGTH];  // and downward release
+    int downNotes_[RELEASE_ANGLE_MAX_SEQUENCE_LENGTH];
+    int downVelocities_[RELEASE_ANGLE_MAX_SEQUENCE_LENGTH];
 };
 
 #endif /* defined(__TouchKeys__TouchkeyReleaseAngleMappingFactory__) */

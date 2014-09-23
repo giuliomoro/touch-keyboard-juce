@@ -37,7 +37,7 @@ class GraphicsDisplayWindow    : public DocumentWindow
 {
 public:
     GraphicsDisplayWindow(String name, KeyboardDisplay& display)
-    : DocumentWindow(name, Colours::lightgrey, DocumentWindow::allButtons),
+    : DocumentWindow(name, Colours::lightgrey, DocumentWindow::allButtons, false),
       display_(display)
     {
         // Initialize an OpenGL graphics object as the content with a default size
