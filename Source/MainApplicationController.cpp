@@ -174,7 +174,11 @@ bool MainApplicationController::touchkeyDeviceStartupSequence(const char * path)
 #ifndef TOUCHKEYS_NO_GUI
     if(keyboardDisplayWindow_ != 0) {
         keyboardDisplayWindow_->getConstrainer()->setFixedAspectRatio(keyboardDisplay_.keyboardAspectRatio());
-        keyboardDisplayWindow_->setBoundsConstrained(keyboardDisplayWindow_->getBounds());
+        
+        Rectangle<int> bounds = keyboardDisplayWindow_->getBounds();
+        if(bounds.getY() < 44)
+            bounds.setY(44);
+        keyboardDisplayWindow_->setBoundsConstrained(bounds);
     }
 #endif
     

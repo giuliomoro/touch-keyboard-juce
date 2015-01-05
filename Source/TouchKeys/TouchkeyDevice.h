@@ -296,10 +296,10 @@ public:
     
 	// Conversion between touchkey # and MIDI note
 	int lowestMidiNote() { return lowestMidiNote_; }
-    int highestMidiNote() { return lowestMidiNote_ + 12*numOctaves_; }
+    int highestMidiNote() { return lowestMidiNote_ + 12*numOctaves_ + lowestNotePerOctave_; }
     int lowestKeyPresentMidiNote() { return lowestKeyPresentMidiNote_; } // What is the lowest key actually connected?
 	void setLowestMidiNote(int note);
-	int octaveKeyToMidi(int octave, int key) { return lowestMidiNote_ + octave*12 + key; }
+    int octaveKeyToMidi(int octave, int key);
     
     // Sensor data display
     void setSensorDisplay(RawSensorDisplay *display) { sensorDisplay_ = display; }
@@ -378,6 +378,7 @@ private:
 	int lowestMidiNote_;		// MIDI note number for the lowest C on the lowest octave
     int lowestKeyPresentMidiNote_; // MIDI note number for the lowest key actually attached
     int updatedLowestMidiNote_; // Lowest MIDI note if changed; held separately for thread sync
+    int lowestNotePerOctave_;   // Note which starts each octave, for non C-to-C keyboards
 	set<int> keysPresent_;		// Which keys (octave and note) are present on this device?
     int deviceSoftwareVersion_; // Which version of the device we're talking to
     int deviceHardwareVersion_; // Which version of the device hardware is running
