@@ -40,7 +40,8 @@ ioThread_(boost::bind(&TouchkeyDevice::runLoop, this, _1), "TouchKeyDevice::ioTh
 rawDataThread_(boost::bind(&TouchkeyDevice::rawDataRunLoop, this, _1), "TouchKeyDevice::rawDataThread"),
 autoGathering_(false), shouldStop_(false), sendRawOscMessages_(false),
 verbose_(0), numOctaves_(0), lowestMidiNote_(48), lowestKeyPresentMidiNote_(48),
-updatedLowestMidiNote_(48), deviceSoftwareVersion_(-1), deviceHardwareVersion_(-1),
+updatedLowestMidiNote_(48), lowestNotePerOctave_(0),
+deviceSoftwareVersion_(-1), deviceHardwareVersion_(-1),
 expectedLengthWhite_(kTransmissionLengthWhiteNewHardware),
 expectedLengthBlack_(kTransmissionLengthBlackNewHardware), deviceHasRGBLEDs_(false),
 ledThread_(boost::bind(&TouchkeyDevice::ledUpdateLoop, this, _1), "TouchKeyDevice::ledThread"),
@@ -374,11 +375,20 @@ bool TouchkeyDevice::checkIfDevicePresent(int millisecondsToWait) {
                             // be different from lowest connected key.
                             if(status.softwareVersionMajor >= 2) {
                                 lowestKeyPresentMidiNote_ = octaveKeyToMidi(0, status.lowestHardwareNote);
+                                
+                                if(status.softwareVersionMinor == 1) {
+                                    // Version 2.1 uses the lowest MIDI note to handle keyboards which don't
+                                    // begin and end at C, e.g. E-E or F-F keyboards.
+                                    lowestNotePerOctave_ = status.lowestHardwareNote;
+                                }
+                                else {
+                                    lowestNotePerOctave_ = 0;
+                                }
                             }
                             else if(lowestKeyPresentMidiNote_ == 127) // No keys found and old device software
                                 lowestKeyPresentMidiNote_ = lowestMidiNote_;
    
-                            keyboard_.setKeyboardGUIRange(lowestKeyPresentMidiNote_, lowestMidiNote_ + 12*numOctaves_);
+                            keyboard_.setKeyboardGUIRange(lowestKeyPresentMidiNote_, lowestMidiNote_ + 12*numOctaves_ + lowestNotePerOctave_);
                             calibrationInit(12*numOctaves_ + 1); // One more for the top C
 						}
 						else {
@@ -1208,8 +1218,29 @@ void TouchkeyDevice::setLowestMidiNote(int note) {
         lowestKeyPresentMidiNote_ += (note - lowestMidiNote_);
         lowestMidiNote_ = updatedLowestMidiNote_ = note;
         if(isOpen())
-            keyboard_.setKeyboardGUIRange(lowestMidiNote_, lowestMidiNote_ + 12*numOctaves_);
+            keyboard_.setKeyboardGUIRange(lowestKeyPresentMidiNote_, lowestMidiNote_ + 12*numOctaves_ + lowestNotePerOctave_);
     }
+}
+
+// Convert an octave and key designation into a MIDI note
+int TouchkeyDevice::octaveKeyToMidi(int octave, int key) {
+    int midi = lowestMidiNote_ + octave*12 + key;
+    
+    if(lowestNotePerOctave_ == 0)
+        return midi;
+    
+    // For keyboards which do not change octaves at C (e.g. E-E and F-F keyboards),
+    // the lowest note numbers are actually one octave higher (e.g. an octave might start
+    // at E, meaning C-Eb are part of the next higher octave).
+    // Also, the "top C" (key 12) has a special designation as being the top of
+    // whichever note the keyboard began at.
+    
+    if(key == 12)
+        midi = lowestMidiNote_ + octave*12 + key + lowestNotePerOctave_;
+    else if(key < lowestNotePerOctave_)
+        midi += 12;
+    
+    return midi;
 }
 
 // Loop for sending LED updates to the device, which must happen
@@ -1628,7 +1659,7 @@ void TouchkeyDevice::processCentroidFrame(unsigned char * const buffer, const in
                 if(keyboard_.key(i)->touchIsActive())
                     keyboard_.key(i)->touchOff(lastTimestamp_);
         
-        keyboard_.setKeyboardGUIRange(lowestMidiNote_, lowestMidiNote_ + 12*numOctaves_);
+        keyboard_.setKeyboardGUIRange(lowestKeyPresentMidiNote_, lowestMidiNote_ + 12*numOctaves_ + lowestNotePerOctave_);
     }
 	
 	//ioMutex_.exit();
