@@ -18,6 +18,7 @@
 */
 
 //[Headers] You can add your own extra header files here...
+#ifndef TOUCHKEYS_NO_GUI
 //[/Headers]
 
 #include "TouchkeyPitchBendMappingShortEditor.h"
@@ -263,4 +264,5 @@ END_JUCER_METADATA
 
 
 //[EndFile] You can add extra defines here...
+#endif      // TOUCHKEYS_NO_GUI
 //[/EndFile]

@@ -11,6 +11,8 @@
 #ifndef MAPPINGEXTENDEDEDITORWINDOW_H_INCLUDED
 #define MAPPINGEXTENDEDEDITORWINDOW_H_INCLUDED
 
+#ifndef TOUCHKEYS_NO_GUI
+
 #include "../../JuceLibraryCode/JuceHeader.h"
 #include "../TouchKeys/MidiKeyboardSegment.h"
 #include "../Mappings/MappingFactory.h"
@@ -89,5 +91,6 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MappingExtendedEditorWindow)
 };
 
+#endif      // TOUCHKEYS_NO_GUI
 
 #endif  // MAPPINGEXTENDEDEDITORWINDOW_H_INCLUDED

@@ -23,6 +23,8 @@
 #ifndef MAINWINDOW_H_INCLUDED
 #define MAINWINDOW_H_INCLUDED
 
+#ifndef TOUCHKEYS_NO_GUI
+
 #include "../../JuceLibraryCode/JuceHeader.h"
 #include "ControlWindowMainComponent.h"
 #include "../MainApplicationController.h"
@@ -120,5 +122,6 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainWindow)
 };
 
+#endif  // TOUCHKEYS_NO_GUI
 
 #endif  // MAINWINDOW_H_INCLUDED

@@ -200,7 +200,9 @@ bool MainApplicationController::touchkeyDeviceStartupSequence(const char * path)
     touchkeyErrorMessage_ = "";
     touchkeyErrorOccurred_ = false;
     
+#ifndef TOUCHKEYS_NO_GUI
     showKeyboardDisplayWindow();
+#endif
     
     // Automatically detect the lowest octave if set
     if(getPrefsAutodetectOctave())

@@ -20,6 +20,8 @@
   MainWindow.cpp: the control window, plus menu bar and Juce application methods
 */
 
+#ifndef TOUCHKEYS_NO_GUI
+
 #include "../../JuceLibraryCode/JuceHeader.h"
 #include "MainWindow.h"
 
@@ -371,3 +373,5 @@ void MainWindow::alertBoxResultChosen(int result, MainWindow *item) {
         item->clearPreset();
     }
 }
+
+#endif      // TOUCHKEYS_NO_GUI

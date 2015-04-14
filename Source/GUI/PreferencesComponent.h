@@ -21,6 +21,7 @@
 #define __JUCE_HEADER_248C56742F074362__
 
 //[Headers]     -- You can add your own extra header files here --
+#ifndef TOUCHKEYS_NO_GUI
 #include "JuceHeader.h"
 
 class MainApplicationController;
@@ -91,6 +92,7 @@ private:
 };
 
 //[EndFile] You can add extra defines here...
+#endif          // TOUCHKEYS_NO_GUI
 //[/EndFile]
 
 #endif   // __JUCE_HEADER_248C56742F074362__

@@ -107,7 +107,8 @@ static struct option long_options[] = {
 	{"touchkeys", required_argument, NULL, 't'},
     {"midi-input", required_argument, NULL, 'i'},
     {"midi-output", required_argument, NULL, 'o'},
-    {"virtual-midi-output", no_argument, NULL, 'O'},
+    {"virtual-midi-output", no_argument, NULL, 'V'},
+    {"osc-input-port", required_argument, NULL, 'P'},
 	{0,0,0,0}
 };
 
@@ -120,10 +121,11 @@ void usage(const char * processName)	// Print usage information and exit
 	cerr << "Usage: " << processName << " [-h] [-l] [-t touchkeys] [-i MIDI-in] [-o MIDI-out]\n";
 	cerr << "  -h:   Print this menu\n";
 	cerr << "  -l:   List available TouchKeys and MIDI devices\n";
-	cerr << "  -t:   Specify TouchKeys device path\n";
+	cerr << "  -t:   Specify TouchKeys device path and autostart\n";
     cerr << "  -i:   Specify MIDI input device\n";
     cerr << "  -o:   Specify MIDI output device\n";
-    cerr << "  -O:   Open virtual MIDI output\n";
+    cerr << "  -V:   Open virtual MIDI output\n";
+    cerr << "  -P:   Specify OSC input port (default: " << kDefaultOscReceivePort << ")\n";
 }
 
 void list_devices(MainApplicationController& controller)
@@ -167,13 +169,17 @@ void list_devices(MainApplicationController& controller)
 int main (int argc, char* argv[])
 {
     MainApplicationController controller;
+    
     int ch, option_index;
     int midiInputNum = 0, midiOutputNum = 0;
     bool useVirtualMidiOutput = false;
     bool shouldStart = true;
+    bool autostartTouchkeys = false;
+    bool autoopenMidiOut = false, autoopenMidiIn = false;
+    int oscInputPort = kDefaultOscReceivePort;
     string touchkeysDevicePath;
     
-	while((ch = getopt_long(argc, argv, "hli:o:t:O", long_options, &option_index)) != -1)
+	while((ch = getopt_long(argc, argv, "hli:o:t:VP:", long_options, &option_index)) != -1)
 	{
         if(ch == 'l') { // List devices
             list_devices(controller);
@@ -182,15 +188,22 @@ int main (int argc, char* argv[])
         }
         else if(ch == 't') { // TouchKeys device
             touchkeysDevicePath = optarg;
+            autostartTouchkeys = true;
         }
         else if(ch == 'i') { // MIDI input device
             midiInputNum = atoi(optarg);
+            autoopenMidiIn = true;
         }
         else if(ch == 'o') { // MIDI output device
             midiOutputNum = atoi(optarg);
+            autoopenMidiOut = true;
         }
-        else if(ch == 'O') { // Virtual MIDI output
+        else if(ch == 'V') { // Virtual MIDI output
             useVirtualMidiOutput = true;
+            autoopenMidiOut = true;
+        }
+        else if(ch == 'P') { // OSC port
+            oscInputPort = atoi(optarg);
         }
         else {
             usage(basename(argv[0]));
@@ -199,67 +212,68 @@ int main (int argc, char* argv[])
 		}
 	}
     
+    
     if(shouldStart) {
         // Main initialization: open TouchKeys and MIDI devices
+        controller.initialise();
+        
+        // Always enable OSC input without GUI, since it is how we control
+        // the system
+        controller.oscReceiveSetPort(oscInputPort);
+        controller.oscReceiveSetEnabled(true);
+        
         try {
-            // Check whether TouchKeys device was specified. If not, take the first available one.
-            /*if(touchkeysDevicePath == "") {
-                std::vector<std::string> touchkeysDevices = controller.availableTouchkeyDevices();
-                
-                if(touchkeysDevices.empty()) {
-                    cout << "No TouchKeys devices found. Check that the TouchKeys are connected.\n";
-                    throw new exception;
-                }
-                else {
-                    touchkeysDevicePath = "/dev/";
-                    touchkeysDevicePath.append(touchkeysDevices[0]);
-                }
-            }*/
-            
             // Open MIDI devices
-            //cout << "Opening MIDI input device " << midiInputNum << endl;
-            //controller.enableMIDIInputPort(midiInputNum);
+            if(autoopenMidiIn) {
+                cout << "Opening MIDI input device " << midiInputNum << endl;
+                controller.enableMIDIInputPort(midiInputNum, true);
+            }
 
             // TODO: enable multiple keyboard segments
-            if(useVirtualMidiOutput) {
+            if(autoopenMidiOut) {
+                if(useVirtualMidiOutput) {
 #ifndef JUCE_WINDOWS
-                cout << "Opening virtual MIDI output\n";
-                controller.enableMIDIOutputVirtualPort(0, "TouchKeys");
+                    cout << "Opening virtual MIDI output\n";
+                    controller.enableMIDIOutputVirtualPort(0, "TouchKeys");
 #endif
-            }
-            else {
-                cout << "Opening MIDI output device " << midiOutputNum << endl;
-                controller.enableMIDIOutputPort(0, midiOutputNum);
+                }
+                else {
+                    cout << "Opening MIDI output device " << midiOutputNum << endl;
+                    controller.enableMIDIOutputPort(0, midiOutputNum);
+                }
             }
             
             // Start the TouchKeys
-            cout << "Starting the TouchKeys on " << touchkeysDevicePath << " ... ";
-            if(!controller.touchkeyDeviceStartupSequence(touchkeysDevicePath.c_str())) {
-                cout << "failed: " << controller.touchkeyDeviceErrorMessage() << endl;
-                throw new exception;
+            if(autostartTouchkeys) {
+                cout << "Starting the TouchKeys on " << touchkeysDevicePath << " ... ";
+                if(!controller.touchkeyDeviceStartupSequence(touchkeysDevicePath.c_str())) {
+                    cout << "failed: " << controller.touchkeyDeviceErrorMessage() << endl;
+                    throw new exception;
+                }
+                else
+                    cout << "succeeded!\n";
             }
-            else
-                cout << "succeeded!\n";
             
             // Set up interrupt catching so we can stop with Ctrl-C
-            /*struct sigaction sigIntHandler;
+            struct sigaction sigIntHandler;
             
             sigIntHandler.sa_handler = sigint_handler;
             sigemptyset(&sigIntHandler.sa_mask);
             sigIntHandler.sa_flags = 0;
             sigaction(SIGINT, &sigIntHandler, NULL);
 
+            // Wait until interrupt signal is received
             while(!programShouldStop_) {
                 Thread::sleep(50);
-            }*/
-            
-            Thread::sleep(1000);
-            
-            cout << "Cleaning up...\n";
+            }
         }
         catch(...) {
             
         }
+        
+        // Stop TouchKeys if still running
+        if(controller.touchkeyDeviceIsRunning())
+            controller.stopTouchkeyDevice();
     }
     
     // Clean up any MessageManager instance that JUCE creates
