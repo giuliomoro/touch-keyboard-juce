@@ -156,9 +156,64 @@ void TouchkeyVibratoMappingFactory::setVibratoTimeout(timestamp_diff_type timeou
     vibratoTimeout_ = timeout;
 }
 
+#ifndef TOUCHKEYS_NO_GUI
 // ***** GUI Support *****
 MappingEditorComponent* TouchkeyVibratoMappingFactory::createBasicEditor() {
     return new TouchkeyVibratoMappingShortEditor(*this);
+}
+#endif
+
+// ****** OSC Control Support ******
+OscMessage* TouchkeyVibratoMappingFactory::oscControlMethod(const char *path, const char *types,
+                                                            int numValues, lo_arg **values, void *data) {
+    if(!strcmp(path, "/set-vibrato-control")) {
+        // Change the vibrato control
+        if(numValues > 0) {
+            if(types[0] == 'i') {
+                setVibratoControl(values[0]->i);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-vibrato-range")) {
+        // Change the vibrato range in semitones
+        if(numValues > 0) {
+            if(types[0] == 'f') {
+                setVibratoRange(values[0]->f);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-vibrato-prescaler")) {
+        // Change the vibrato prescaler
+        if(numValues > 0) {
+            if(types[0] == 'f') {
+                setVibratoPrescaler(values[0]->f);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-vibrato-timeout")) {
+        // Change the vibrato timeout
+        if(numValues > 0) {
+            if(types[0] == 'f') {
+                setVibratoTimeout(values[0]->f);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-vibrato-threshold")) {
+        // Change the vibrato threshold
+        if(numValues > 0) {
+            if(types[0] == 'f') {
+                setVibratoThreshold(values[0]->f);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    
+    // If no match, check the base class
+    return TouchkeyBaseMappingFactory<TouchkeyVibratoMapping>::oscControlMethod(path, types, numValues, values, data);
 }
 
 

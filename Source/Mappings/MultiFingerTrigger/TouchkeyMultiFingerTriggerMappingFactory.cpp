@@ -102,9 +102,20 @@ void TouchkeyMultiFingerTriggerMappingFactory::setTriggerOffNoteVelocity(int vel
     triggerOffNoteVel_ = velocity;
 }
 
+#ifndef TOUCHKEYS_NO_GUI
 // ***** GUI Support *****
 MappingEditorComponent* TouchkeyMultiFingerTriggerMappingFactory::createBasicEditor() {
     return new TouchkeyMultiFingerTriggerMappingShortEditor(*this);
+}
+#endif
+
+// ****** OSC Control Support ******
+OscMessage* TouchkeyMultiFingerTriggerMappingFactory::oscControlMethod(const char *path, const char *types,
+                                                              int numValues, lo_arg **values, void *data) {
+    // TODO
+    
+    // If no match, check the base class
+    return TouchkeyBaseMappingFactory<TouchkeyMultiFingerTriggerMapping>::oscControlMethod(path, types, numValues, values, data);
 }
 
 // ****** Preset Save/Load ******

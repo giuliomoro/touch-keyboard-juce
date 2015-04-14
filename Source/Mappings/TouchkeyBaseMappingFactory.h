@@ -53,7 +53,7 @@ public:
 	// Default constructor, containing a reference to the PianoKeyboard class.
     TouchkeyBaseMappingFactory(PianoKeyboard &keyboard, MidiKeyboardSegment& segment) :
       MappingFactory(keyboard), keyboardSegment_(segment), midiConverter_(0),
-      controlName_(""),
+      controlName_(""), shortControlName_(""),
       inputRangeMin_(0.0), inputRangeMax_(1.0), inputRangeCenter_(0.0),
       outOfRangeBehavior_(OscMidiConverter::kOutOfRangeClip),
       use14BitControl_(false),
@@ -207,10 +207,13 @@ public:
     }
     
     virtual string const getName() { return controlName_; }
+    virtual string const getShortName() { return shortControlName_; }
     
     virtual void setName(const string& name) {
         if(name == "")
             return;
+        shortControlName_ = name;
+        
         std::stringstream ss;
         
         // Remove listener on previous name (if any)
@@ -347,6 +350,38 @@ public:
         midiConverter_->clearLastValues(midiChannel, true);
         //midiConverter_->sendDefaultValue(midiChannel);
     }
+    
+    // ****** OSC Control ******
+    // As an alternative to GUI control, the mapping factories can receive OSC messages
+    // from the keyboard segment to which they are attached.
+    virtual OscMessage* oscControlMethod(const char *path, const char *types,
+                                  int numValues, lo_arg **values, void *data) {
+        if(!strcmp(path, "/set-bypass")) {
+            // Enable/disable suspend mapping
+            if(numValues > 0) {
+                if(types[0] == 'i') {
+                    if(values[0]->i != 0)
+                        setBypassed(true);
+                    else
+                        setBypassed(false);
+                    return OscTransmitter::createSuccessMessage();
+                }
+            }
+        }
+        else if(!strcmp(path, "/set-active-notes")) {
+            // Set which notes it applies to
+            // Bitmask: lower 12 bits of the number for pitch classes 0-11
+            if(numValues > 0) {
+                if(types[0] == 'i') {
+                    setActiveNotes((values[0]->i) & 0x0FFF);
+                    
+                    return OscTransmitter::createSuccessMessage();
+                }
+            }
+        }
+        
+        return 0;
+    }
 
     
 protected:
@@ -446,7 +481,8 @@ protected:
     std::map<int, MappingType*> mappings_;         // Collection of active mappings
     CriticalSection mappingsMutex_;                // Mutex protecting mappings from changes
     
-    std::string controlName_;                           // Name of the mapping
+    std::string controlName_;                           // Name of the mapping in long..
+    std::string shortControlName_;                      // ... and short forms
     float inputRangeMin_, inputRangeMax_;               // Input ranges
     float inputRangeCenter_;      
     int outOfRangeBehavior_;                            // What happens to out of range inputs

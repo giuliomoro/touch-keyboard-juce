@@ -60,14 +60,20 @@ int TouchkeyControlMappingFactory::getDirection() {
 }
 
 void TouchkeyControlMappingFactory::setInputParameter(int inputParameter) {
-    inputParameter_ = inputParameter;
+    if(inputParameter >= 1 && inputParameter < TouchkeyControlMapping::kInputParameterMaxValue)
+        inputParameter_ = inputParameter;
 }
 
 void TouchkeyControlMappingFactory::setInputType(int inputType) {
-    inputType_ = inputType;
+    if(inputType >= 1 && inputType < TouchkeyControlMapping::kTypeMaxValue)
+        inputType_ = inputType;
 }
 
 void TouchkeyControlMappingFactory::setController(int controller) {
+    if(midiControllerNumber_ < 1 ||
+       midiControllerNumber_ >= MidiKeyboardSegment::kControlMax)
+        return;
+    
     // Before changing the controller, check if we were going to or from the pitch wheel.
     // If so, we should scale the value to or from a 14-bit value
     if(midiControllerNumber_ == MidiKeyboardSegment::kControlPitchWheel &&
@@ -216,6 +222,7 @@ void TouchkeyControlMappingFactory::setUses14BitControl(bool use) {
                       -1, use14BitControl_, outOfRangeBehavior_);
 }
 
+#ifndef TOUCHKEYS_NO_GUI
 // ***** GUI Support *****
 MappingEditorComponent* TouchkeyControlMappingFactory::createBasicEditor() {
     return new TouchkeyControlMappingShortEditor(*this);
@@ -223,6 +230,155 @@ MappingEditorComponent* TouchkeyControlMappingFactory::createBasicEditor() {
 
 MappingEditorComponent* TouchkeyControlMappingFactory::createExtendedEditor() {
     return new TouchkeyControlMappingExtendedEditor(*this);
+}
+#endif
+
+// ****** OSC Control Support ******
+OscMessage* TouchkeyControlMappingFactory::oscControlMethod(const char *path, const char *types,
+                                                            int numValues, lo_arg **values, void *data) {
+    if(!strcmp(path, "/set-input-parameter")) {
+        // Change the input parameter for the control mapping
+        if(numValues > 0) {
+            if(types[0] == 'i') {
+                setInputParameter(values[0]->i);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-input-type")) {
+        // Change the input type (absolute/relative)
+        if(numValues > 0) {
+            if(types[0] == 'i') {
+                setInputType(values[0]->i);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-input-range-min")) {
+        // Change the input range
+        if(numValues > 0) {
+            if(types[0] == 'f') {
+                setRangeInputMin(values[0]->f);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-input-range-max")) {
+        // Change the input range
+        if(numValues > 0) {
+            if(types[0] == 'f') {
+                setRangeInputMax(values[0]->f);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-input-range-center")) {
+        // Change the input range
+        if(numValues > 0) {
+            if(types[0] == 'f') {
+                setRangeInputCenter(values[0]->f);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-output-range-min")) {
+        // Change the output range
+        if(numValues > 0) {
+            if(types[0] == 'f') {
+                setRangeOutputMin(values[0]->f);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-output-range-max")) {
+        // Change the output range
+        if(numValues > 0) {
+            if(types[0] == 'f') {
+                setRangeOutputMax(values[0]->f);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-output-default")) {
+        // Change the output range
+        if(numValues > 0) {
+            if(types[0] == 'f') {
+                setRangeOutputDefault(values[0]->f);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-out-of-range-behavior")) {
+        // Change how out-of-range inputs are handled
+        if(numValues > 0) {
+            if(types[0] == 'i') {
+                setOutOfRangeBehavior(values[0]->i);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-midi-controller")) {
+        // Set the MIDI output CC, including pitchwheel etc. and 14-bit options
+        if(numValues > 0) {
+            if(types[0] == 'i') {
+                if(numValues >= 2)
+                    if(types[1] == 'i')
+                        setUses14BitControl(values[1]->i != 0);
+                
+                setController(values[0]->i);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-threshold")) {
+        // Set the threshold for relative activations
+        if(numValues > 0) {
+            if(types[0] == 'f') {
+                setThreshold(values[0]->f);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-ignores-multiple-fingers")) {
+        // Change whether two or three finger touches are ignored
+        if(numValues >= 2) {
+            if(types[0] == 'i' && types[1] == 'i') {
+                setIgnoresTwoFingers(values[0]->i);
+                setIgnoresThreeFingers(values[1]->i);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-direction")) {
+        // Set the direction of the mapping (normal/reverse/absolute val)
+        if(numValues > 0) {
+            if(types[0] == 'i') {
+                setDirection(values[0]->i);
+                return OscTransmitter::createSuccessMessage();
+            }
+            else if(types[0] == 's') {
+                const char *str = &values[0]->s;
+                
+                if(!strncmp(str, "norm", 4)) {
+                    setDirection(TouchkeyControlMapping::kDirectionPositive);
+                    return OscTransmitter::createSuccessMessage();
+                }
+                else if(!strncmp(str, "rev", 3)) {
+                    setDirection(TouchkeyControlMapping::kDirectionNegative);
+                    return OscTransmitter::createSuccessMessage();
+                }
+                if(!strncmp(str, "always", 6) || !strncmp(str, "both", 4)) {
+                    setDirection(TouchkeyControlMapping::kDirectionBoth);
+                    return OscTransmitter::createSuccessMessage();
+                }
+                else
+                    return OscTransmitter::createFailureMessage();
+            }
+        }
+    }
+    
+    // If no match, check the base class
+    return TouchkeyBaseMappingFactory<TouchkeyControlMapping>::oscControlMethod(path, types, numValues, values, data);
 }
 
 

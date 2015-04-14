@@ -62,6 +62,7 @@ public:
     
     // Specific name for this particular factory
     virtual string const getName() { return ""; }
+    virtual string const getShortName() { return ""; }
     virtual void setName(const string& name) {}
     
     virtual Mapping* mapping(int noteNumber) = 0;      // Look up a mapping with the given note number
@@ -124,6 +125,7 @@ public:
     // Notification from key that a note is about to be sent out
     virtual void noteWillBegin(int noteNumber, int midiChannel, int midiVelocity) = 0;
     
+#ifndef TOUCHKEYS_NO_GUI
     // ***** GUI Support *****
     // There are two types of editors for a mapping: one is a small editor that fits in the
     // list view for adjusting the most important parameters, the other goes in a window of
@@ -133,6 +135,16 @@ public:
     virtual MappingEditorComponent* createBasicEditor() { return nullptr; }
     virtual bool hasExtendedEditor() { return false; }
     virtual MappingEditorComponent* createExtendedEditor() { return nullptr; }
+#endif
+    
+    // ****** OSC Control ******
+    // As an alternative to GUI control, the mapping factories can receive OSC messages
+    // from the keyboard segment to which they are attached.
+    virtual OscMessage* oscControlMethod(const char *path, const char *types,
+                                         int numValues, lo_arg **values, void *data) {
+        // Nothing to do here in this virtual base class
+        return 0;
+    }
     
     // ****** Preset Save/Load ******
     // These methods generate XML settings files and reload values from them

@@ -121,9 +121,67 @@ void TouchkeyPitchBendMappingFactory::setBendIgnoresMultipleFingers(bool ignores
     bendIgnoresThreeFingers_ = ignoresThree;
 }
 
+#ifndef TOUCHKEYS_NO_GUI
 // ***** GUI Support *****
 MappingEditorComponent* TouchkeyPitchBendMappingFactory::createBasicEditor() {
     return new TouchkeyPitchBendMappingShortEditor(*this);
+}
+#endif
+
+// ****** OSC Control Support ******
+OscMessage* TouchkeyPitchBendMappingFactory::oscControlMethod(const char *path, const char *types,
+                                                            int numValues, lo_arg **values, void *data) {
+    if(!strcmp(path, "/set-bend-range")) {
+        // Change the range of the pitch bend in semitones
+        if(numValues > 0) {
+            if(types[0] == 'f') {
+                setBendRange(values[0]->f);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-bend-threshold")) {
+        // Change the threshold to activate the pitch bend [in semitones]
+        if(numValues > 0) {
+            if(types[0] == 'f') {
+                setBendThresholdSemitones(values[0]->f);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-bend-fixed-endpoints")) {
+        // Enable fixed endpoints on the pitch bend
+        if(numValues > 0) {
+            if(types[0] == 'f') {
+                float fixedEndpointBufferAtEnd = 0;
+                if(numValues >= 2) {
+                    if(types[1] == 'f') {
+                        fixedEndpointBufferAtEnd = values[1]->f;
+                    }
+                }
+                setBendFixedEndpoints(values[0]->f, fixedEndpointBufferAtEnd);
+                
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-bend-variable-endpoints")) {
+        // Enable variable endpoints on the pitch bend
+        setBendVariableEndpoints();
+        return OscTransmitter::createSuccessMessage();
+    }
+    else if(!strcmp(path, "/set-bend-ignores-multiple-fingers")) {
+        // Change whether the bend ignores two or three fingers
+        if(numValues >= 2) {
+            if(types[0] == 'i' && types[1] == 'i') {
+                setBendIgnoresMultipleFingers(values[0]->i, values[1]->i);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    
+    // If no match, check the base class
+    return TouchkeyBaseMappingFactory<TouchkeyPitchBendMapping>::oscControlMethod(path, types, numValues, values, data);
 }
 
 // ****** Preset Save/Load ******

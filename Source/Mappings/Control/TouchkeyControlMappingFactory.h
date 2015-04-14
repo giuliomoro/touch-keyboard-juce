@@ -89,11 +89,17 @@ public:
     void setOutOfRangeBehavior(int behavior);
     void setUses14BitControl(bool use);
     
+#ifndef TOUCHKEYS_NO_GUI
     // ***** GUI Support *****
     bool hasBasicEditor() { return true; }
     MappingEditorComponent* createBasicEditor();
     bool hasExtendedEditor() { return true; }
     MappingEditorComponent* createExtendedEditor();
+#endif
+    
+    // ****** OSC Control Support ******
+    OscMessage* oscControlMethod(const char *path, const char *types,
+                                 int numValues, lo_arg **values, void *data);
     
     // ****** Preset Save/Load ******
     XmlElement* getPreset();
