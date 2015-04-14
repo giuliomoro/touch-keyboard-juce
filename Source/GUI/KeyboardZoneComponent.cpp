@@ -619,9 +619,9 @@ void KeyboardZoneComponent::createMappingListPopup()
 
     PopupMenu menu;
 
-    for(int i = 0; i < controller_->numberOfMappingFactories(); i++) {
-        if(controller_->experimentalMappingsEnabled() || !controller_->mappingIsExperimental(i))
-            menu.addItem(i + 1, controller_->mappingFactoryNameForIndex(i));
+    for(int i = 0; i < MidiKeyboardSegment::numberOfMappingFactories(); i++) {
+        if(controller_->experimentalMappingsEnabled() || !MidiKeyboardSegment::mappingIsExperimental(i))
+            menu.addItem(i + 1, MidiKeyboardSegment::mappingFactoryNameForIndex(i));
     }
 
     menu.showMenuAsync(PopupMenu::Options().withTargetComponent(addMappingButton),
@@ -657,7 +657,7 @@ void KeyboardZoneComponent::mappingChosenCallback(int result)
 
     // Items are numbered from 1 in the menu but from 0 in the array in the controller
     if(result >= 1) {
-        MappingFactory *newFactory = controller_->createMappingFactoryForIndex(result - 1, *keyboardSegment_);
+        MappingFactory *newFactory = keyboardSegment_->createMappingFactoryForIndex(result - 1);
 
         if(newFactory != 0) {
             keyboardSegment_->addMappingFactory(newFactory, true);

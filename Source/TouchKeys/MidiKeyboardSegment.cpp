@@ -44,6 +44,11 @@
 const int MidiKeyboardSegment::kMidiControllerDamperPedal = 64;
 const int MidiKeyboardSegment::kPedalActiveValue = 64;
 
+// Factores to use
+const int kNumMappingFactoryTypes = 7;
+const char* kMappingFactoryNames[kNumMappingFactoryTypes] = {"Control", "Vibrato", "Pitch Bend", "Split Key", "Multi-Finger Trigger", "Onset Angle", "Release Angle"};
+
+
 // Constructor
 MidiKeyboardSegment::MidiKeyboardSegment(PianoKeyboard& keyboard)
 : keyboard_(keyboard), outputPortNumber_(0), mappingFactorySplitter_(keyboard),
@@ -391,6 +396,247 @@ bool MidiKeyboardSegment::oscHandlerMethod(const char *path, const char *types, 
 	return true;
 }
 
+// Control method via OSC. This comes in via MainApplicationController to MidiInputController
+// and is used specifically for querying and modifying the status of the zone and its mappings,
+// as opposed to the more frequent OSC messages to oscHandlerMethod() which provide touch and
+// MIDI data. Return true if message was successfully handled.
+OscMessage* MidiKeyboardSegment::oscControlMethod(const char *path, const char *types, int numValues, lo_arg **values, void *data) {
+    // First check if this message is destined for a mapping within the segment
+    // e.g. /mapping/my_mapping_name/message_for_mapping
+    if(!strncmp(path, "/mapping/", 9) && strlen(path) > 9) {
+        std::string subpath(&path[9]);
+        
+        int separatorLoc = subpath.find_first_of('/');
+        if(separatorLoc == std::string::npos || separatorLoc == subpath.length() - 1) {
+            // Malformed input (no slash or it's the last character): ignore
+            return 0;
+        }
+        
+        // Find the name of the mapping in the nextsegment
+        std::string mappingName = subpath.substr(0, separatorLoc);
+        
+        // Look for a matching factory. TODO: this should probably be mutex-protected
+        vector<MappingFactory*>::iterator it;
+        for(it = mappingFactories_.begin(); it != mappingFactories_.end(); ++it) {
+            if((*it)->getShortName() == mappingName) {
+                std::string mappingAction = subpath.substr(separatorLoc);
+                
+                if(mappingAction == "/delete") {
+                    removeMappingFactory(*it);
+                    return OscTransmitter::createSuccessMessage();
+                }
+                else {
+                    // Pass message to mapping factory here
+                    OscMessage *response = (*it)->oscControlMethod(mappingAction.c_str(), types, numValues, values, data);
+                    
+                    // Prepend the mapping name to the response except in case of simple status response
+                    if(response == 0)
+                        return 0;
+                    else if(!strcmp(response->path(), "/result"))
+                        return response;
+                    response->prependPath(mappingName.c_str());
+                    response->prependPath("/mapping/");
+                    return response;
+                }
+            }
+        }
+    }
+    else if(!strcmp(path, "/list-mappings")) {
+        // Return a list of mapping names and types
+        // TODO: this should be mutex-protected
+        
+        OscMessage *response = OscTransmitter::createMessage("/list-mappings/result", "i", mappingFactories_.size(), LO_ARGS_END);
+        
+        vector<MappingFactory*>::iterator it;
+        for(it = mappingFactories_.begin(); it != mappingFactories_.end(); ++it) {
+            lo_message_add_string(response->message(), (*it)->getShortName().c_str());
+        }
+        
+        return response;
+    }
+    else if(!strcmp(path, "/add-mapping")) {
+        // Add a new mapping of a given type
+        if(numValues >= 1) {
+            if(types[0] == 'i') {
+                int type = values[0]->i;
+                
+                if(type < 0 || type >= kNumMappingFactoryTypes)
+                    return OscTransmitter::createFailureMessage();
+ 
+                // Create mapping factory of the requested type
+                MappingFactory *newFactory = createMappingFactoryForIndex(type);
+                if(newFactory == 0)
+                    return OscTransmitter::createFailureMessage();
+ 
+                // Add the mapping factory to this segment, autogenerating the
+                // name unless it is specified
+                if(numValues >= 2) {
+                    if(types[1] == 's') {
+                        // Set the name as it was passed in
+                        newFactory->setName(&values[1]->s);
+                        addMappingFactory(newFactory, false);
+                    }
+                    else
+                        addMappingFactory(newFactory, true);
+                }
+                else
+                    addMappingFactory(newFactory, true);
+                
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-range")) {
+        // Set the MIDI note range
+        if(numValues >= 2) {
+            if(types[0] == 'i' && types[1] == 'i') {
+                int rangeLow = values[0]->i;
+                int rangeHigh = values[1]->i;
+                
+                if(rangeLow < 0 || rangeLow > 127 || rangeHigh < 0 || rangeHigh > 127)
+                    return OscTransmitter::createFailureMessage();
+                if(rangeLow > rangeHigh) {
+                    // Swap values so lowest one is always first
+                    int temp = rangeLow;
+                    rangeLow = rangeHigh;
+                    rangeHigh = temp;
+                }
+                
+                setNoteRange(rangeLow, rangeHigh);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-transpose")) {
+        // Set the transposition of the output
+        if(numValues >= 1) {
+            if(types[0] == 'i') {
+                int transpose = values[0]->i;
+                
+                if(transpose < -48 || transpose > 48)
+                    return OscTransmitter::createFailureMessage();
+
+                setOutputTransposition(transpose);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-transpose-octave-up")) {
+        // Set the transposition of the output
+        int transpose = outputTransposition() + 12;
+        if(transpose > 48)
+            transpose = 48;
+        setOutputTransposition(transpose);
+
+        return OscTransmitter::createSuccessMessage();
+    }
+    else if(!strcmp(path, "/set-transpose-octave-down")) {
+        // Set the transposition of the output
+        int transpose = outputTransposition() - 12;
+        if(transpose < -48)
+            transpose = -48;
+        setOutputTransposition(transpose);
+        
+        return OscTransmitter::createSuccessMessage();
+    }
+    else if(!strcmp(path, "/set-controller-pass")) {
+        // Set which controllers to pass through
+        // Arguments: (channel pressure), (pitch wheel), (mod wheel), (other CCs)
+        
+        if(numValues >= 4) {
+            if(types[0] == 'i' && types[1] == 'i' && types[2] == 'i' && types[3] == 'i') {
+                setUsesKeyboardChannelPressure(values[0]->i != 0);
+                setUsesKeyboardPitchWheel(values[1]->i != 0);
+                setUsesKeyboardModWheel(values[2]->i != 0);
+                setUsesKeyboardMIDIControllers(values[3]->i != 0);
+                
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-pitchwheel-range")) {
+        // Set the MIDI pitchwheel range in semitones
+        if(numValues >= 1) {
+            if(types[0] == 'i') {
+                int range = values[0]->i;
+                
+                setMidiPitchWheelRange(range);
+                return OscTransmitter::createSuccessMessage();
+            }
+            else if(types[0] == 'f') {
+                float range = values[0]->f;
+                
+                setMidiPitchWheelRange(range);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/send-pitchwheel-range")) {
+        // Send an RPN value with the current pitchwheel range
+        sendMidiPitchWheelRange();
+        return OscTransmitter::createSuccessMessage();
+    }
+    else if(!strcmp(path, "/set-midi-mode")) {
+        // Set the MIDI mode (mono, poly etc.)
+        if(numValues >= 1) {
+            if(types[0] == 's') {
+                char *mode = &values[0]->s;
+                
+                if(!strcmp(mode, "off"))
+                    setModeOff();
+                else if(!strncmp(mode, "pass", 4))
+                    setModePassThrough();
+                else if(!strncmp(mode, "mono", 4))
+                    setModeMonophonic();
+                else if(!strncmp(mode, "poly", 4))
+                    setModePolyphonic();
+                else
+                    return OscTransmitter::createFailureMessage();
+
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-midi-channels")) {
+        // Set the MIDI channels
+        if(numValues >= 2) {
+            if(types[0] == 'i' && types[1] == 'i') {
+                int channelLow = values[0]->i;
+                int channelHigh = values[1]->i;
+                
+                if(channelLow < 1 || channelLow > 16 || channelHigh < 1 || channelHigh > 16)
+                    return OscTransmitter::createFailureMessage();
+                if(channelLow > channelHigh) {
+                    // Swap values so lowest one is always first
+                    int temp = channelLow;
+                    channelLow = channelHigh;
+                    channelHigh = temp;
+                }
+                
+                setOutputChannelLowest(channelLow - 1); // 1-16 --> 0-15 indexing
+                int polyphony = channelHigh - channelLow + 1;
+                if(polyphony < 1)
+                    polyphony = 1;
+                setPolyphony(polyphony);
+                
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+    else if(!strcmp(path, "/set-midi-stealing")) {
+        // Set whether MIDI voice stealing is enabled
+        if(numValues >= 1) {
+            if(types[0] == 'i') {
+                setVoiceStealingEnabled(values[0]->i != 0);
+                return OscTransmitter::createSuccessMessage();
+            }
+        }
+    }
+
+    // No match
+    return 0;
+}
+
 // Acquire an OSC-MIDI converter. If a converter for this control already exists,
 // return it. If not, create it. This method keeps track of how many objects have
 // acquired the converter. When all acquirers have released ihe converter, it is
@@ -447,6 +693,47 @@ inline bool char_is_not_alphanumeric(int c) {
 #else
     return !std::isalnum(c);
 #endif
+}
+
+// Return the number of mapping factory types available
+int MidiKeyboardSegment::numberOfMappingFactories() {
+    return kNumMappingFactoryTypes;
+}
+
+// Return the name of the given mapping factory type
+String MidiKeyboardSegment::mappingFactoryNameForIndex(int index) {
+    if(index < 0 || index >= kNumMappingFactoryTypes)
+        return String();
+    return kMappingFactoryNames[index];
+}
+
+// Return a new object of the given mapping factory type
+MappingFactory* MidiKeyboardSegment::createMappingFactoryForIndex(int index) {
+    switch(index) {
+        case 0:
+            return new TouchkeyControlMappingFactory(keyboard_, *this);
+        case 1:
+            return new TouchkeyVibratoMappingFactory(keyboard_, *this);
+        case 2:
+            return new TouchkeyPitchBendMappingFactory(keyboard_, *this);
+        case 3:
+            return new TouchkeyKeyDivisionMappingFactory(keyboard_, *this);
+        case 4:
+            return new TouchkeyMultiFingerTriggerMappingFactory(keyboard_, *this);
+        case 5:
+            return new TouchkeyOnsetAngleMappingFactory(keyboard_, *this);
+        case 6:
+            return new TouchkeyReleaseAngleMappingFactory(keyboard_, *this);
+        default:
+            return 0;
+    }
+}
+
+// Return whethera  given mapping is experimental or not
+bool MidiKeyboardSegment::mappingIsExperimental(int index) {
+    if(index > 2 && index != 4)
+        return true;
+    return false;
 }
 
 // Create a new mapping factory for this segment. A pointer should be passed in

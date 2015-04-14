@@ -95,6 +95,9 @@ MainApplicationController::MainApplicationController()
     // Set up an initial OSC transmit host/port if none has been loaded
     if(oscTransmitter_.addresses().size() == 0)
         oscTransmitter_.addAddress(kDefaultOscTransmitHost, kDefaultOscTransmitPort);
+    
+    // Listen for control messages by OSC
+    mainOscController_ = new MainApplicationOSCController(*this, oscReceiver_);
 }
 
 MainApplicationController::~MainApplicationController() {
@@ -103,6 +106,7 @@ MainApplicationController::~MainApplicationController() {
         touchkeySensorTestStop();
 #endif
     removeAllOscListeners();
+    delete mainOscController_;
 }
 
 // Actions here run in the JUCE initialise() method once the application is loaded
@@ -736,93 +740,52 @@ bool MainApplicationController::oscReceiveSetPort(int port) {
 
 // OSC handler method
 bool MainApplicationController::oscHandlerMethod(const char *path, const char *types, int numValues, lo_arg **values, void *data) {
-	if(!strcmp(path, "/midi/noteon") && touchkeyAutodetecting_ && numValues > 0) {
-        // std::cout << "/midi/noteon\n";
-        // Found a MIDI note. Look for a unique touch on this pitch class to
-        // determine which octave the keyboard is set to
-        if(types[0] != 'i')
-            return false;   // Ill-formed message
-        int midiNote = values[0]->i;
-        if(midiNote < 0 || midiNote > 127)
-            return false;
-        
-        // Go through each octave and see if a touch is present
-        int midiTestNote = midiNote % 12;
-        int count = 0;
-        int lastFoundTouchNote = 0;
-        while(midiTestNote <= 127) {
-            if(keyboardController_.key(midiTestNote) != 0) {
-                if(keyboardController_.key(midiTestNote)->touchIsActive()) {
-                    count++;
-                    lastFoundTouchNote = midiTestNote;
+    std::cout << path << endl;
+    
+	if(!strcmp(path, "/midi/noteon")) {
+        if(touchkeyAutodetecting_ && numValues > 0) {
+            // std::cout << "/midi/noteon\n";
+            // Found a MIDI note. Look for a unique touch on this pitch class to
+            // determine which octave the keyboard is set to
+            if(types[0] != 'i')
+                return false;   // Ill-formed message
+            int midiNote = values[0]->i;
+            if(midiNote < 0 || midiNote > 127)
+                return false;
+            
+            // Go through each octave and see if a touch is present
+            int midiTestNote = midiNote % 12;
+            int count = 0;
+            int lastFoundTouchNote = 0;
+            while(midiTestNote <= 127) {
+                if(keyboardController_.key(midiTestNote) != 0) {
+                    if(keyboardController_.key(midiTestNote)->touchIsActive()) {
+                        count++;
+                        lastFoundTouchNote = midiTestNote;
+                    }
                 }
-            }
-            midiTestNote += 12;
-        }
-        
-        // We return success if exactly one note had a touch on this pitch class
-        if(count == 1) {
-            int noteDifference = lastFoundTouchNote - midiNote;
-            int currentMinNote = touchkeyController_.lowestMidiNote();
-
-            // std::cout << "Found difference of " << noteDifference << std::endl;
-
-            currentMinNote -= noteDifference;
-            if(currentMinNote >= 0 && currentMinNote <= 127) {
-                touchkeyController_.setLowestMidiNote(currentMinNote);
-                applicationProperties_.getUserSettings()->setValue("TouchKeysLowestMIDINote", currentMinNote);
+                midiTestNote += 12;
             }
             
-            touchkeyDeviceStopAutodetecting();
+            // We return success if exactly one note had a touch on this pitch class
+            if(count == 1) {
+                int noteDifference = lastFoundTouchNote - midiNote;
+                int currentMinNote = touchkeyController_.lowestMidiNote();
+
+                // std::cout << "Found difference of " << noteDifference << std::endl;
+
+                currentMinNote -= noteDifference;
+                if(currentMinNote >= 0 && currentMinNote <= 127) {
+                    touchkeyController_.setLowestMidiNote(currentMinNote);
+                    applicationProperties_.getUserSettings()->setValue("TouchKeysLowestMIDINote", currentMinNote);
+                }
+                
+                touchkeyDeviceStopAutodetecting();
+            }
+            return false; // Others may still want to handle this message
         }
-        return false; // Others may still want to handle this message
     }
     
-    return false;
-}
-
-// Factores to use
-const int kNumMappingFactoryTypes = 7;
-const char* kMappingFactoryNames[kNumMappingFactoryTypes] = {"Control", "Vibrato", "Pitch Bend", "Split Key", "Multi-Finger Trigger", "Onset Angle", "Release Angle"};
-
-// Return the number of mapping factory types available
-int MainApplicationController::numberOfMappingFactories() {
-    return kNumMappingFactoryTypes;
-}
-
-// Return the name of the given mapping factory type
-String MainApplicationController::mappingFactoryNameForIndex(int index) {
-    if(index < 0 || index >= kNumMappingFactoryTypes)
-        return String();
-    return kMappingFactoryNames[index];
-}
-
-// Return a new object of the given mapping factory type
-MappingFactory* MainApplicationController::createMappingFactoryForIndex(int index, MidiKeyboardSegment& segment) {
-    switch(index) {
-        case 0:
-            return new TouchkeyControlMappingFactory(keyboardController_, segment);
-        case 1:
-            return new TouchkeyVibratoMappingFactory(keyboardController_, segment);
-        case 2:
-            return new TouchkeyPitchBendMappingFactory(keyboardController_, segment);
-        case 3:
-            return new TouchkeyKeyDivisionMappingFactory(keyboardController_, segment);
-        case 4:
-            return new TouchkeyMultiFingerTriggerMappingFactory(keyboardController_, segment);
-        case 5:
-            return new TouchkeyOnsetAngleMappingFactory(keyboardController_, segment);
-        case 6:
-            return new TouchkeyReleaseAngleMappingFactory(keyboardController_, segment);
-        default:
-            return 0;
-    }
-}
-
-// Return whethera  given mapping is experimental or not
-bool MainApplicationController::mappingIsExperimental(int index) {
-    if(index > 2 && index != 4)
-        return true;
     return false;
 }
 
@@ -1162,13 +1125,16 @@ bool MainApplicationController::touchkeySensorTestStart(const char *path, int fi
     if(keyOffset < 0) // Shouldn't happen...
         keyOffset = 0;
     
-    if(!touchkeyController_.startRawDataCollection(keyOffset / 12, keyOffset % 12, 3, 2)) { // FIXME: check these values
+    if(!touchkeyController_.startRawDataCollection(keyOffset / 12, keyOffset % 12, 3, 2)) {
         touchkeyErrorMessage_ = "Failed to start";
         touchkeyErrorOccurred_ = true;
         return false;
     }
     
+    keyboardTesterWindow_->addToDesktop(keyboardTesterWindow_->getDesktopWindowStyleFlags()
+                                         | ComponentPeer::windowHasCloseButton);
     keyboardTesterWindow_->setVisible(true);
+    keyboardTesterWindow_->toFront(true);
     
     touchkeyErrorMessage_ = "";
     touchkeyErrorOccurred_ = false;
@@ -1322,4 +1288,328 @@ int MainApplicationController::midiNoteNumberForName(std::string const& name) {
     if(noteNumber < 0 || noteNumber > 127)
         return -1;
     return noteNumber;
+}
+
+
+// ***** External OSC Control *****
+
+bool MainApplicationOSCController::oscHandlerMethod(const char *path, const char *types, int numValues, lo_arg **values, void *data) {
+    if(!strncmp(path, "/control", 8)) {
+        // OSC messages that start with /touchkeys/control are used to control the operation of the
+        // software and mappings
+        
+        // First check if the message belongs to one of the segments
+        if(!strncmp(path, "/control/segment", 16) && strlen(path) > 16) {
+            // Pick out which segment based on the following number: e.g. /control/segment0/...
+            
+            std::string subpath(&path[16]);
+            int separatorLoc = subpath.find_first_of('/');
+            if(separatorLoc == std::string::npos || separatorLoc == subpath.length() - 1) {
+                // Malformed input (no slash or it's the last character): ignore
+                return false;
+            }
+            std::stringstream segmentNumberSStream(subpath.substr(0, separatorLoc));
+            
+            int segmentNumber = 0;
+            segmentNumberSStream >> segmentNumber;
+            
+            if(segmentNumber < 0)  // Unknown segment number
+                return false;
+            
+            // Pass this message onto the corresponding segment in MidiInputController
+            // If the segment doesn't exist, it will return false. All further handling is
+            // done within MidiInputController with its corresponding mutex locked so
+            // the segments can't change while this message is processed.
+            
+            subpath = subpath.substr(separatorLoc); // Start at the '/'
+            
+            if(subpath == "/set-midi-out") {
+                // Special case for setting the MIDI output, which is done in the main controller
+                // rather than in the segment itself
+
+                if(numValues >= 1) {
+                    if(types[0] == 'i') {
+                        MidiKeyboardSegment* segment = controller_.midiInputController_.segment(segmentNumber);
+                        if(segment == 0)
+                            oscControlTransmitResult(1); // Failure response
+                        else {
+                            if(values[0]->i < 0) {
+                                // Negative value means disable
+                                controller_.disableMIDIOutputPort(segment->outputPort());
+                            }
+                            else {
+                                controller_.enableMIDIOutputPort(segment->outputPort(), values[0]->i);
+                            }
+                            oscControlTransmitResult(0);
+                        }
+                    }
+#ifndef JUCE_WINDOWS
+                    else if(types[0] == 's') {
+                        MidiKeyboardSegment* segment = controller_.midiInputController_.segment(segmentNumber);
+                        if(segment == 0)
+                            oscControlTransmitResult(1); // Failure response
+                        else {
+                            if(!strcmp(&values[0]->s, "virtual")) {
+                                char st[20];
+                                snprintf(st, 20, "TouchKeys %d", segment->outputPort());
+                                controller_.enableMIDIOutputVirtualPort(segment->outputPort(), st);
+                                oscControlTransmitResult(0);
+                            }
+                        }
+                    }
+#endif
+                }
+            }
+            else {
+                // All other segment messages are handled within MidiKeyboardSegment
+                
+                OscMessage* response = controller_.midiInputController_.oscControlMessageForSegment(segmentNumber, subpath.c_str(), types, numValues, values, data);
+                if(response != 0) {
+                    // Add the right prefix to the response. If it is a simple result status,
+                    // then give it the generic prefix. Otherwise add the zone beforehand
+                    if(!strcmp(response->path(), "/result"))
+                        response->prependPath("/touchkeys/control");
+                    else {
+                        char prefix[28];
+#ifdef _MSC_VER
+                        _snprintf_s(prefix, 28, _TRUNCATE, "/touchkeys/control/segment%d", segmentNumber);
+#else
+                        snprintf(prefix, 28,  "/touchkeys/control/segment%d", segmentNumber);
+#endif
+                        response->prependPath(prefix);
+                    }
+                    
+                    // Send the message and free it
+                    controller_.oscTransmitter_.sendMessage(response->path(), response->type(), response->message());
+                    delete response;
+                }
+            }
+        }
+        else if(!strcmp(path, "/control/preset-load")) {
+            // Load preset from file
+            // Argument 0 is the path to the file
+            
+            if(numValues > 0) {
+                if(types[0] == 's') {
+                    bool result = controller_.loadPresetFromFile(&values[0]->s);
+                    
+                    // Send back a message on success/failure
+                    oscControlTransmitResult(result == true ? 0 : 1);
+                    return true;
+                }
+                else if(types[0] == 'i') {
+                    // TODO: take a second form of the message which has a numerical
+                    //       input for selecting presets
+                }
+            }
+            return false;
+        }
+        else if(!strcmp(path, "/control/preset-save")) {
+            // Save preset to file
+            
+            if(numValues > 0) {
+                if(types[0] == 's') {
+                    bool result = controller_.savePresetToFile(&values[0]->s);
+                    
+                    // Send back a message on success/failure
+                    oscControlTransmitResult(result == true ? 0 : 1);
+                    return true;
+                }
+                else if(types[0] == 'i') {
+                    // TODO: take a second form of the message which has a numerical
+                    //       input for selecting presets
+                }
+            }
+            return false;
+        }
+        else if(!strcmp(path, "/control/preset-clear")) {
+            // Clear everything in preset
+            controller_.clearPreset();
+            oscControlTransmitResult(0);
+            return true;
+        }
+        else if(!strcmp(path, "/control/tk-list-devices")) {
+            // Return a list of TouchKeys devices
+            
+            OscMessage *response = OscTransmitter::createMessage("/touchkeys/control/tk-list-devices/result", "i",
+                                                                controller_.availableTouchkeyDevices().size(), LO_ARGS_END);
+            
+            vector<std::string> devices = controller_.availableTouchkeyDevices();
+            vector<string>::iterator it;
+            for(it = devices.begin(); it != devices.end(); ++it) {
+                lo_message_add_string(response->message(), it->c_str());
+            }
+            
+            controller_.oscTransmitter_.sendMessage(response->path(), response->type(), response->message());
+            delete response;
+            
+            return true;
+        }
+        else if(!strcmp(path, "/control/tk-start")) {
+            // Start the TouchKeys device with the given path
+            if(numValues > 0) {
+                if(types[0] == 's') {
+                    char *device = &values[0]->s;
+                    bool result = controller_.touchkeyDeviceStartupSequence(device);
+                    
+                    oscControlTransmitResult(result == true ? 0 : 1);
+                    return true;
+                }
+            }
+        }
+        else if(!strcmp(path, "/control/tk-stop")) {
+            // Stop TouchKeys
+            if(controller_.touchkeyDeviceIsOpen()) {
+                controller_.closeTouchkeyDevice();
+                oscControlTransmitResult(0);
+            }
+            else {
+                // Not running, can't close
+                oscControlTransmitResult(1);
+            }
+            return true;
+        }
+        else if(!strcmp(path, "/control/tk-set-lowest-midi-note")) {
+            // Set TouchKeys octave such that the lowest key is at the
+            // given note. Only 'C' notes are valid.
+            
+            if(numValues > 0) {
+                if(types[0] == 'i') {
+                    int note = values[0]->i;
+                    
+                    if(note % 12 == 0 && note >= 12 && note < 127) {
+                        controller_.touchkeyDeviceSetLowestMidiNote(note);
+                        oscControlTransmitResult(0);
+                    }
+                    else {
+                        // Invalid note
+                        oscControlTransmitResult(1);
+                    }
+                    return true;
+                }
+            }
+        }
+        else if(!strcmp(path, "/control/tk-autodetect")) {
+            // Autodetect lowest TouchKeys octave
+            controller_.touchkeyDeviceAutodetectLowestMidiNote();
+            oscControlTransmitResult(0);
+            return true;
+        }
+        else if(!strcmp(path, "/control/tk-autodetect-stop")) {
+            // Stop autodetecting TouchKeys octave
+            controller_.touchkeyDeviceStopAutodetecting();
+            oscControlTransmitResult(0);
+            return true;
+        }
+        else if(!strcmp(path, "/control/list-midi-in")) {
+            // List available MIDI input devices
+            std::vector<std::pair<int, std::string> > midiInputs = controller_.availableMIDIInputDevices();
+            
+            OscMessage *response = OscTransmitter::createMessage("/list-midi-in/result", "i", midiInputs.size(), LO_ARGS_END);
+            
+            std::vector<std::pair<int, std::string> >::iterator it;
+            for(it = midiInputs.begin(); it != midiInputs.end(); ++it) {
+                lo_message_add_int32(response->message(), it->first);
+                lo_message_add_string(response->message(), it->second.c_str());
+            }
+            
+            controller_.oscTransmitter_.sendMessage(response->path(), response->type(), response->message());
+            delete response;
+            
+            return true;
+        }
+        else if(!strcmp(path, "/control/list-midi-out")) {
+            // List available MIDI output devices
+            std::vector<std::pair<int, std::string> > midiOutputs = controller_.availableMIDIOutputDevices();
+            
+            OscMessage *response = OscTransmitter::createMessage("/list-midi-out/result", "i", midiOutputs.size(), LO_ARGS_END);
+            
+            std::vector<std::pair<int, std::string> >::iterator it;
+            for(it = midiOutputs.begin(); it != midiOutputs.end(); ++it) {
+                lo_message_add_int32(response->message(), it->first);
+                lo_message_add_string(response->message(), it->second.c_str());
+            }
+            
+            controller_.oscTransmitter_.sendMessage(response->path(), response->type(), response->message());
+            delete response;
+            
+            return true;
+        }
+        else if(!strcmp(path, "/control/set-midi-in-keyboard")) {
+            // Set MIDI input device for keyboard
+            if(numValues > 0) {
+                if(types[0] == 'i') {
+                    if(controller_.midiTouchkeysStandaloneModeIsEnabled())
+                        controller_.midiTouchkeysStandaloneModeDisable();
+                    if(values[0]->i < 0) {
+                        // Negative means disable
+                        controller_.disablePrimaryMIDIInputPort();
+                    }
+                    else {
+                        controller_.enableMIDIInputPort(values[0]->i, true);
+                    }
+                    
+                    oscControlTransmitResult(0);
+                    return true;
+                }
+                else if(types[0] == 's') {
+                    if(!strncmp(&values[0]->s, "stand", 5)) {
+                        // Enable TouchKeys standalone mode in place of MIDI input
+                        controller_.disablePrimaryMIDIInputPort();
+                        controller_.midiTouchkeysStandaloneModeEnable();
+                        
+                        oscControlTransmitResult(0);
+                        return true;
+                    }
+                }
+            }
+        }
+        else if(!strcmp(path, "/control/set-midi-in-aux")) {
+            // Set MIDI auxiliary input device
+            if(numValues > 0) {
+                if(types[0] == 'i') {
+                    controller_.disableAllMIDIInputPorts(true);
+                    if(values[0]->i >= 0) {
+                        // Negative values mean leave the port disabled
+                        controller_.enableMIDIInputPort(values[0]->i, false);
+                    }
+                    
+                    oscControlTransmitResult(0);
+                    return true;
+                }
+            }
+            
+        }
+        else if(!strcmp(path, "/control/add-segment")) {
+            // Add a new keyboard segment
+            if(controller_.midiSegmentsCount() >= 8) {
+                // Max of 8 segments possible
+                oscControlTransmitResult(1);
+            }
+            else {
+                controller_.midiSegmentAdd();
+                oscControlTransmitResult(0);
+            }
+            return true;
+        }
+        else if(!strcmp(path, "/control/delete-segment")) {
+            // Remove a keyboard segment by number
+            if(numValues > 0) {
+                if(types[0] == 'i') {
+                    int segmentNumber = values[0]->i;
+                    
+                    bool result = controller_.midiInputController_.removeSegment(segmentNumber);
+                    oscControlTransmitResult(result == true ? 0 : 1);
+                    return true;
+                }
+            }
+        }
+    }
+    
+    return false;
+}
+
+// Send back an OSC message to indicate the result of a control command
+void MainApplicationOSCController::oscControlTransmitResult(int result) {
+    controller_.oscTransmitter_.sendMessage("/touchkeys/control/result", "i", result, LO_ARGS_END);
 }

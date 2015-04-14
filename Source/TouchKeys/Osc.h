@@ -171,6 +171,33 @@ private:
 	string globalPrefix_;					// Prefix for all OSC paths	
 };
 
+// Simple class to hold a message alongw ith a path and a type
+class OscMessage
+{
+public:
+    OscMessage(const char *path, const char *type, lo_message& message)
+    : path_(path), type_(type), message_(message) {}
+    
+    ~OscMessage() {
+        lo_message_free(message_);
+    }
+    
+    const char *path() { return path_.c_str(); }
+    const char *type() { return type_.c_str(); }
+    lo_message message() { return message_; }
+    
+    // Add a prefix to the message path
+    void prependPath(const char *prefix) {
+        path_.insert(0, prefix); // TODO: check that this is right
+    }
+    
+private:
+    std::string path_;
+    std::string type_;
+    lo_message message_;
+};
+
+
 class OscTransmitter
 {
 public:
@@ -193,6 +220,11 @@ public:
 	void setDebugMessages(bool debug) { debugMessages_ = debug; }
 	
 	~OscTransmitter();
+    
+    // Static methods
+    static OscMessage* createMessage(const char * path, const char * type, ...);
+    static OscMessage* createSuccessMessage() { return createMessage("/result", "i", 0, LO_ARGS_END); }
+    static OscMessage* createFailureMessage() { return createMessage("/result", "i", 1, LO_ARGS_END); }
 	
 private:
 	vector<lo_address> addresses_;

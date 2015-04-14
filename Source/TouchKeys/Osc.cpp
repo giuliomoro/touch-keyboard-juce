@@ -559,3 +559,15 @@ OscTransmitter::~OscTransmitter()
 {
 	clearAddresses();
 }
+
+OscMessage* OscTransmitter::createMessage(const char * path, const char * type, ...)
+{
+    va_list v;
+    
+    va_start(v, type);
+    lo_message msg = lo_message_new();
+    lo_message_add_varargs(msg, type, v);
+    va_end(v);
+    
+    return new OscMessage(path, type, msg);
+}

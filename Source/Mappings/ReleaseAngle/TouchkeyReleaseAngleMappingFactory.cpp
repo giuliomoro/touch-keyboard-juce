@@ -192,11 +192,14 @@ void TouchkeyReleaseAngleMappingFactory::setDownVelocity(int sequence, int veloc
     }
 }
 
+#ifndef TOUCHKEYS_NO_GUI
 // ***** GUI Support *****
 
 MappingEditorComponent* TouchkeyReleaseAngleMappingFactory::createExtendedEditor() {
     return new TouchkeyReleaseAngleMappingExtendedEditor(*this);
 }
+#endif
+
 
 // ****** Preset Save/Load ******
 XmlElement* TouchkeyReleaseAngleMappingFactory::getPreset() {

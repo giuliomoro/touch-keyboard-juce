@@ -326,30 +326,34 @@ MidiKeyboardSegment* MidiInputController::addSegment(int outputPortNumber,
     return segment;
 }
 
-// Remove a segment by index or by object
-void MidiInputController::removeSegment(int index) {
+// Remove a segment by index or by object. Returns true if segment existed
+bool MidiInputController::removeSegment(int index) {
     ScopedLock sl(segmentsMutex_);
     
     if(index < 0 || index >= segments_.size())
-        return;
+        return false;
     
     MidiKeyboardSegment* segment = segments_[index];
     delete segment;
     segments_.erase(segments_.begin() + index);
     segmentUniqueIdentifier_++;
+    return true;
 }
 
-void MidiInputController::removeSegment(MidiKeyboardSegment* segment) {
+bool MidiInputController::removeSegment(MidiKeyboardSegment* segment) {
     ScopedLock sl(segmentsMutex_);
+    bool found = false;
     
     for(int i = 0; i < segments_.size(); i++) {
         if(segments_[i] == segment) {
             delete segment;
             segments_.erase(segments_.begin() + i);
+            found = true;
             break;
         }
     }
     segmentUniqueIdentifier_++;
+    return found;
 }
 
 void MidiInputController::removeAllSegments() {
@@ -417,6 +421,16 @@ bool MidiInputController::loadSegmentPreset(XmlElement const* preset) {
     
     segmentUniqueIdentifier_++;
     return true;
+}
+
+// OSC handling for keyboard segments
+OscMessage* MidiInputController::oscControlMessageForSegment(int segment, const char *path, const char *types,
+                                                      int numValues, lo_arg **values, void *data) {
+    ScopedLock sl(segmentsMutex_);
+    if(segment < 0 || segment >= segments_.size())
+        return 0;
+
+    return segments_[segment]->oscControlMethod(path, types, numValues, values, data);
 }
 
 // This gets called every time MIDI data becomes available on any input controller. source tells

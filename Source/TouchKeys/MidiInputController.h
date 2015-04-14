@@ -113,13 +113,16 @@ public:
     MidiKeyboardSegment* addSegment(int outputPortNumber, int noteMin = 0, int noteMax = 127, int channelMask = 0xFFFF);
     
     // Remove a segment by index or by object
-    void removeSegment(int index);
-    void removeSegment(MidiKeyboardSegment* segment);
+    bool removeSegment(int index);
+    bool removeSegment(MidiKeyboardSegment* segment);
     void removeAllSegments();
     
     // Preset save/load for keyboard segments
     XmlElement* getSegmentPreset();
     bool loadSegmentPreset(XmlElement const* preset);
+    
+    // OSC handling for keyboard segments
+    OscMessage* oscControlMessageForSegment(int segment, const char *path, const char *types, int numValues, lo_arg **values, void *data);
     
     // Juce MIDI callbacks
     void handleIncomingMidiMessage(MidiInput* source, const MidiMessage& message);

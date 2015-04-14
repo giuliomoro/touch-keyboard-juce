@@ -62,10 +62,11 @@ const char kDefaultOscTransmitHost[] = "127.0.0.1";
 const char kDefaultOscTransmitPort[] = "8000";
 const int kDefaultOscReceivePort = 8001;
 
-class InterfaceSelectorComponent;
-
+class MainApplicationOSCController;
 
 class MainApplicationController : public OscHandler {
+    friend class MainApplicationOSCController;
+    
 public:
     // *** Constructor ***
     MainApplicationController();
@@ -263,22 +264,10 @@ public:
 	bool oscHandlerMethod(const char *path, const char *types, int numValues, lo_arg **values, void *data);
     
     // *** Mapping methods ***
-    // Return the number of mapping factory types available
-    int numberOfMappingFactories();
-    
-    // Return the name of a given mapping factory type
-    String mappingFactoryNameForIndex(int index);
-    
-    // Create a new mapping factory of the given type, attached to
-    // the supplied segment
-    MappingFactory* createMappingFactoryForIndex(int index, MidiKeyboardSegment& segment);
- 
+
     // Whether experimental (not totally finished/tested) mappings are available
     bool experimentalMappingsEnabled() { return experimentalMappingsEnabled_; }
     void setExperimentalMappingsEnabled(bool enable) { experimentalMappingsEnabled_ = enable; }
-    
-    // Whether a given mapping is experimental
-    bool mappingIsExperimental(int index);
     
     // *** Preset Save/Load ***
     // These methods save the current settings to file or load settings
@@ -356,6 +345,7 @@ private:
     ApplicationProperties applicationProperties_;
     
     // TouchKeys objects
+    MainApplicationOSCController *mainOscController_;
     PianoKeyboard keyboardController_;
     MidiInputController midiInputController_;
     MidiOutputController midiOutputController_;
@@ -397,6 +387,33 @@ private:
     // Logging info
     bool loggingActive_;
     std::string loggingDirectory_;
+};
+
+
+// Separate class for handling external OSC control messages since
+// one class cannot have two receivers. This one is for all external
+// OSC messages which OscHandler on MainApplicationController is for
+// internally-generated messages via the PianoKeyboard class.
+
+class MainApplicationOSCController : public OscHandler {
+public:
+    MainApplicationOSCController(MainApplicationController& controller,
+                                 OscMessageSource& source) :
+    controller_(controller), source_(source) {
+        setOscController(&source_);
+        addOscListener("/control*");
+    }
+    
+    // *** OSC handler method (different from OSC device selection) ***
+    
+    bool oscHandlerMethod(const char *path, const char *types, int numValues, lo_arg **values, void *data);
+    
+private:
+    // Reply to OSC messages with a status
+    void oscControlTransmitResult(int result);
+    
+    MainApplicationController& controller_;
+    OscMessageSource& source_;
 };
 
 #endif /* defined(__TouchKeys__MainApplicationController__) */

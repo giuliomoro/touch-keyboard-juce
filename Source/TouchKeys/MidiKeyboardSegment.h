@@ -204,6 +204,10 @@ public:
     // OSC method: used to get touch callback data from the keyboard
 	bool oscHandlerMethod(const char *path, const char *types, int numValues, lo_arg **values, void *data);
     
+    // OSC control method: called separately via the MidiInputController to manipulate
+    // control parameters of this object
+    OscMessage* oscControlMethod(const char *path, const char *types, int numValues, lo_arg **values, void *data);
+    
     // **** Mapping-related methods *****
     
     // OSC-MIDI converters: request and release methods. The acquire method
@@ -212,6 +216,20 @@ public:
     // acquirer no longer needs it.    
     OscMidiConverter* acquireOscMidiConverter(int controlId);
     void releaseOscMidiConverter(int controlId);
+    
+    // *** Mapping methods ***
+    // Return the number of mapping factory types available
+    static int numberOfMappingFactories();
+    
+    // Return the name of a given mapping factory type
+    static String mappingFactoryNameForIndex(int index);
+    
+    // Whether a given mapping is experimental
+    static bool mappingIsExperimental(int index);
+    
+    // Create a new mapping factory of the given type, attached to
+    // the supplied segment
+    MappingFactory* createMappingFactoryForIndex(int index);
     
     // Create a new mapping factory for this segment. A pointer should be passed in
     // of a newly-allocated object. It will be released upon removal.
@@ -231,8 +249,6 @@ public:
     
     // Return a unique identifier of the mapping state, so we know when something has changed
     int mappingFactoryUniqueIdentifier() { return mappingFactoryUniqueIdentifier_; }
-    
-
     
     // **** Preset methods ****
     
