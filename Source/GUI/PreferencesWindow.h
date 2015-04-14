@@ -11,6 +11,8 @@
 #ifndef PREFERENCESWINDOW_H_INCLUDED
 #define PREFERENCESWINDOW_H_INCLUDED
 
+#ifndef TOUCHKEYS_NO_GUI
+
 #include "../../JuceLibraryCode/JuceHeader.h"
 #include "PreferencesComponent.h"
 #include "../MainApplicationController.h"
@@ -62,5 +64,6 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PreferencesWindow)
 };
 
+#endif      // TOUCHKEYS_NO_GUI
 
 #endif  // PREFERENCESWINDOW_H_INCLUDED

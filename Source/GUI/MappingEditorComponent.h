@@ -25,6 +25,8 @@
 #ifndef __MAPPINGEDITORCOMPONENT_H_C93E7296__
 #define __MAPPINGEDITORCOMPONENT_H_C93E7296__
 
+#ifndef TOUCHKEYS_NO_GUI
+
 #include "../../JuceLibraryCode/JuceHeader.h"
 
 //==============================================================================
@@ -84,5 +86,6 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MappingEditorComponent)
 };
 
+#endif  // TOUCHKEYS_NO_GUI
 
 #endif  // __MAPPINGEDITORCOMPONENT_H_C93E7296__
