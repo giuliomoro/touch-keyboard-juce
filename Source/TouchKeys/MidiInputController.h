@@ -66,7 +66,6 @@ class MidiInputController : public MidiInputCallback {
 public:
 	// Constructor
 	MidiInputController(PianoKeyboard& keyboard);
-
 	
 	// Query available devices
 	vector<pair<int, string> > availableMidiDevices();

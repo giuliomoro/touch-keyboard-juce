@@ -108,6 +108,10 @@
                 compile="0" resource="0" file="Source/Mappings/MultiFingerTrigger/TouchkeyMultiFingerTriggerMappingFactory.h"/>
         </GROUP>
         <GROUP id="{B7052E7F-7DB4-7699-AD97-74D46364BDA3}" name="KeyDivision">
+          <FILE id="EPa41J" name="TouchkeyKeyDivisionMappingShortEditor.cpp"
+                compile="1" resource="0" file="Source/Mappings/KeyDivision/TouchkeyKeyDivisionMappingShortEditor.cpp"/>
+          <FILE id="KtBp9r" name="TouchkeyKeyDivisionMappingShortEditor.h" compile="0"
+                resource="0" file="Source/Mappings/KeyDivision/TouchkeyKeyDivisionMappingShortEditor.h"/>
           <FILE id="eVkMwv" name="TouchkeyKeyDivisionMapping.cpp" compile="1"
                 resource="0" file="Source/Mappings/KeyDivision/TouchkeyKeyDivisionMapping.cpp"/>
           <FILE id="ooctzV" name="TouchkeyKeyDivisionMapping.h" compile="0" resource="0"

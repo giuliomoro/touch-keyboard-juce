@@ -25,7 +25,7 @@
 #include "TouchkeyKeyDivisionMapping.h"
 #include "TouchkeyKeyDivisionMappingFactory.h"
 
-#define DEBUG_KEY_DIVISION_MAPPING
+#undef DEBUG_KEY_DIVISION_MAPPING
 
 const int TouchkeyKeyDivisionMapping::kDefaultNumberOfSegments = 2;
 const timestamp_diff_type TouchkeyKeyDivisionMapping::kDefaultDetectionTimeout = milliseconds_to_timestamp(25.0);

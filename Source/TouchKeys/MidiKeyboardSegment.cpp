@@ -731,7 +731,7 @@ MappingFactory* MidiKeyboardSegment::createMappingFactoryForIndex(int index) {
 
 // Return whethera  given mapping is experimental or not
 bool MidiKeyboardSegment::mappingIsExperimental(int index) {
-    if(index > 2 && index != 4)
+    if(index == 5)
         return true;
     return false;
 }
