@@ -71,6 +71,7 @@ OBJECTS := \
   $(OBJDIR)/TouchkeyMultiFingerTriggerMappingShortEditor_8604e029.o \
   $(OBJDIR)/TouchkeyMultiFingerTriggerMapping_f7bfe8a.o \
   $(OBJDIR)/TouchkeyMultiFingerTriggerMappingFactory_e811112a.o \
+  $(OBJDIR)/TouchkeyKeyDivisionMappingShortEditor_a9e1dc43.o \
   $(OBJDIR)/TouchkeyKeyDivisionMapping_cea38eb0.o \
   $(OBJDIR)/TouchkeyKeyDivisionMappingFactory_33b42a44.o \
   $(OBJDIR)/TouchkeyControlMappingExtendedEditor_bb11f4.o \
@@ -236,6 +237,11 @@ $(OBJDIR)/TouchkeyMultiFingerTriggerMapping_f7bfe8a.o: ../../Source/Mappings/Mul
 $(OBJDIR)/TouchkeyMultiFingerTriggerMappingFactory_e811112a.o: ../../Source/Mappings/MultiFingerTrigger/TouchkeyMultiFingerTriggerMappingFactory.cpp
 	-@mkdir -p $(OBJDIR)
 	@echo "Compiling TouchkeyMultiFingerTriggerMappingFactory.cpp"
+	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
+
+$(OBJDIR)/TouchkeyKeyDivisionMappingShortEditor_a9e1dc43.o: ../../Source/Mappings/KeyDivision/TouchkeyKeyDivisionMappingShortEditor.cpp
+	-@mkdir -p $(OBJDIR)
+	@echo "Compiling TouchkeyKeyDivisionMappingShortEditor.cpp"
 	@$(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 
 $(OBJDIR)/TouchkeyKeyDivisionMapping_cea38eb0.o: ../../Source/Mappings/KeyDivision/TouchkeyKeyDivisionMapping.cpp

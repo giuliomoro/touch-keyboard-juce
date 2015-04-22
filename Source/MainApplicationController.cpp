@@ -106,6 +106,7 @@ MainApplicationController::~MainApplicationController() {
         touchkeySensorTestStop();
 #endif
     removeAllOscListeners();
+    midiInputController_.removeAllSegments();   // Remove segments now to avoid deletion-order problems
     delete mainOscController_;
 }
 

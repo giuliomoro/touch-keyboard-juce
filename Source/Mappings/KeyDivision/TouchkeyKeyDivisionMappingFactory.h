@@ -30,9 +30,19 @@
 
 class TouchkeyKeyDivisionMappingFactory : public TouchkeyBaseMappingFactory<TouchkeyKeyDivisionMapping> {
 private:
-    static const float kDefaultTuningsCents[];
+    static const float kTuningsYarman24c[];
+    static const int kMaxSegmentsPerKey;
     
 public:
+    enum {
+        kTuningPreset19TET = 0,
+        kTuningPreset24TET,
+        kTuningPreset31TET,
+        kTuningPreset36TET,
+        kTuningPresetYarman24c,
+        kTuningPresetMaxValue
+    };
+    
     // ***** Constructor *****
     
 	// Default constructor, containing a reference to the PianoKeyboard class.
@@ -48,10 +58,20 @@ public:
 
     void setName(const string& name);
     
-    // ***** Specific Methods *****
+    // ***** Split-Key Specific Methods *****
+    
+    int getNumberOfSegments() { return numSegmentsPerKey_; }
+    timestamp_diff_type getTimeout() { return timeout_; }
+    int getDetectionParameter() { return detectionParameter_; }
+    bool getRetriggerable() { return retriggerable_; }
+    int getRetriggerNumFrames() { return retriggerNumFrames_; }
+    bool getRetriggerKeepsVelocity() { return retriggerKeepsVelocity_; }
+    int getReferenceNote() { return referenceNote_; }
+    float getGlobalOffset() { return globalOffsetCents_; }
+    int getTuningPreset() { return tuningPreset_; }
     
     void setNumberOfSegments(int segments) {
-        if(segments > 0)
+        if(segments > 0 && segments <= kMaxSegmentsPerKey)
             numSegmentsPerKey_ = segments;
     }
     
@@ -62,15 +82,20 @@ public:
     
     // Set the detection parameter for choosing a segment
     void setDetectionParameter(int detectionParameter) {
-        detectionParameter_ = detectionParameter;
+        if(detectionParameter >= 1 && detectionParameter < TouchkeyKeyDivisionMapping::kDetectionParameterMaxValue)
+            detectionParameter_ = detectionParameter;
     }
     
     // Set whether placing a second finger in the other segment triggers a
-    // new note with that segment.
+    // new note with that segment. Two forms of this...
     void setRetriggerable(bool retrigger, int numFrames, bool keepOriginalVelocity) {
         retriggerable_ = retrigger;
         retriggerNumFrames_ = numFrames;
         retriggerKeepsVelocity_ = keepOriginalVelocity;
+    }
+    
+    void setRetriggerable(bool retrigger) {
+        retriggerable_ = retrigger;
     }
     
     // Set the note that acts as the reference point in a microtonal scale
@@ -83,6 +108,16 @@ public:
         globalOffsetCents_ = offsetCents;
     }
     
+    void setTuningPreset(int preset);
+    
+#ifndef TOUCHKEYS_NO_GUI
+    // ***** GUI Support *****
+    bool hasBasicEditor() { return true; }
+    MappingEditorComponent* createBasicEditor();
+    bool hasExtendedEditor() { return false; }
+    MappingEditorComponent* createExtendedEditor() { return nullptr; }
+#endif
+    
     // ****** Preset Save/Load ******
     XmlElement* getPreset();
     bool loadPreset(XmlElement const* preset);
@@ -92,6 +127,8 @@ private:
     void initializeMappingParameters(int noteNumber, TouchkeyKeyDivisionMapping *mapping);
     void setBendParameters();
     
+    int tuningPreset_;                                  // Number of the preset tuning, if active
+    float *tunings_;                                    // Array of tuning values, set by preset
     int numSegmentsPerKey_;                             // How many segments per key
     timestamp_diff_type timeout_;                       // How long before timeout activates default segment
     int detectionParameter_;                            // Which parameter separates it into segments
@@ -100,6 +137,8 @@ private:
     bool retriggerKeepsVelocity_;                       // Whether a retriggered note keeps the original velocity or a default
     int referenceNote_;                                 // Which note acts as the reference point
     float globalOffsetCents_;                           // Offset of every note in cents
+    
+    CriticalSection tuningMutex_;                       // Mutex to avoid triggers during tuning changes
 };
 
 #endif /* defined(__TouchKeys__TouchkeyKeyDivisionMappingFactory__) */

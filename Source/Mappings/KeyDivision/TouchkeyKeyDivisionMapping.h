@@ -37,7 +37,8 @@ public:
     enum {
         kDetectionParameterYPosition = 1,
         kDetectionParameterNumberOfTouches,
-        kDetectionParameterYPositionAndNumberOfTouches
+        kDetectionParameterYPositionAndNumberOfTouches,
+        kDetectionParameterMaxValue
     };
     
 private:
