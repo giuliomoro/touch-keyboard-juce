@@ -70,8 +70,8 @@ void TouchkeyControlMappingFactory::setInputType(int inputType) {
 }
 
 void TouchkeyControlMappingFactory::setController(int controller) {
-    if(midiControllerNumber_ < 1 ||
-       midiControllerNumber_ >= MidiKeyboardSegment::kControlMax)
+    if(controller < 1 ||
+       controller >= MidiKeyboardSegment::kControlMax)
         return;
     
     // Before changing the controller, check if we were going to or from the pitch wheel.
