@@ -48,6 +48,7 @@ class OscMidiConverter;
 class MidiKeyboardSegment : public OscHandler {
 private:
     static const int kMidiControllerDamperPedal;
+    static const int kMidiControllerSostenutoPedal;
     static const int kPedalActiveValue;
     
 public:
@@ -56,7 +57,8 @@ public:
 		ModeOff = 0,
 		ModePassThrough,
 		ModeMonophonic,
-		ModePolyphonic
+		ModePolyphonic,
+        ModeMPE
 	};
 	
     // The MIDI Pitch Wheel is not handled by control change like the others,
@@ -132,6 +134,16 @@ public:
         }
     }
     
+    bool usesKeyboardPedals() { return usesKeyboardPedals_; }
+    void setUsesKeyboardPedals(bool use) {
+        usesKeyboardPedals_ = use;
+        // Reset to default if not using
+        if(!use) {
+            // MIDI CCs 64 to 69 are for pedals
+            for(int i = 64; i <= 69; i++)
+                controllerValues_[i] = 0;
+        }
+    }
     
     bool usesKeyboardMIDIControllers() { return usesKeyboardMidiControllers_; }
     void setUsesKeyboardMIDIControllers(bool use) {
@@ -175,6 +187,7 @@ public:
 	void setModePassThrough();
     void setModeMonophonic();
 	void setModePolyphonic();
+    void setModeMPE();
     
     // Get/set polyphony and voice stealing for polyphonic mode
     int polyphony() { return retransmitMaxPolyphony_; }
@@ -188,7 +201,7 @@ public:
     
     // Set the minimum MIDI channel that should be used for output (0-15)
     int outputChannelLowest() { return outputChannelLowest_; }
-    void setOutputChannelLowest(int ch) { outputChannelLowest_ = ch; }
+    void setOutputChannelLowest(int ch);
     
     // Get set the output transposition in semitones, relative to input MIDI notes
     int outputTransposition() { return outputTransposition_; }
@@ -266,7 +279,10 @@ private:
 	void modePolyphonicHandler(MidiInput* source, const MidiMessage& message);
 	void modePolyphonicNoteOn(unsigned char note, unsigned char velocity);
 	void modePolyphonicNoteOff(unsigned char note, bool forceOff = false);
-	void modePolyphonicNoteOnCallback(const char *path, const char *types, int numValues, lo_arg **values);
+	void modePolyphonicMPENoteOnCallback(const char *path, const char *types, int numValues, lo_arg **values);
+    
+    void modeMPEHandler(MidiInput* source, const MidiMessage& message);
+    void modeMPENoteOn(unsigned char note, unsigned char velocity);
 
     // Helper functions for polyphonic mode
     void modePolyphonicSetupHelper();
@@ -303,6 +319,7 @@ private:
     bool usesKeyboardChannelPressure_;              // Whether this segment passes aftertouch from the keyboard
     bool usesKeyboardPitchWheel_;                   // Whether this segment passes pitchwheel from the keyboard
     bool usesKeyboardModWheel_;                     // Whether this segment passes CC 1 (mod wheel) from keyboard
+    bool usesKeyboardPedals_;                       // Whether this segment passes CCs 64-69 (pedals) from the keyboard
     bool usesKeyboardMidiControllers_;              // Whether this segment passes other controllers
     float pitchWheelRange_;                         // Range of MIDI pitch wheel (in semitones)
     

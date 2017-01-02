@@ -644,6 +644,7 @@ void KeyboardZoneComponent::createKeyboardControllerPopup()
     menu.addItem(MidiKeyboardSegment::kControlPitchWheel, "Pitch Wheel", true, keyboardSegment_->usesKeyboardPitchWheel());
     menu.addItem(MidiKeyboardSegment::kControlChannelAftertouch, "Aftertouch", true, keyboardSegment_->usesKeyboardChannnelPressure());
     menu.addItem(1, "CC 1 (Mod Wheel)", true, keyboardSegment_->usesKeyboardModWheel());
+    menu.addItem(kKeyboardControllerRetransmitPedals, "Pedals", true, keyboardSegment_->usesKeyboardPedals());
     menu.addItem(kKeyboardControllerRetransmitOthers, "Other Controllers", true, keyboardSegment_->usesKeyboardMIDIControllers());
 
     menu.showMenuAsync(PopupMenu::Options().withTargetComponent(keyboardControllersButton),
@@ -681,6 +682,9 @@ void KeyboardZoneComponent::keyboardControllerChosenCallback(int result)
     }
     else if(result == 1) { // ModWheel == CC 1
         keyboardSegment_->setUsesKeyboardModWheel(!keyboardSegment_->usesKeyboardModWheel());
+    }
+    else if(result == kKeyboardControllerRetransmitPedals) {
+        keyboardSegment_->setUsesKeyboardPedals(!keyboardSegment_->usesKeyboardPedals());
     }
     else if(result == kKeyboardControllerRetransmitOthers) {
         keyboardSegment_->setUsesKeyboardMIDIControllers(!keyboardSegment_->usesKeyboardMIDIControllers());

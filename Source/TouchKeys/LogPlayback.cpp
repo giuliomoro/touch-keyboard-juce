@@ -101,6 +101,8 @@ void LogPlayback::startPlayback(timestamp_type startingTimestamp) {
             timestampOffset_ = playbackScheduler_.currentTimestamp() - firstMidiTimestamp;
     }
     
+    cout << "Touch " << firstTouchTimestamp << " MIDI " << firstMidiTimestamp << " offset " << timestampOffset_ << endl;
+    
     playing_ = true;
     paused_ = false;
     
@@ -277,7 +279,7 @@ timestamp_type LogPlayback::nextTouchEvent() {
             }
         }
         
-        readNextTouchFrame();
+        newTouchFound = readNextTouchFrame();
     }
     
     if(!newTouchFound) { // EOF or error
@@ -297,8 +299,12 @@ timestamp_type LogPlayback::nextMidiEvent() {
     // TODO: handle playback rate
     
     // Play the most recent stored touch frame
-    if(nextMidi_.size() >= 3)
-        midiInputController_.handleIncomingMidiMessage(0, MidiMessage(nextMidi_[0], nextMidi_[1], nextMidi_[2]));
+    if(nextMidi_.size() >= 3) {
+        if((nextMidi_[0] & 0xF0) == 0xD0) // channel aftertouch has 2 bytes
+                midiInputController_.handleIncomingMidiMessage(0, MidiMessage(nextMidi_[0], nextMidi_[1]));
+        else
+            midiInputController_.handleIncomingMidiMessage(0, MidiMessage(nextMidi_[0], nextMidi_[1], nextMidi_[2]));
+    }
     //midiInputController_.rtMidiCallback(nextMidiTimestamp_ - lastMidiTimestamp_, &nextMidi_, 0);
     lastMidiTimestamp_ = nextMidiTimestamp_;
     
@@ -306,8 +312,12 @@ timestamp_type LogPlayback::nextMidiEvent() {
     
     // Go through next touch frames and send them as long as the timestamp is not in the future
     while(newMidiEventFound && (nextMidiTimestamp_ + timestampOffset_) <= playbackScheduler_.currentTimestamp()) {
-        if(nextMidi_.size() >= 3)
-            midiInputController_.handleIncomingMidiMessage(0, MidiMessage(nextMidi_[0], nextMidi_[1], nextMidi_[2]));
+        if(nextMidi_.size() >= 3) {
+            if((nextMidi_[0] & 0xF0) == 0xD0) // channel aftertouch has 2 bytes
+                midiInputController_.handleIncomingMidiMessage(0, MidiMessage(nextMidi_[0], nextMidi_[1]));
+            else
+                midiInputController_.handleIncomingMidiMessage(0, MidiMessage(nextMidi_[0], nextMidi_[1], nextMidi_[2]));
+        }
         //midiInputController_.rtMidiCallback(nextMidiTimestamp_ - lastMidiTimestamp_, &nextMidi_, 0);
         lastMidiTimestamp_ = nextMidiTimestamp_;
         

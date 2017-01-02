@@ -40,6 +40,7 @@ MainApplicationController::MainApplicationController()
   oscReceiver_(0, "/touchkeys"),
   touchkeyController_(keyboardController_),
   touchkeyEmulator_(keyboardController_, oscReceiver_),
+  logPlayback_(0),
 #ifdef TOUCHKEY_ENTROPY_GENERATOR_ENABLE
   touchkeyEntropyGenerator_(keyboardController_),
   entropyGeneratorSelected_(false),
@@ -59,7 +60,8 @@ MainApplicationController::MainApplicationController()
   preferencesWindow_(0),
 #endif
   segmentCounter_(0),
-  loggingActive_(false)
+  loggingActive_(false),
+  isPlayingLog_(false)
 {
     // Set our OSC controller
     setOscController(&keyboardController_);
@@ -105,6 +107,8 @@ MainApplicationController::~MainApplicationController() {
     if(touchkeySensorTestIsRunning())
         touchkeySensorTestStop();
 #endif
+    if(logPlayback_ != 0)
+        delete logPlayback_;
     removeAllOscListeners();
     midiInputController_.removeAllSegments();   // Remove segments now to avoid deletion-order problems
     delete mainOscController_;
@@ -454,6 +458,61 @@ void MainApplicationController::stopLogging() {
 
 void MainApplicationController::setLoggingDirectory(const char *directory) {
     loggingDirectory_ = directory;
+}
+
+void MainApplicationController::playLogWithDialog() {
+    if(isPlayingLog_)
+        return;
+    
+    FileChooser tkChooser ("Select TouchKeys log...",
+                           File::nonexistent, // File::getSpecialLocation (File::userHomeDirectory),
+                           "*.bin");
+    if(tkChooser.browseForFileToOpen()) {
+        FileChooser midiChooser ("Select MIDI log...",
+                               File::nonexistent, // File::getSpecialLocation (File::userHomeDirectory),
+                               "*.bin");
+        if(midiChooser.browseForFileToOpen()) {
+            logPlayback_ = new LogPlayback(keyboardController_, midiInputController_);
+            if(logPlayback_ == 0)
+                return;
+            
+            if(logPlayback_->openLogFiles(tkChooser.getResult().getFullPathName().toRawUTF8(), midiChooser.getResult().getFullPathName().toRawUTF8())) {
+                logPlayback_->startPlayback();
+                isPlayingLog_ = true;
+#ifndef TOUCHKEYS_NO_GUI
+                // Always show 88 keys for log playback since we won't know which keys were actually recorded
+                keyboardDisplay_.setKeyboardRange(21, 108);
+                if(keyboardDisplayWindow_ != 0) {
+                    keyboardDisplayWindow_->getConstrainer()->setFixedAspectRatio(keyboardDisplay_.keyboardAspectRatio());
+                    
+                    Rectangle<int> bounds = keyboardDisplayWindow_->getBounds();
+                    if(bounds.getY() < 44)
+                        bounds.setY(44);
+                    keyboardDisplayWindow_->setBoundsConstrained(bounds);
+                }
+                showKeyboardDisplayWindow();
+#endif
+            }
+        }
+    }
+}
+
+void MainApplicationController::stopPlayingLog() {
+    if(!isPlayingLog_)
+        return;
+    
+    if(logPlayback_ != 0) {
+        logPlayback_->stopPlayback();
+        logPlayback_->closeLogFiles();
+        delete logPlayback_;
+        logPlayback_ = 0;
+    }
+    
+#ifndef TOUCHKEYS_NO_GUI
+    keyboardDisplay_.clearAllTouches();
+#endif
+    midiInputController_.allNotesOff();
+    isPlayingLog_ = false;
 }
 
 // Add a new MIDI keyboard segment. This method also handles numbering of the segments
@@ -1201,6 +1260,31 @@ void MainApplicationController::touchkeySensorTestResetState() {
 }
 
 #endif // ENABLE_TOUCHKEYS_SENSOR_TEST
+
+#ifdef ENABLE_TOUCHKEYS_FIRMWARE_UPDATE
+// Put TouchKeys controller board into bootloader mode, for receiving firmware updates
+// (supplied by a different utility)
+bool MainApplicationController::touchkeyJumpToBootloader(const char *path) {
+    // First, close the existing device which stops the data autogathering
+    closeTouchkeyDevice();
+    
+    // Now reopen the TouchKeys device
+    if(!touchkeyController_.openDevice(path)) {
+        touchkeyErrorMessage_ = "Failed to open";
+        touchkeyErrorOccurred_ = true;
+        return false;
+    }
+    
+    touchkeyController_.jumpToBootloader();
+    
+    // Set an "error" condition to display this message, and because
+    // after jumping to bootloader mode, the device will not open properly
+    // until it has been reset.
+    touchkeyErrorMessage_ = "Firmware update mode";
+    touchkeyErrorOccurred_ = true;
+    return true;
+}
+#endif // ENABLE_TOUCHKEYS_FIRMWARE_UPDATE
 
 // Return the name of a MIDI note given its number
 std::string MainApplicationController::midiNoteName(int noteNumber) {

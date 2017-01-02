@@ -129,6 +129,9 @@ PopupMenu MainWindow::getMenuForIndex(int menuIndex, const String& menuName) {
 #ifdef ENABLE_TOUCHKEYS_SENSOR_TEST
         menu.addCommandItem(&commandManager_, kCommandTestTouchkeySensors);
 #endif
+#ifdef ENABLE_TOUCHKEYS_FIRMWARE_UPDATE
+        menu.addCommandItem(&commandManager_, kCommandJumpToBootloader);
+#endif
         menu.addSeparator();
         menu.addCommandItem(&commandManager_, kCommandPreferences);
     }
@@ -173,6 +176,9 @@ void MainWindow::getAllCommands(Array <CommandID>& commands) {
         kCommandEnableExperimentalMappings,
 #ifdef ENABLE_TOUCHKEYS_SENSOR_TEST
         kCommandTestTouchkeySensors,
+#endif
+#ifdef ENABLE_TOUCHKEYS_FIRMWARE_UPDATE
+        kCommandJumpToBootloader,
 #endif
         kCommandPreferences,
         
@@ -267,12 +273,12 @@ void MainWindow::getCommandInfo(CommandID commandID, ApplicationCommandInfo& res
         case kCommandLoggingStartStop:
             result.setInfo("Record Log File", "Records TouchKeys and MIDI data to file", controlCategory, 0);
             result.setTicked(controller_.isLogging());
-            result.setActive(true);
+            result.setActive(!controller_.isPlayingLog());
             break;
         case kCommandLoggingPlay:
             result.setInfo("Play Log...", "Plays TouchKeys and MIDI from file", controlCategory, 0);
-            result.setTicked(false);
-            result.setActive(false);
+            result.setTicked(controller_.isPlayingLog());
+            result.setActive(!controller_.isLogging());
             break;
         case kCommandEnableExperimentalMappings:
             result.setInfo("Enable Experimental Mappings", "Enables mappings which are still experimental", controlCategory, 0);
@@ -283,6 +289,13 @@ void MainWindow::getCommandInfo(CommandID commandID, ApplicationCommandInfo& res
             result.setInfo("Test TouchKeys Sensors", "Enables a test of individual TouchKeys sensors", controlCategory, 0);
             result.setActive(controller_.availableTouchkeyDevices().size() > 0);
             result.setTicked(controller_.touchkeySensorTestIsRunning());
+            break;
+#endif
+#ifdef ENABLE_TOUCHKEYS_FIRMWARE_UPDATE
+        case kCommandJumpToBootloader:
+            result.setInfo("Go to Firmware Update Mode", "Puts the TouchKeys in firmware update mode", controlCategory, 0);
+            result.setActive(controller_.availableTouchkeyDevices().size() > 0);
+            result.setTicked(false);
             break;
 #endif
         case kCommandPreferences:
@@ -337,7 +350,10 @@ bool MainWindow::perform(const InvocationInfo& info) {
                 controller_.startLogging();
             break;
         case kCommandLoggingPlay:
-            // TODO
+            if(controller_.isPlayingLog())
+                controller_.stopPlayingLog();
+            else
+                controller_.playLogWithDialog();
             break;
         case kCommandEnableExperimentalMappings:
             controller_.setExperimentalMappingsEnabled(!controller_.experimentalMappingsEnabled());
@@ -348,6 +364,11 @@ bool MainWindow::perform(const InvocationInfo& info) {
                 controller_.touchkeySensorTestStart(mainComponent_.currentTouchkeysSelectedPath().toUTF8(), controller_.touchkeyDeviceLowestMidiNote());
             else
                 controller_.touchkeySensorTestStop();
+            break;
+#endif
+#ifdef ENABLE_TOUCHKEYS_FIRMWARE_UPDATE
+        case kCommandJumpToBootloader:
+            controller_.touchkeyJumpToBootloader(mainComponent_.currentTouchkeysSelectedPath().toUTF8());
             break;
 #endif
         case kCommandPreferences:
