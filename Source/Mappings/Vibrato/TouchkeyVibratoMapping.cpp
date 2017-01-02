@@ -253,6 +253,7 @@ void TouchkeyVibratoMapping::triggerReceived(TriggerSource* who, timestamp_type 
                             
                             //distance = fabsf(lastY_ - onsetLocationY_);
                             distance = lastY_ - onsetLocationY_;
+                            //distance = 0; // TESTING
                         }
                         else {
                             // Euclidean distance between points

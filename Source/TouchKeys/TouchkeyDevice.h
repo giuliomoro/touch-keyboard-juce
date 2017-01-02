@@ -111,6 +111,7 @@ enum {
 	kFrameTypeMonitorRawFromKey = 138,
 	kFrameTypeUpdateBaselines = 139,	// Reinitialize baseline values
 	kFrameTypeRescanKeyboard = 140,	// Rescan what keys are connected
+    kFrameTypeEncapsulatedMIDI = 167, // MIDI messages to pass to MIDI standalone firmware
     kFrameTypeRGBLEDSetColors = 168, // Set RGBLEDs of given index to specific values
 	kFrameTypeRGBLEDAllOff = 169,    // All LEDs off
 	kFrameTypeEnterISPMode = 192,

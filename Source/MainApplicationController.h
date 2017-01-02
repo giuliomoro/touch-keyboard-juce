@@ -259,6 +259,12 @@ public:
     bool isLogging() { return loggingActive_; }
     void setLoggingDirectory(const char *directory);
     
+    // Playback methods for log files
+
+    void playLogWithDialog();
+    void stopPlayingLog();
+    bool isPlayingLog() { return isPlayingLog_; }
+    
     // *** OSC handler method (different from OSC device selection) ***
     
 	bool oscHandlerMethod(const char *path, const char *types, int numValues, lo_arg **values, void *data);
@@ -333,6 +339,11 @@ public:
     void touchkeySensorTestResetState();
 #endif
     
+#ifdef ENABLE_TOUCHKEYS_FIRMWARE_UPDATE
+    // Put TouchKeys controller board into bootloader mode
+    bool touchkeyJumpToBootloader(const char *path);
+#endif
+    
     // *** Static utility methods ***
     static std::string midiNoteName(int noteNumber);
     static int midiNoteNumberForName(std::string const& name);
@@ -353,6 +364,7 @@ private:
     OscReceiver oscReceiver_;
     TouchkeyDevice touchkeyController_;
     TouchkeyOscEmulator touchkeyEmulator_;
+    LogPlayback *logPlayback_;
 #ifdef TOUCHKEY_ENTROPY_GENERATOR_ENABLE
     TouchkeyEntropyGenerator touchkeyEntropyGenerator_;
     bool entropyGeneratorSelected_;
@@ -385,7 +397,7 @@ private:
     int segmentCounter_;
     
     // Logging info
-    bool loggingActive_;
+    bool loggingActive_, isPlayingLog_;
     std::string loggingDirectory_;
 };
 

@@ -54,6 +54,7 @@ private:
         kCommandLoggingPlay,
         kCommandEnableExperimentalMappings,
         kCommandTestTouchkeySensors,
+        kCommandJumpToBootloader,
         kCommandPreferences,
         
         // Window menu

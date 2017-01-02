@@ -42,6 +42,7 @@
 #undef DEBUG_MIDI_KEYBOARD_SEGMENT
 
 const int MidiKeyboardSegment::kMidiControllerDamperPedal = 64;
+const int MidiKeyboardSegment::kMidiControllerSostenutoPedal = 66;
 const int MidiKeyboardSegment::kPedalActiveValue = 64;
 
 // Factores to use
@@ -57,7 +58,8 @@ MidiKeyboardSegment::MidiKeyboardSegment(PianoKeyboard& keyboard)
   noteMin_(0), noteMax_(127), outputChannelLowest_(0), outputTransposition_(0),
   damperPedalEnabled_(true), touchkeyStandaloneMode_(false),
   usesKeyboardChannelPressure_(false), usesKeyboardPitchWheel_(false),
-  usesKeyboardModWheel_(false), usesKeyboardMidiControllers_(false),
+  usesKeyboardModWheel_(false), usesKeyboardPedals_(true),
+  usesKeyboardMidiControllers_(false),
   pitchWheelRange_(2.0), useVoiceStealing_(false)
 {
 	// Register for OSC messages from the internal keyboard source
@@ -163,6 +165,7 @@ void MidiKeyboardSegment::setMidiPitchWheelRange(float semitones, bool send) {
 // If in polyphonic mode, send to all channels; otherwise send only
 // to the channel in question.
 void MidiKeyboardSegment::sendMidiPitchWheelRange() {
+    // MPE-TODO
     if(mode_ == ModePolyphonic) {
         for(int i = outputChannelLowest_; i < outputChannelLowest_ + retransmitMaxPolyphony_; i++)
             sendMidiPitchWheelRangeHelper(i);
@@ -216,6 +219,8 @@ void MidiKeyboardSegment::setMode(int mode) {
         setModeMonophonic();
     else if(mode == ModePolyphonic)
         setModePolyphonic();
+    else if(mode == ModeMPE)
+        setModeMPE();
     else
         setModeOff();
 }
@@ -260,6 +265,28 @@ void MidiKeyboardSegment::setModePolyphonic() {
     modePolyphonicSetupHelper();
 }
 
+void MidiKeyboardSegment::setModeMPE() {
+    // First turn off any notes in the current mode
+    allNotesOff();
+    
+    // MPE-TODO some things need to be set to master-zone retransmit
+    // also reset pitch wheel value to 0 since it's sent separately
+    setAllControllerActionsTo(kControlActionBroadcast);
+    
+    // Register a callback for touchkey data.  When we get a note-on message,
+    // we request this callback occur once touch data is available.  In this mode,
+    // we know the eventual channel before any touch data ever occurs: thus, we
+    // only listen to the MIDI onset itself, which happens after all the touch
+    // data is sent out.
+    addOscListener("/midi/noteon");
+    
+    mode_ = ModeMPE;
+    
+    // MPE-TODO
+    // Set RPN 6 to enable MPE with the appropriate zone
+    
+}
+
 // Set the maximum polyphony, affecting polyphonic mode only
 void MidiKeyboardSegment::setPolyphony(int polyphony) {
     // First turn off any notes if this affects current polyphonic mode
@@ -273,7 +300,13 @@ void MidiKeyboardSegment::setPolyphony(int polyphony) {
         retransmitMaxPolyphony_ = 16;
     else
         retransmitMaxPolyphony_ = polyphony;
-    modePolyphonicSetupHelper();
+    
+    // MPE-TODO
+    // Send RPN 6 to change the zone configuration
+    // -- maybe in modePolyphonicSetupHelper()
+    
+    if(mode_ == ModePolyphonic)
+        modePolyphonicSetupHelper();
 }
 
 // Set whether the damper pedal is enabled or not
@@ -285,6 +318,13 @@ void MidiKeyboardSegment::setDamperPedalEnabled(bool enable) {
     }
     
     damperPedalEnabled_ = enable;
+}
+
+// Set the lowest output channel
+void MidiKeyboardSegment::setOutputChannelLowest(int ch) {
+    // FIXME this is probably broken for polyphonic mode!
+    // MPE-TODO: send new RPN 6 for disabling old zone and creating new one
+    outputChannelLowest_ = ch;
 }
 
 // Handle an incoming MIDI message
@@ -300,7 +340,8 @@ void MidiKeyboardSegment::midiHandlerMethod(MidiInput* source, const MidiMessage
         // (damper pedal enabled) && (pedal is down) && (polyphonic mode)
         // In this condition, onsets will be removed when note goes off
         if(message.getNoteNumber() >= 0 && message.getNoteNumber() < 128) {
-            if(!damperPedalEnabled_ || controllerValues_[kMidiControllerDamperPedal] < kPedalActiveValue || mode_ != ModePolyphonic) {
+            if(!damperPedalEnabled_ || controllerValues_[kMidiControllerDamperPedal] < kPedalActiveValue ||
+               (mode_ != ModePolyphonic && mode_ != ModeMPE)) {
                 noteOnsetTimestamps_[message.getNoteNumber()] = 0;
             }
         }
@@ -321,8 +362,17 @@ void MidiKeyboardSegment::midiHandlerMethod(MidiInput* source, const MidiMessage
         }
         
         if(message.getControllerNumber() >= 0 && message.getControllerNumber() < 128) {
-            if((message.getControllerNumber() == 1 && usesKeyboardModWheel_) ||
-               (message.getControllerNumber() != 1 && usesKeyboardMidiControllers_)) {
+            if(message.getControllerNumber() == 1 && usesKeyboardModWheel_) {
+                controllerValues_[message.getControllerNumber()] = message.getControllerValue();
+                handleControlChangeRetransit(message.getControllerNumber(), message);
+            }
+            else if(message.getControllerNumber() >= 64 && message.getControllerNumber() <= 69
+                     && usesKeyboardPedals_) {
+                // MPE-TODO send this on master zone
+                controllerValues_[message.getControllerNumber()] = message.getControllerValue();
+                handleControlChangeRetransit(message.getControllerNumber(), message);
+            }
+            else if(usesKeyboardMidiControllers_) {
                 controllerValues_[message.getControllerNumber()] = message.getControllerValue();
                 handleControlChangeRetransit(message.getControllerNumber(), message);
             }
@@ -336,8 +386,13 @@ void MidiKeyboardSegment::midiHandlerMethod(MidiInput* source, const MidiMessage
     }
     else if(message.isPitchWheel()) {
         if(usesKeyboardPitchWheel_) {
-            controllerValues_[kControlPitchWheel] = message.getPitchWheelValue();
-            handleControlChangeRetransit(kControlPitchWheel, message);
+            if(mode_ == ModeMPE) {
+                // MPE-TODO send this on master zone instead of putting it into the calculations
+            }
+            else {
+                controllerValues_[kControlPitchWheel] = message.getPitchWheelValue();
+                handleControlChangeRetransit(kControlPitchWheel, message);
+            }
         }
     }
     else {
@@ -351,6 +406,9 @@ void MidiKeyboardSegment::midiHandlerMethod(MidiInput* source, const MidiMessage
                 break;
             case ModePolyphonic:
                 modePolyphonicHandler(source, message);
+                break;
+            case ModeMPE:
+                modeMPEHandler(source, message);
                 break;
             case ModeOff:
             default:
@@ -389,8 +447,8 @@ bool MidiKeyboardSegment::oscHandlerMethod(const char *path, const char *types, 
         }
     }
     
-	if(mode_ == ModePolyphonic) {
-		modePolyphonicNoteOnCallback(path, types, numValues, values);
+	if(mode_ == ModePolyphonic || mode_ == ModeMPE) {
+		modePolyphonicMPENoteOnCallback(path, types, numValues, values);
 	}
 	
 	return true;
@@ -541,14 +599,15 @@ OscMessage* MidiKeyboardSegment::oscControlMethod(const char *path, const char *
     }
     else if(!strcmp(path, "/set-controller-pass")) {
         // Set which controllers to pass through
-        // Arguments: (channel pressure), (pitch wheel), (mod wheel), (other CCs)
+        // Arguments: (channel pressure), (pitch wheel), (mod wheel), (pedals), (other CCs)
         
-        if(numValues >= 4) {
-            if(types[0] == 'i' && types[1] == 'i' && types[2] == 'i' && types[3] == 'i') {
+        if(numValues >= 5) {
+            if(types[0] == 'i' && types[1] == 'i' && types[2] == 'i' && types[3] == 'i' && types[4] == 'i') {
                 setUsesKeyboardChannelPressure(values[0]->i != 0);
                 setUsesKeyboardPitchWheel(values[1]->i != 0);
                 setUsesKeyboardModWheel(values[2]->i != 0);
-                setUsesKeyboardMIDIControllers(values[3]->i != 0);
+                setUsesKeyboardPedals(values[3]->i != 0);
+                setUsesKeyboardMIDIControllers(values[4]->i != 0);
                 
                 return OscTransmitter::createSuccessMessage();
             }
@@ -590,6 +649,8 @@ OscMessage* MidiKeyboardSegment::oscControlMethod(const char *path, const char *
                     setModeMonophonic();
                 else if(!strncmp(mode, "poly", 4))
                     setModePolyphonic();
+                else if(!strncmp(mode, "mpe", 3))
+                    setModeMPE();
                 else
                     return OscTransmitter::createFailureMessage();
 
@@ -861,6 +922,7 @@ XmlElement* MidiKeyboardSegment::getPreset() {
     properties.setValue("usesKeyboardChannelPressure", usesKeyboardChannelPressure_);
     properties.setValue("usesKeyboardPitchWheel", usesKeyboardPitchWheel_);
     properties.setValue("usesKeyboardModWheel", usesKeyboardModWheel_);
+    properties.setValue("usesKeyboardPedals", usesKeyboardPedals_);
     properties.setValue("usesKeyboardMidiControllers", usesKeyboardMidiControllers_);
     properties.setValue("pitchWheelRange", pitchWheelRange_);
     properties.setValue("retransmitMaxPolyphony", retransmitMaxPolyphony_);
@@ -904,6 +966,8 @@ bool MidiKeyboardSegment::loadPreset(XmlElement const* preset) {
         setModeMonophonic();
     else if(mode == ModePolyphonic)
         setModePolyphonic();
+    else if(mode == ModeMPE)
+        setModeMPE();
     else // Off or unknown
         setModeOff();
     if(!properties.containsKey("channelMask"))
@@ -933,6 +997,10 @@ bool MidiKeyboardSegment::loadPreset(XmlElement const* preset) {
     if(!properties.containsKey("usesKeyboardModWheel"))
         return false;
     usesKeyboardModWheel_ = properties.getBoolValue("usesKeyboardModWheel");
+    if(properties.containsKey("usesKeyboardPedals"))
+        usesKeyboardPedals_ = properties.getBoolValue("usesKeyboardPedals");
+    else
+        usesKeyboardPedals_ = false;    // For backwards compatibility with older versions
     if(!properties.containsKey("usesKeyboardMidiControllers"))
         return false;
     usesKeyboardMidiControllers_ = properties.getBoolValue("usesKeyboardMidiControllers");
@@ -941,7 +1009,7 @@ bool MidiKeyboardSegment::loadPreset(XmlElement const* preset) {
     pitchWheelRange_ = properties.getDoubleValue("pitchWheelRange");
     if(!properties.containsKey("retransmitMaxPolyphony"))
         return false;
-    retransmitMaxPolyphony_ = properties.getIntValue("retransmitMaxPolyphony");
+    setPolyphony(properties.getIntValue("retransmitMaxPolyphony"));
     if(!properties.containsKey("useVoiceStealing"))
         return false;
     useVoiceStealing_ = properties.getBoolValue("useVoiceStealing");
@@ -1141,6 +1209,22 @@ void MidiKeyboardSegment::modePolyphonicHandler(MidiInput* source, const MidiMes
 void MidiKeyboardSegment::modePolyphonicNoteOn(unsigned char note, unsigned char velocity) {
     int newChannel = -1;
     
+#ifdef DEBUG_MIDI_KEYBOARD_SEGMENT
+    cout << "Channels available: ";
+    for(set<int>::iterator it = retransmitChannelsAvailable_.begin();
+        it != retransmitChannelsAvailable_.end(); ++it) {
+        cout << *it << " ";
+    }
+    cout << endl;
+    
+    cout << "Channels allocated: ";
+    for(map<int, int>::iterator it = retransmitChannelForNote_.begin();
+        it != retransmitChannelForNote_.end(); ++it) {
+        cout << it->second << "(" << it->first << ") ";
+    }
+    cout << endl;
+#endif
+    
     if(retransmitNotesHeldInPedal_.count(note) > 0) {
         // For notes that are still sounding in the pedal, reuse the same MIDI channel
         // they had before.
@@ -1173,13 +1257,6 @@ void MidiKeyboardSegment::modePolyphonicNoteOn(unsigned char note, unsigned char
                     cout << "Stealing note " << oldNote << " from pedal for note " << (int)note << endl;
 #endif
                     modePolyphonicNoteOff(oldNote, true);
-                    if(oldChannel >= 0) {
-                        //midiOutputController_->sendControlChange(outputPortNumber_, oldChannel, kMidiControllerDamperPedal, 0);
-                        //midiOutputController_->sendControlChange(outputPortNumber_, oldChannel, kMidiControlAllNotesOff, 0);
-                        //midiOutputController_->sendControlChange(outputPortNumber_, oldChannel, kMidiControlAllSoundOff, 0);
-                        //midiOutputController_->sendControlChange(outputPortNumber_, oldChannel, kMidiControllerDamperPedal,
-                        //                                         controllerValues_[kMidiControllerDamperPedal]);
-                    }
                 }
             }
             
@@ -1202,13 +1279,6 @@ void MidiKeyboardSegment::modePolyphonicNoteOn(unsigned char note, unsigned char
                     cout << "Stealing note " << oldNote << " for note " << (int)note << endl;
 #endif
                     modePolyphonicNoteOff(oldNote, true);
-                    if(oldChannel >= 0) {
-                        //midiOutputController_->sendControlChange(outputPortNumber_, oldChannel, kMidiControllerDamperPedal, 0);
-                        //midiOutputController_->sendControlChange(outputPortNumber_, oldChannel, kMidiControlAllNotesOff, 0);
-                        //midiOutputController_->sendControlChange(outputPortNumber_, oldChannel, kMidiControlAllSoundOff, 0);
-                        //midiOutputController_->sendControlChange(outputPortNumber_, oldChannel, kMidiControllerDamperPedal,
-                        //                                         controllerValues_[kMidiControllerDamperPedal]);
-                    }
                 }
                 else {
                     // No channels available.  Print a warning and finish
@@ -1247,12 +1317,31 @@ void MidiKeyboardSegment::modePolyphonicNoteOff(unsigned char note, bool forceOf
 	if(keyboard_.key(note) != 0) {
 		keyboard_.key(note)->midiNoteOff(this, keyboard_.schedulerCurrentTimestamp());
 	}
-	
-	// Send a Note Off message to the appropriate channel
-	if(midiOutputController_ != 0) {
-		midiOutputController_->sendNoteOff(outputPortNumber_, retransmitChannelForNote_[note], note + outputTransposition_);
-	}
-	
+
+    int oldNoteChannel = retransmitChannelForNote_[note];
+    
+    if(midiOutputController_ != 0) {
+        if(forceOff) {
+            // To silence a note, we need to clear any pedals that might be holding it
+            if(controllerValues_[kMidiControllerDamperPedal] >= kPedalActiveValue) {
+                midiOutputController_->sendControlChange(outputPortNumber_, oldNoteChannel,
+                                                         kMidiControllerDamperPedal, 0);
+            }
+            if(controllerValues_[kMidiControllerSostenutoPedal] >= kPedalActiveValue) {
+                midiOutputController_->sendControlChange(outputPortNumber_, oldNoteChannel,
+                                                         kMidiControllerSostenutoPedal, 0);
+            }
+            
+            // Send All Notes Off and All Sound Off
+            midiOutputController_->sendControlChange(outputPortNumber_, oldNoteChannel, kMidiControlAllNotesOff, 0);
+            midiOutputController_->sendControlChange(outputPortNumber_, oldNoteChannel, kMidiControlAllSoundOff, 0);
+        }
+        else {
+            // Send a Note Off message to the appropriate channel
+            midiOutputController_->sendNoteOff(outputPortNumber_, oldNoteChannel, note + outputTransposition_);
+        }
+    }
+    
     // If the pedal is enabled and currently active, don't re-enable this channel
     // just yet. Instead, let the note continue ringing until we have to steal it later.
     if(damperPedalEnabled_ && controllerValues_[kMidiControllerDamperPedal] >= kPedalActiveValue && !forceOff) {
@@ -1267,6 +1356,20 @@ void MidiKeyboardSegment::modePolyphonicNoteOff(unsigned char note, bool forceOf
         if(note >= 0 && note < 128)
             noteOnsetTimestamps_[note] = 0;
     }
+    
+    if(forceOff) {
+        // Now re-enable any pedals that we might have temporarily lifted on this channel
+        if(controllerValues_[kMidiControllerDamperPedal] >= kPedalActiveValue) {
+            midiOutputController_->sendControlChange(outputPortNumber_, oldNoteChannel,
+                                                     kMidiControllerDamperPedal,
+                                                     controllerValues_[kMidiControllerDamperPedal]);
+        }
+        if(controllerValues_[kMidiControllerSostenutoPedal] >= kPedalActiveValue) {
+            midiOutputController_->sendControlChange(outputPortNumber_, oldNoteChannel,
+                                                     kMidiControllerSostenutoPedal,
+                                                     controllerValues_[kMidiControllerSostenutoPedal]);
+        }
+    }
 }
 
 // Callback function after we request a note on.  PianoKey class will respond
@@ -1274,7 +1377,7 @@ void MidiKeyboardSegment::modePolyphonicNoteOff(unsigned char note, bool forceOf
 // indicating an absence of touch data.  Once we receive this, we can send the
 // MIDI note on message.
 
-void MidiKeyboardSegment::modePolyphonicNoteOnCallback(const char *path, const char *types, int numValues, lo_arg **values) {
+void MidiKeyboardSegment::modePolyphonicMPENoteOnCallback(const char *path, const char *types, int numValues, lo_arg **values) {
 	if(numValues < 3)	// Sanity check: first 3 values hold MIDI information
 		return;
 	if(types[0] != 'i' || types[1] != 'i' || types[2] != 'i')
@@ -1298,10 +1401,29 @@ void MidiKeyboardSegment::modePolyphonicNoteOnCallback(const char *path, const c
 	}
 }
 
+// MPE (Multidimensional Polyphonic Expression): Each incoming note gets its own unique MIDI channel.
+// Like polyphonic mode but implementing the details of the MPE specification which differ subtly
+// from a straightforward polyphonic allocation
+void MidiKeyboardSegment::modeMPEHandler(MidiInput* source, const MidiMessage& message) {
+    // MPE-TODO
+}
+
+// Handle note on message in MPE mode.  Allocate a new channel
+// for this note and rebroadcast it.
+void MidiKeyboardSegment::modeMPENoteOn(unsigned char note, unsigned char velocity) {
+    // MPE-TODO
+    // allocate notes to channels like polyphonic mode, with certain changes:
+    // -- round-robin as default rather than first available
+    // -- different stealing behaviour:
+    // ---- when no channels are available, add to an existing one with the fewest sounding notes
+    // ---- old note doesn't need to be turned off, but it could(?) have its mappings disabled
+}
+
 // Private helper method to handle changes in polyphony
 void MidiKeyboardSegment::modePolyphonicSetupHelper() {
-    if(retransmitMaxPolyphony_ > 16)
-		retransmitMaxPolyphony_ = 16;	// Limit polyphony to 16 (number of MIDI channels
+    // Limit polyphony to 16 (number of MIDI channels) or fewer if starting above channel 1
+    if(retransmitMaxPolyphony_ + outputChannelLowest_ > 16)
+		retransmitMaxPolyphony_ = 16 - outputChannelLowest_;
     retransmitChannelsAvailable_.clear();
 	for(int i = outputChannelLowest_; i < outputChannelLowest_ + retransmitMaxPolyphony_; i++)
 		retransmitChannelsAvailable_.insert(i);
@@ -1394,6 +1516,7 @@ int MidiKeyboardSegment::newestNote() {
 // retransit or not to outgoing MIDI channels depending on the current behaviour defined in
 // controllerActions_.
 void MidiKeyboardSegment::handleControlChangeRetransit(int controllerNumber, const MidiMessage& message) {
+    // MPE-TODO need a new mode for sending on master zone, e.g. for pitch wheel
     if(midiOutputController_ == 0)
         return;
     if(controllerActions_[controllerNumber] == kControlActionPassthrough) {

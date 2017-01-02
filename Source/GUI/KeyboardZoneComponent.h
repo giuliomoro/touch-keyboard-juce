@@ -122,7 +122,8 @@ private:
     enum {
         // Special commands for keyboard controller popup button
         kKeyboardControllerRetransmitOthers = 2000,
-        kKeyboardControllerSendPitchWheelRange
+        kKeyboardControllerSendPitchWheelRange,
+        kKeyboardControllerRetransmitPedals
     };
 
     // Update list of MIDI output devices

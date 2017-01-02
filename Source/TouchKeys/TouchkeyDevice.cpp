@@ -771,11 +771,12 @@ bool TouchkeyDevice::setKeyUpdateBaseline(int octave, int key) {
 
 // Jump to the built-in bootloader of the TouchKeys device
 void TouchkeyDevice::jumpToBootloader() {
+    // The command includes a 4-byte magic number to avoid a corrupt packet accidentally triggering the jump
 	unsigned char command[] = {ESCAPE_CHARACTER, kControlCharacterFrameBegin, kFrameTypeEnterSelfProgramMode,
-		ESCAPE_CHARACTER, kControlCharacterFrameEnd};
+		0xA1, 0xB2, 0xC3, 0xD4, ESCAPE_CHARACTER, kControlCharacterFrameEnd};
 	
 	// Send command
-	if(deviceWrite((char*)command, 5) < 0) {
+	if(deviceWrite((char*)command, 9) < 0) {
         if(verbose_ >= 1)
             cout << "ERROR: unable to write jumpToBootloader command.  errno = " << errno << endl;
 	}
