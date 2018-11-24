@@ -39,7 +39,7 @@
 */
 class TouchkeyPitchBendMappingShortEditor  : public MappingEditorComponent,
                                              public TextEditor::Listener,
-                                             public ComboBoxListener
+                                             public ComboBox::Listener
 {
 public:
     //==============================================================================

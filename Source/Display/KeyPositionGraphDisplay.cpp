@@ -26,6 +26,8 @@
 #include "OpenGLJuceCanvas.h"
 #include <iostream>
 #include <cmath>
+//#include <GLES/gl.h>
+#include <GL/gl.h>
 
 // Class constants
 // Display margins

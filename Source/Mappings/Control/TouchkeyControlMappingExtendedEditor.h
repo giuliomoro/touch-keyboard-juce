@@ -39,8 +39,8 @@
 */
 class TouchkeyControlMappingExtendedEditor  : public MappingEditorComponent,
                                               public TextEditor::Listener,
-                                              public ComboBoxListener,
-                                              public ButtonListener
+                                              public ComboBox::Listener,
+                                              public Button::Listener
 {
 public:
     //==============================================================================

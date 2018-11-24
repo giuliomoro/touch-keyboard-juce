@@ -41,8 +41,8 @@
 */
 class KeyboardZoneComponent  : public Component,
                                public TextEditor::Listener,
-                               public ComboBoxListener,
-                               public ButtonListener
+                               public ComboBox::Listener,
+                               public Button::Listener
 {
 public:
     //==============================================================================

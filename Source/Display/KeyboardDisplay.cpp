@@ -23,6 +23,8 @@
 
 #include "KeyboardDisplay.h"
 #include "OpenGLJuceCanvas.h"
+#include<gl/GL.h>
+#include<gl/GLU.h>
 #include <iostream>
 #include <cmath>
 

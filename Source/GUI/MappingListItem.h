@@ -40,7 +40,7 @@ class MappingListComponent;
                                                                     //[/Comments]
 */
 class MappingListItem  : public Component,
-                         public ButtonListener
+                         public Button::Listener
 {
 public:
     //==============================================================================

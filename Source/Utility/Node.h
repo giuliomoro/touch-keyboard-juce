@@ -34,6 +34,8 @@
 #include <set>
 #include <cmath>
 #include <stdint.h>
+#include <boost/iterator.hpp>
+#include <boost/utility.hpp>
 #include <boost/circular_buffer.hpp>
 #include <boost/lambda/lambda.hpp>
 #include "Types.h"
