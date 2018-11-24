@@ -39,7 +39,7 @@
 */
 class TouchkeyVibratoMappingShortEditor  : public MappingEditorComponent,
                                            public TextEditor::Listener,
-                                           public ComboBoxListener
+                                           public ComboBox::Listener
 {
 public:
     //==============================================================================

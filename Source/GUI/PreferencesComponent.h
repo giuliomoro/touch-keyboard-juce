@@ -38,8 +38,8 @@ class MainApplicationController;
                                                                     //[/Comments]
 */
 class PreferencesComponent  : public Component,
-                              public ComboBoxListener,
-                              public ButtonListener
+                              public ComboBox::Listener,
+                              public Button::Listener
 {
 public:
     //==============================================================================
