@@ -78,24 +78,12 @@ template<> struct missing_value<unsigned long long> {
 	static const bool isMissing(unsigned long long val) { return (val == missing()); }
 };
 template<> struct missing_value<float> { 
-	static const float missing() { return std::numeric_limits<float>::quiet_NaN(); } 
-	static const bool isMissing(float val) { 
-#ifdef _MSC_VER
-		return (_isnan(val) != 0);
-#else
-		return std::isnan(val); 
-#endif
-	}
+	static const float missing() { return std::numeric_limits<float>::infinity(); }
+	static const bool isMissing(float val) { return val == missing(); }
 };
 template<> struct missing_value<double> { 
-	static const double missing() { return std::numeric_limits<double>::quiet_NaN(); } 
-	static const bool isMissing(double val) {
-#ifdef _MSC_VER
-		return (_isnan(val) != 0);
-#else
-		return std::isnan(val);  
-#endif
-	}
+	static const double missing() { return std::numeric_limits<double>::infinity(); }
+	static const bool isMissing(double val) { return val == missing(); }
 };
 template<typename T1, typename T2>
 struct missing_value<std::pair<T1,T2> > {
